@@ -12,43 +12,54 @@ import {
   Upload,
 } from "lucide-react";
 
+import Link from "next/link";
+
 const navigation = [
   {
     label: "Beranda",
     icon: Home,
     active: true,
+    href: "/home"
   },
   {
     label: "Baca Teks",
     icon: BookOpenText,
+    href: "/read"
   },
   {
     label: "Simplify & Ringkasan",
     icon: ListChecks,
+    href: "/simplify"
   },
   {
     label: "Reading Comprehension",
     icon: CircleHelp,
+    href: "/comprehension"
   },
   {
     label: "Latihan Kata",
     icon: Target,
+    href: "/latihan"
   },
   {
     label: "Penilaian Membaca (Suara)",
     icon: Mic,
+    href: "/penilaian"
   },
   {
     label: "Progress & Achievement",
     icon: BarChart3,
+    href: "/achievement"
   },
   {
     label: "Pengaturan",
     icon: Settings,
+    href: "/pengaturan"
   },
   {
     label: "Bantuan",
     icon: CircleHelp,
+    href: "/bantuan"
   },
 ];
 
@@ -77,8 +88,9 @@ export function Sidebar() {
             const Icon = item.icon;
 
             return (
-              <button
+              <Link 
                 key={item.label}
+                href={item.href}
                 className={[
                   "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[11px] font-medium transition",
                   item.active
@@ -97,7 +109,7 @@ export function Sidebar() {
                 />
 
                 <span className="leading-tight">{item.label}</span>
-              </button>
+              </Link>
             );
           })}
         </div>
