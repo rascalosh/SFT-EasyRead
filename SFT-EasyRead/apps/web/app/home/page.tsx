@@ -1,3 +1,4 @@
+import { Dashboard } from "../../components/dashboard/Dashboard";
 import { Sidebar } from "../../components/layout/Sidebar";
 
 export default function HomePage() {
@@ -8,8 +9,7 @@ export default function HomePage() {
 
         <section className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
-          <h1>HOME PAGE</h1>
-          {/* Dashboard */}
+          <Dashboard />
         </section>
       </div>
     </main>

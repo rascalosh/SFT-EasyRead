@@ -125,7 +125,7 @@ export function Sidebar() {
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-[10px] font-semibold text-slate-800">
-            Jon Nathan
+            Nerdcore
           </p>
 
           <p className="text-[9px] text-slate-500">Level 2</p>
