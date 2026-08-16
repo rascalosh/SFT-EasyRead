@@ -2,7 +2,7 @@ export function Welcome() {
   return (
     <div className="mb-6">
       <h1 className="text-lg font-bold tracking-tight text-slate-800 sm:text-xl">
-        Selamat datang kembali, Jon!
+        Selamat datang kembali, Nerdcore!
         <span className="ml-1">👋</span>
       </h1>
 

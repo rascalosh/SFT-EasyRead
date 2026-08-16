@@ -54,7 +54,7 @@ const navigation = [
 
 export function Sidebar() {
   return (
-    <aside className="hidden w-[172px] shrink-0 border-r border-slate-200 bg-white xl:flex xl:flex-col">
+    <aside className="hidden h-screen w-[172px] shrink-0 overflow-y-auto border-r border-slate-200 bg-white xl:flex xl:flex-col">
       {/* Logo */}
       <div className="flex h-[100px] items-center justify-center border-b border-slate-100">
         <div className="flex flex-col items-center">
