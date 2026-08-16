@@ -1,3 +1,5 @@
+'use client'
+
 import {
   BarChart3,
   BookOpen,
@@ -5,6 +7,7 @@ import {
   CircleHelp,
   Home,
   ListChecks,
+  LucideIcon,
   Mic,
   Settings,
   Sparkles,
@@ -13,12 +16,18 @@ import {
 } from "lucide-react";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-const navigation = [
+interface NavItem {
+  label: string, 
+  icon: LucideIcon,
+  href: string
+}
+
+const navItems: NavItem[] = [
   {
     label: "Beranda",
     icon: Home,
-    active: true,
     href: "/home"
   },
   {
@@ -64,6 +73,8 @@ const navigation = [
 ];
 
 export function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="hidden h-screen w-[172px] shrink-0 overflow-y-auto border-r border-slate-200 bg-white xl:flex xl:flex-col">
       {/* Logo */}
@@ -84,8 +95,9 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
         <div className="space-y-1">
-          {navigation.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
+            const isActive = pathname === item.href;
 
             return (
               <Link 
@@ -93,7 +105,7 @@ export function Sidebar() {
                 href={item.href}
                 className={[
                   "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[11px] font-medium transition",
-                  item.active
+                  isActive
                     ? "bg-blue-50 text-blue-600"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                 ].join(" ")}
@@ -101,7 +113,7 @@ export function Sidebar() {
                 <Icon
                   className={[
                     "h-[16px] w-[16px] shrink-0",
-                    item.active
+                    isActive
                       ? "text-blue-600"
                       : "text-slate-500 group-hover:text-slate-700",
                   ].join(" ")}
