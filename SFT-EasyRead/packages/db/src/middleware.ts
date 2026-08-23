@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-export function updateSession(request: NextRequest) {
+export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
     request,
   })
@@ -32,7 +32,7 @@ export function updateSession(request: NextRequest) {
     }
   )
 
-  supabase.auth.getUser()
+  await supabase.auth.getUser()
 
   return response
 }
