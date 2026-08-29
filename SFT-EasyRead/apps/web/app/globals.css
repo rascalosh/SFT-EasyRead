@@ -6,26 +6,26 @@
   --font-reading: var(--font-atkinson), var(--font-lexend), sans-serif;
   --font-mono: var(--font-dm-mono), ui-monospace, "Cascadia Code", monospace;
 
-  --color-canvas: #f2ede3;
-  --color-surface: #faf7f0;
+  --color-canvas: #eeeeee;
+  --color-surface: #f6f6f6;
   --color-surface-raised: #ffffff;
-  --color-reading: #fcf6e7;
-  --color-reading-alt: #f5f0e8;
+  --color-reading: #f9f9f9;
+  --color-reading-alt: #f2f2f2;
 
-  --color-ink: #1e2d3d;
-  --color-ink-soft: #4d5f72;
-  --color-ink-mute: #8592a0;
-  --color-ink-faint: #b5bdc6;
+  --color-ink: #1B3C53;
+  --color-ink-soft: #456882;
+  --color-ink-mute: #7a96a8;
+  --color-ink-faint: #aabdca;
 
-  --color-brand: #2563d4;
-  --color-brand-strong: #1a4aad;
-  --color-brand-soft: #deeafb;
-  --color-brand-softer: #eef4fd;
-  --color-brand-ink: #f8fbff;
+  --color-brand: #234C6A;
+  --color-brand-strong: #1B3C53;
+  --color-brand-soft: #d6e4ed;
+  --color-brand-softer: #eaf1f6;
+  --color-brand-ink: #f4f8fb;
 
-  --color-line: #e0d9ca;
-  --color-line-soft: #ebe5d6;
-  --color-line-strong: #c9c0ae;
+  --color-line: #E3E3E3;
+  --color-line-soft: #ebebeb;
+  --color-line-strong: #c8c8c8;
 
   --color-good: #1e7a53;
   --color-good-strong: #155c3d;
@@ -63,13 +63,13 @@
   --color-lavender-soft: #ede9f7;
   --color-lavender-ink: #f8f6fc;
 
-  --shadow-xs: 0 1px 2px rgba(30,45,61,0.06);
-  --shadow-sm: 0 1px 4px rgba(30,45,61,0.08), 0 1px 2px rgba(30,45,61,0.05);
-  --shadow-md: 0 4px 12px rgba(30,45,61,0.10), 0 1px 3px rgba(30,45,61,0.06);
-  --shadow-lg: 0 8px 24px rgba(30,45,61,0.12), 0 2px 6px rgba(30,45,61,0.07);
-  --shadow-xl: 0 16px 40px rgba(30,45,61,0.15), 0 4px 12px rgba(30,45,61,0.08);
-  --shadow-brand: 0 4px 16px rgba(37,99,212,0.28);
-  --shadow-inner: inset 0 1px 3px rgba(30,45,61,0.08);
+  --shadow-xs: 0 1px 2px rgba(27,60,83,0.06);
+  --shadow-sm: 0 1px 4px rgba(27,60,83,0.08), 0 1px 2px rgba(27,60,83,0.05);
+  --shadow-md: 0 4px 12px rgba(27,60,83,0.10), 0 1px 3px rgba(27,60,83,0.06);
+  --shadow-lg: 0 8px 24px rgba(27,60,83,0.12), 0 2px 6px rgba(27,60,83,0.07);
+  --shadow-xl: 0 16px 40px rgba(27,60,83,0.15), 0 4px 12px rgba(27,60,83,0.08);
+  --shadow-brand: 0 4px 16px rgba(35,76,106,0.28);
+  --shadow-inner: inset 0 1px 3px rgba(27,60,83,0.08);
 
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -94,26 +94,29 @@
   --z-tooltip: 400;
 }
 
-html {
-  scroll-behavior: smooth;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.65;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-body {
-  margin: 0;
-  background-color: var(--color-canvas);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  line-height: 1.65;
-  letter-spacing: 0.01em;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
+@layer utilities {
 .text-display {
   font-size: clamp(1.75rem, 3.5vw, 2.5rem);
   font-weight: 700;
@@ -311,7 +314,9 @@ body {
 .animate-slide-down {
   animation: slide-down var(--duration-default) var(--ease-out) both;
 }
+}
 
+@layer base {
 input, textarea, select {
   font-family: var(--font-sans);
   font-size: 0.9375rem;
@@ -353,4 +358,5 @@ input[type="checkbox"], input[type="radio"] {
   width: 1.125rem;
   height: 1.125rem;
   cursor: pointer;
+}
 }

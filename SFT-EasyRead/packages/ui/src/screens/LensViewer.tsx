@@ -161,7 +161,7 @@ export default function LensViewer({
             {handles.map((style, i) => (
               <div
                 key={i}
-                className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-brand pointer-events-none"
+                className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--color-surface-raised)] bg-brand pointer-events-none"
                 style={style}
               />
             ))}

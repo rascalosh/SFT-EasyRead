@@ -101,7 +101,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const btnVariants: Record<BtnVariant, string> = {
-  primary: "bg-brand text-[var(--color-brand-ink)] hover:bg-brand-strong shadow-[var(--shadow-brand)] hover:shadow-[0_6px_20px_rgba(37,99,212,0.32)]",
+  primary: "bg-brand text-[var(--color-brand-ink)] hover:bg-brand-strong shadow-[var(--shadow-brand)] hover:shadow-[var(--shadow-lg)]",
   soft:    "bg-brand-soft text-brand-strong hover:bg-[var(--color-brand-softer)] border border-brand/20",
   ghost:   "text-ink-soft hover:bg-[var(--color-line-soft)] hover:text-ink",
   outline: "border border-line bg-surface text-ink hover:border-brand hover:text-brand",
@@ -345,7 +345,7 @@ export function Badge({
 export function NumberBadge({ count, max = 99 }: { count: number; max?: number }) {
   if (count === 0) return null
   return (
-    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-error)] px-1 font-mono text-[11px] font-semibold text-white">
+    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-error)] px-1 font-mono text-[11px] font-semibold text-[var(--color-error-ink)]">
       {count > max ? `${max}+` : count}
     </span>
   )
@@ -716,7 +716,7 @@ export function Toggle({
         >
           <span
             className={cx(
-              "rounded-full bg-white shadow-sm transition-transform duration-200",
+              "rounded-full bg-[var(--color-surface-raised)] shadow-sm transition-transform duration-200",
               s.thumb,
               checked ? s.translate : "translate-x-0",
             )}
@@ -1163,8 +1163,8 @@ export function StepIndicator({
                 aria-current={active ? "step" : undefined}
                 className={cx(
                   "grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold transition-colors",
-                  done    && "bg-[var(--color-good)] text-white",
-                  active  && "bg-brand text-white shadow-[var(--shadow-brand)]",
+                  done    && "bg-[var(--color-good)] text-[var(--color-good-ink)]",
+                  active  && "bg-brand text-[var(--color-brand-ink)] shadow-[var(--shadow-brand)]",
                   !done && !active && "bg-[var(--color-line-soft)] text-ink-mute",
                 )}
               >

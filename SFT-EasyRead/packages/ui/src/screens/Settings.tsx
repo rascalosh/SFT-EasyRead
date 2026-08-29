@@ -18,7 +18,7 @@ function Toggle({ on, onToggle, label, desc }: { on: boolean; onToggle: () => vo
         aria-label={label}
         className={cx("relative h-6 w-11 shrink-0 rounded-full transition-colors", on ? "bg-brand" : "bg-[var(--color-line)]")}
       >
-        <span className={cx("absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all", on ? "left-[22px]" : "left-0.5")} />
+        <span className={cx("absolute top-0.5 h-5 w-5 rounded-full bg-surface-raised transition-all", on ? "left-[22px]" : "left-0.5")} />
       </button>
     </div>
   )

@@ -25,7 +25,7 @@ export default function Register({
       className="min-h-screen flex items-center justify-center px-4 py-12"
       style={{ background: "linear-gradient(135deg, var(--color-brand-soft) 0%, var(--color-brand-softer) 50%, var(--color-brand-soft) 100%)" }}
     >
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-[0_8px_40px_rgba(37,99,212,0.13)] px-8 py-10 animate-[fade-in_350ms_ease-out_both]">
+      <div className="w-full max-w-md bg-surface-raised rounded-2xl shadow-[var(--shadow-xl)] px-8 py-10 animate-[fade-in_350ms_ease-out_both]">
 
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
@@ -60,7 +60,7 @@ export default function Register({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@email.com"
-                className="w-full rounded-xl border border-line bg-white pl-10 pr-4 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:border-brand focus:ring-2 focus:ring-[var(--color-brand)]/20"
+                className="w-full rounded-xl border border-line bg-surface-raised pl-10 pr-4 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:border-brand focus:ring-2 focus:ring-[var(--color-brand)]/20"
               />
             </div>
           </div>
@@ -80,7 +80,7 @@ export default function Register({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimal 6 karakter"
-                className="w-full rounded-xl border border-line bg-white pl-10 pr-11 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:border-brand focus:ring-2 focus:ring-[var(--color-brand)]/20"
+                className="w-full rounded-xl border border-line bg-surface-raised pl-10 pr-11 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:border-brand focus:ring-2 focus:ring-[var(--color-brand)]/20"
               />
               <button
                 type="button"
@@ -120,7 +120,7 @@ export default function Register({
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Ulangi password"
                 className={[
-                  "w-full rounded-xl border bg-white pl-10 pr-11 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:ring-2",
+                  "w-full rounded-xl border bg-surface-raised pl-10 pr-11 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:ring-2",
                   mismatch
                     ? "border-error focus:border-error focus:ring-[var(--color-error)]/20"
                     : "border-line focus:border-brand focus:ring-[var(--color-brand)]/20",
