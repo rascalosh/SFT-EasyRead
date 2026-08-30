@@ -17,6 +17,8 @@ import {
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createClient } from "@repo/db/client"
 
 interface NavItem {
   label: string, 
@@ -74,6 +76,19 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+    })
+  }, [])
+
+  const displayName =
+    user?.user_metadata?.full_name ?? 
+    user?.email?.split("@")[0] ??
+    "User"
 
   return (
     <aside className="hidden h-screen w-[172px] shrink-0 overflow-y-auto border-r border-slate-200 bg-white xl:flex xl:flex-col">
@@ -149,7 +164,7 @@ export function Sidebar() {
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-[10px] font-semibold text-slate-800">
-            Nerdcore
+            {displayName}
           </p>
 
           <p className="text-[9px] text-slate-500">Level 2</p>

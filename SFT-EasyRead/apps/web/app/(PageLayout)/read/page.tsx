@@ -1,11 +1,12 @@
-import { createClient } from "@repo/db/server"
-import { redirect } from "next/navigation"
+import { getDocuments } from "@repo/web/services/document.service"
+import { getCurrentUser } from "@repo/web/proxy"
 
 
 
-export default async function Read() { 
-    const response = await fetch("/api/documents")
-    const documents = await response.json()
+export default async function Read() {
+    const user = await getCurrentUser()
+    const { data } = await getDocuments(user?.id)
+    const documents = data ?? []
 
     return (
         <main>
@@ -21,7 +22,6 @@ export default async function Read() {
                     </article>
                 ))
             )}
-            
         </main>
     )
 }
