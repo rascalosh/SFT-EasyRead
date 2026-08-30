@@ -1,6 +1,16 @@
 import { createClient } from "../server";
 
-export async function createDocument(data) {
+export type DocumentInsert = {
+    user_id: string;
+    title: string;
+    source_type: string;
+    original_text: string;
+    status: string;
+};
+
+export type DocumentUpdate = Partial<DocumentInsert>;
+
+export async function createDocument(data: DocumentInsert) {
     const supabase = await createClient()
 
     return supabase
@@ -8,9 +18,9 @@ export async function createDocument(data) {
         .insert(data)
         .select()
         .single();
-} 
+}
 
-export async function getDocuments(userId) {
+export async function getDocuments(userId: string) {
     const supabase = await createClient()
 
     return supabase
@@ -20,18 +30,18 @@ export async function getDocuments(userId) {
         .order("created_at", { ascending: false });
 }
 
-export async function getDocumentById(id, userId) {
+export async function getDocumentById(id: string, userId: string) {
     const supabase = await createClient()
 
     return supabase
         .from("documents")
         .select("*")
         .eq("id", id)
-        .eq("user_id", id)
+        .eq("user_id", userId)
         .single();
 }
 
-export async function updateDocument(id, userId, payload) {
+export async function updateDocument(id: string, userId: string, payload: DocumentUpdate) {
     const supabase = await createClient()
 
     return supabase
@@ -43,7 +53,7 @@ export async function updateDocument(id, userId, payload) {
         .single();
 }
 
-export async function deleteDocument(id, userId) {
+export async function deleteDocument(id: string, userId: string) {
     const supabase = await createClient()
 
     return supabase

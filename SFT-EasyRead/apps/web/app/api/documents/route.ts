@@ -15,19 +15,19 @@ export async function GET() {
     return Response.json(documents)
 }
 
-export async function POST() {
+export async function POST(request: Request) {
     const user = await getCurrentUser()
-    const body = {
-        title: "Test 2",
-        sourceType: "text",
-        originalText: "ANJAY MABAR KAWANNN",
-    }
 
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const newDocument = await createDocument(user.id, body)
+    const body = await request.json().catch(() => ({}))
+    const newDocument = await createDocument(user.id, {
+        title: typeof body.title === "string" ? body.title : "Untitled document",
+        sourceType: typeof body.sourceType === "string" ? body.sourceType : "text",
+        originalText: typeof body.originalText === "string" ? body.originalText : "",
+    })
 
     return NextResponse.json(newDocument, { status: 201 })
 }

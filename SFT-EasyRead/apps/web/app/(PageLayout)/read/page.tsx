@@ -1,11 +1,19 @@
 import { getDocuments } from "@repo/web/services/document.service"
 import { getCurrentUser } from "@repo/web/proxy"
 
-
-
 export default async function Read() {
     const user = await getCurrentUser()
-    const { data } = await getDocuments(user?.id)
+
+    if (!user) {
+        return (
+            <main>
+                <h1>Read Page</h1>
+                <p>Please sign in to view documents.</p>
+            </main>
+        )
+    }
+
+    const { data } = await getDocuments(user.id)
     const documents = data ?? []
 
     return (
