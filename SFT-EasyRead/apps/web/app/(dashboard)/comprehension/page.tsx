@@ -1,1 +1,1 @@
-export { default } from "@repo/ui/screens/ComprehensionCheck";
+export { default } from "../../../ui/screens/ComprehensionCheck";

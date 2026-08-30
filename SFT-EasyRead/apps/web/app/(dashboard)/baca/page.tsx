@@ -1,1 +1,1 @@
-export { default } from "@repo/ui/screens/ReadingInterface";
+export { default } from "../../../ui/screens/ReadingInterface";

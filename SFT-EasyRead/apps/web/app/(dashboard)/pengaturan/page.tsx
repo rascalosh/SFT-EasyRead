@@ -1,1 +1,1 @@
-export { default } from "@repo/ui/screens/Settings";
+export { default } from "../../../ui/screens/Settings";

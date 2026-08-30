@@ -1,1 +1,1 @@
-export { default } from "@repo/ui/screens/ProgressAchievement";
+export { default } from "../../../ui/screens/ProgressAchievement";

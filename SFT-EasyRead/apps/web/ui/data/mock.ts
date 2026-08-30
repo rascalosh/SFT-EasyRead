@@ -2,7 +2,7 @@
 // Semua konten "AI" di prototipe ini disimulasikan dari data ini.
 
 export const user = {
-  name: "Jiro Nathan",
+  name: "Jiro-kun",
   level: 3,
   levelLabel: "Sedang Berkembang",
 }

@@ -1,1 +1,1 @@
-export { default } from "@repo/ui/screens/SyllableBreaker";
+export { default } from "../../../ui/screens/SyllableBreaker";

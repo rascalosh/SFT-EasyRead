@@ -1,4 +1,4 @@
-import DashboardShell from "@repo/ui/components/DashboardShell";
+import DashboardShell from "../../ui/components/DashboardShell";
 
 export default function DashboardLayout({
   children,

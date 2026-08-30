@@ -1,1 +1,1 @@
-export { default } from "@repo/ui/screens/AudioVisualTracking";
+export { default } from "../../../ui/screens/AudioVisualTracking";

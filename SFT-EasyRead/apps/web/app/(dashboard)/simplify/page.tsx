@@ -1,1 +1,1 @@
-export { default } from "@repo/ui/screens/SmartSimplifier";
+export { default } from "../../../ui/screens/SmartSimplifier";
