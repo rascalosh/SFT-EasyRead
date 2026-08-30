@@ -1,0 +1,19 @@
+# misc
+.DS_Store
+*.pem
+
+# See https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
+
+# Local history for Visual Studio Code
+.history/
+
+# User-specific VS Code settings and crash reports
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/code-workspace
+
+# Local history for Visual Studio Code Log file
+*.code-search
