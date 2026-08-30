@@ -5,6 +5,8 @@ import * as documentRepository from "@repo/db/repositories/document";
 import * as simplificationRepository from "@repo/db/repositories/simplification";
 import crypto from "crypto";
 
+
+
 export async function simplifyText(originalText: string) {
     const prompt = buildSimplifyPrompt(originalText)
 
@@ -50,9 +52,11 @@ export async function simplifyText(originalText: string) {
     throw lastError
 }
 
+
 function hashInput(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
 }
+
 
 export async function simplifyDocument(documentId: string, userId: string) {
   const { data: document, error } = await documentRepository.getDocumentById(documentId, userId);
