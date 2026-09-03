@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { createClient } from "@repo/db/client"
 import { hrefFor, screenFromPath } from "@/lib/nav"
 import {
   listMaterials,
   readingHistory,
-  user,
+  user as mockUser,
   type ReadingHistory,
 } from "@/lib/mock"
 import { cx } from "@/components/shared/ui"
@@ -26,10 +27,24 @@ export default function Sidebar({ open, onClose }: Props) {
     ? pathname.slice("/material/".length)
     : null
   const [materials, setMaterials] = useState<ReadingHistory[]>(readingHistory)
+  const [displayName, setDisplayName] = useState(mockUser.name)
 
   useEffect(() => {
     setMaterials(listMaterials())
   }, [pathname])
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      const authUser = data.user
+      if (!authUser) return
+      setDisplayName(
+        authUser.user_metadata?.full_name ??
+        authUser.email?.split("@")[0] ??
+        mockUser.name,
+      )
+    })
+  }, [])
 
   return (
     <>
@@ -140,10 +155,10 @@ export default function Sidebar({ open, onClose }: Props) {
           className="m-3 flex items-center gap-3 rounded-xl border border-line bg-canvas p-3 hover:border-brand/40 transition-colors"
         >
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand text-sm font-bold text-[var(--color-brand-ink)]">
-            {user.name.charAt(0)}
+            {displayName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1 leading-tight">
-            <div className="truncate text-sm font-semibold text-ink">{user.name}</div>
+            <div className="truncate text-sm font-semibold text-ink">{displayName}</div>
           </div>
           <IconChevron width={14} height={14} className="shrink-0 text-ink-mute" />
         </Link>

@@ -1,0 +1,9 @@
+{
+  "name": "@repo/schemas",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./simplify": "./src/simplify.schema.ts",
+    "./summary": "./src/summary.schema.ts"
+  }
+}
