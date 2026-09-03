@@ -1,7 +1,7 @@
 import { IconSparkle, IconWave, IconLetters } from "@/components/shared/icons"
 import { ActivityCard, type ActivityTool } from "./ActivityCard"
 
-const tools: ActivityTool[] = [
+const tools: Omit<ActivityTool, "href">[] = [
   {
     id: "simplify",
     icon: <IconSparkle width={26} height={26} />,
@@ -40,7 +40,7 @@ const tools: ActivityTool[] = [
   },
 ]
 
-export function ActivityPicker() {
+export function ActivityPicker({ materialId }: { materialId: string }) {
   return (
     <div>
       <p className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-mute">
@@ -48,7 +48,13 @@ export function ActivityPicker() {
       </p>
       <div className="grid gap-4 sm:grid-cols-3">
         {tools.map((tool) => (
-          <ActivityCard key={tool.id} tool={tool} />
+          <ActivityCard
+            key={tool.id}
+            tool={{
+              ...tool,
+              href: `/${tool.id === "syllable" ? "latihan-kata" : tool.id}?id=${encodeURIComponent(materialId)}`,
+            }}
+          />
         ))}
       </div>
     </div>

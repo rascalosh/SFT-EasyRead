@@ -5,9 +5,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { createClient } from "@repo/db/client"
 import { hrefFor, screenFromPath } from "@/lib/nav"
+import { fetchUserDocuments } from "@/lib/documents"
 import {
-  listMaterials,
-  readingHistory,
+  getSessionMaterials,
   user as mockUser,
   type ReadingHistory,
 } from "@/lib/mock"
@@ -26,24 +26,62 @@ export default function Sidebar({ open, onClose }: Props) {
   const selectedId = pathname.startsWith("/material/")
     ? pathname.slice("/material/".length)
     : null
-  const [materials, setMaterials] = useState<ReadingHistory[]>(readingHistory)
+  const [materials, setMaterials] = useState<ReadingHistory[]>([])
   const [displayName, setDisplayName] = useState(mockUser.name)
+  const [materialsLoaded, setMaterialsLoaded] = useState(false)
 
   useEffect(() => {
-    setMaterials(listMaterials())
+    let active = true
+
+    fetchUserDocuments()
+      .then((result) => {
+        if (!active) return
+        if ("unauthorized" in result) {
+          // Jangan tampilkan materi mock palsu — hanya yang ada di session lokal
+          setMaterials(getSessionMaterials())
+          setMaterialsLoaded(true)
+          return
+        }
+        if ("error" in result) {
+          setMaterials(getSessionMaterials())
+          setMaterialsLoaded(true)
+          return
+        }
+        setMaterials(result.documents.map((document) => ({
+          id: document.id,
+          title: document.title ?? "Tanpa judul",
+          meta: "Tersimpan di akun",
+          progress: 0,
+          pages: 0,
+        })))
+        setMaterialsLoaded(true)
+      })
+      .catch(() => {
+        if (!active) return
+        setMaterials(getSessionMaterials())
+        setMaterialsLoaded(true)
+      })
+
+    return () => {
+      active = false
+    }
   }, [pathname])
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      const authUser = data.user
-      if (!authUser) return
-      setDisplayName(
-        authUser.user_metadata?.full_name ??
-        authUser.email?.split("@")[0] ??
-        mockUser.name,
-      )
-    })
+    try {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data }) => {
+        const authUser = data.user
+        if (!authUser) return
+        setDisplayName(
+          authUser.user_metadata?.full_name ??
+          authUser.email?.split("@")[0] ??
+          mockUser.name,
+        )
+      })
+    } catch {
+      setDisplayName(mockUser.name)
+    }
   }, [])
 
   return (
@@ -113,6 +151,14 @@ export default function Sidebar({ open, onClose }: Props) {
             Materi Terbaru
           </p>
           <ul className="space-y-0.5">
+            {!materialsLoaded && (
+              <li className="px-3 py-2 text-xs text-ink-mute">Memuat materi…</li>
+            )}
+            {materialsLoaded && materials.length === 0 && (
+              <li className="px-3 py-2 text-xs text-ink-mute">
+                Belum ada materi. Buat dari tombol Materi Baru.
+              </li>
+            )}
             {materials.map((material) => {
               const isActive = selectedId === material.id
               return (

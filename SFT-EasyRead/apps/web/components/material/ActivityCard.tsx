@@ -1,8 +1,8 @@
 import Link from "next/link"
-import { hrefFor, type ScreenId } from "@/lib/nav"
 import { cx } from "@/components/shared/ui"
 import { IconArrow } from "@/components/shared/icons"
 import type { ReactNode } from "react"
+import type { ScreenId } from "@/lib/nav"
 
 export type ActivityTool = {
   id: ScreenId
@@ -11,12 +11,13 @@ export type ActivityTool = {
   subtitle: string
   body: string
   color: { bg: string; text: string; border: string }
+  href: string
 }
 
 export function ActivityCard({ tool }: { tool: ActivityTool }) {
   return (
     <Link
-      href={hrefFor(tool.id)}
+      href={tool.href}
       className={cx(
         "group flex flex-col rounded-[var(--radius-card)] border bg-surface p-5 text-left",
         "transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]",

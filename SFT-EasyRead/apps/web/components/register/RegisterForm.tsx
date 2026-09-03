@@ -1,112 +1,182 @@
 "use client"
 
-import type { FormEvent } from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@repo/db/client"
 
 export function RegisterForm() {
-    const router = useRouter()
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    const [confirmPassword, setConfirmPassword] = useState("")
-    const [error, setError] = useState<string | null>(null)
-    const [message, setMessage] = useState<string | null>(null)
-    const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [showPass, setShowPass] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault()
-        setError(null)
-        setMessage(null)
+  const mismatch = confirm.length > 0 && password !== confirm
+  const canSubmit = Boolean(email.trim() && password.length >= 6 && password === confirm && !isSubmitting)
 
-        if (password !== confirmPassword) {
-            setError("Passwords do not match.")
-            return
-        }
+  async function handleSubmit() {
+    if (!canSubmit) return
+    setError(null)
+    setMessage(null)
+    setIsSubmitting(true)
 
-        setIsSubmitting(true)
+    try {
+      const supabase = createClient()
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      })
 
-        const supabase = createClient()
-        const { data, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-        })
-
-        if (signUpError) {
-            setError(signUpError.message)
-            setIsSubmitting(false)
-            return
-        }
-
-        if (data.session) {
-            router.push("/login")
-            router.refresh()
-            return
-        }
-
-        setMessage("Registration successful. Check your email to verify your account.")
+      if (signUpError) {
+        setError(signUpError.message)
         setIsSubmitting(false)
+        return
+      }
+
+      if (data.session) {
+        router.push("/")
+        router.refresh()
+        return
+      }
+
+      setMessage("Pendaftaran berhasil. Cek email untuk verifikasi akun, lalu masuk.")
+      setIsSubmitting(false)
+    } catch {
+      setError("Tidak bisa mendaftar. Periksa koneksi dan pengaturan Supabase.")
+      setIsSubmitting(false)
     }
+  }
 
-    return (
-        <main className="flex min-h-screen items-center justify-center bg-slate-100 px-6">
-            <form
-                onSubmit={handleSubmit}
-                className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-xl"
-            >
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Create account</h1>
-                    <p className="mt-2 text-slate-600">Register to start reading.</p>
-                </div>
+  return (
+    <div className="space-y-5">
+      <div>
+        <label className="block text-sm font-semibold text-ink mb-2">Email</label>
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-mute">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+          </span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="nama@email.com"
+            autoComplete="email"
+            className="w-full rounded-xl border border-line bg-surface-raised pl-10 pr-4 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:border-brand focus:ring-2 focus:ring-[var(--color-brand)]/20"
+          />
+        </div>
+      </div>
 
-                <div className="space-y-4">
-                    <label className="block text-sm font-medium text-slate-700">
-                        Email
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(event) => setEmail(event.target.value)}
-                            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-600"
-                            required
-                        />
-                    </label>
+      <div>
+        <label className="block text-sm font-semibold text-ink mb-2">Password</label>
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-mute">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input
+            type={showPass ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Minimal 6 karakter"
+            autoComplete="new-password"
+            className="w-full rounded-xl border border-line bg-surface-raised pl-10 pr-11 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:border-brand focus:ring-2 focus:ring-[var(--color-brand)]/20"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPass((v) => !v)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink transition-colors"
+            aria-label={showPass ? "Sembunyikan sandi" : "Tampilkan sandi"}
+          >
+            {showPass ? (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
 
-                    <label className="block text-sm font-medium text-slate-700">
-                        Password
-                        <input
-                            type="password"
-                            minLength={6}
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
-                            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-600"
-                            required
-                        />
-                    </label>
+      <div>
+        <label className="block text-sm font-semibold text-ink mb-2">Konfirmasi Password</label>
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-mute">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input
+            type={showConfirm ? "text" : "password"}
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Ulangi password"
+            autoComplete="new-password"
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            className={[
+              "w-full rounded-xl border bg-surface-raised pl-10 pr-11 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:ring-2",
+              mismatch
+                ? "border-error focus:border-error focus:ring-[var(--color-error)]/20"
+                : "border-line focus:border-brand focus:ring-[var(--color-brand)]/20",
+            ].join(" ")}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirm((v) => !v)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-mute hover:text-ink transition-colors"
+            aria-label={showConfirm ? "Sembunyikan konfirmasi" : "Tampilkan konfirmasi"}
+          >
+            {showConfirm ? (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            )}
+          </button>
+        </div>
+        {mismatch && <p className="mt-1.5 text-xs text-error">Password tidak cocok.</p>}
+      </div>
 
-                    <label className="block text-sm font-medium text-slate-700">
-                        Confirm password
-                        <input
-                            type="password"
-                            minLength={6}
-                            value={confirmPassword}
-                            onChange={(event) => setConfirmPassword(event.target.value)}
-                            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-600"
-                            required
-                        />
-                    </label>
-                </div>
+      {error && <p className="text-sm text-[var(--color-error)]" role="alert">{error}</p>}
+      {message && <p className="text-sm text-[var(--color-good)]" role="status">{message}</p>}
 
-                {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
-                {message && <p className="text-sm text-green-700" role="status">{message}</p>}
-
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full rounded-lg bg-slate-900 px-4 py-2.5 font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                    {isSubmitting ? "Creating account..." : "Create account"}
-                </button>
-            </form>
-        </main>
-    )
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={!canSubmit}
+        className={[
+          "w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-all duration-150 mt-2",
+          canSubmit
+            ? "bg-brand text-[var(--color-brand-ink)] shadow-[var(--shadow-brand)] hover:bg-brand-strong"
+            : "bg-[var(--color-disabled)] text-[var(--color-disabled-fg)] cursor-not-allowed",
+        ].join(" ")}
+      >
+        {isSubmitting ? "Mendaftar…" : "Daftar"}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+  )
 }

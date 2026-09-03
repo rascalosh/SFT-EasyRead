@@ -3,7 +3,9 @@
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { hrefFor } from "@/lib/nav"
+import { createUserDocument } from "@/lib/documents"
 import { saveSessionMaterial } from "@/lib/mock"
+import { setActiveMaterial } from "@/lib/session"
 import { cx } from "@/components/shared/ui"
 import { IconUpload, IconCamera, IconPaste, IconArrow, IconClose } from "@/components/shared/icons"
 import LensViewer from "./LensViewer"
@@ -23,6 +25,8 @@ export default function HomeDashboard() {
   const [lensFile, setLensFile] = useState<File | null>(null)
   const [pasteText, setPasteText] = useState("")
   const [titleValue, setTitleValue] = useState("")
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const docInputRef = useRef<HTMLInputElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
@@ -53,17 +57,49 @@ export default function HomeDashboard() {
     startLoading("paste")
   }
 
-  function handleTitleSubmit() {
-    if (!titleValue.trim()) return
-    const material = {
-      id: `new-${Date.now()}`,
-      title: titleValue.trim(),
-      meta: "Baru saja ditambahkan",
-      progress: 0,
-      pages: 0,
+  async function handleTitleSubmit() {
+    if (!titleValue.trim() || submitting) return
+    setSubmitError(null)
+    setSubmitting(true)
+
+    try {
+      const result = await createUserDocument({
+        title: titleValue.trim(),
+        originalText: loadMethod === "paste" ? pasteText.trim() : "",
+        sourceType: loadMethod === "paste" ? "text" : "upload",
+      })
+
+      if ("unauthorized" in result) {
+        router.push("/login")
+        return
+      }
+
+      if ("document" in result) {
+        const text = loadMethod === "paste" ? pasteText.trim() : ""
+        const material = {
+          id: result.document.id,
+          title: result.document.title ?? titleValue.trim(),
+          meta: "Baru saja ditambahkan",
+          progress: 0,
+          pages: 0,
+        }
+        saveSessionMaterial(material)
+        setActiveMaterial({
+          id: material.id,
+          title: material.title,
+          originalText: text,
+          paragraphs: text ? text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean) : [],
+        })
+        router.push(hrefFor("material", material.id))
+        return
+      }
+
+      setSubmitError("Materi gagal disimpan. Silakan coba lagi.")
+    } catch {
+      setSubmitError("Materi gagal disimpan. Periksa koneksi lalu coba lagi.")
+    } finally {
+      setSubmitting(false)
     }
-    saveSessionMaterial(material)
-    router.push(hrefFor("material", material.id))
   }
 
   function reset() {
@@ -71,6 +107,8 @@ export default function HomeDashboard() {
     setTitleValue("")
     setLensFile(null)
     setPasteText("")
+    setSubmitError(null)
+    setSubmitting(false)
   }
 
   return (
@@ -288,6 +326,7 @@ export default function HomeDashboard() {
               autoFocus
               className="w-full rounded-xl border border-line bg-canvas px-4 py-3 text-sm text-ink placeholder:text-ink-mute outline-none transition-all duration-150 focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
+            {submitError && <p className="mt-2 text-sm text-error" role="alert">{submitError}</p>}
             <div className="mt-4 flex gap-3">
               <button
                 onClick={reset}
@@ -297,15 +336,15 @@ export default function HomeDashboard() {
               </button>
               <button
                 onClick={handleTitleSubmit}
-                disabled={!titleValue.trim()}
+                disabled={!titleValue.trim() || submitting}
                 className={cx(
                   "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all",
-                  titleValue.trim()
+                  titleValue.trim() && !submitting
                     ? "bg-brand text-[var(--color-brand-ink)] hover:bg-brand-strong shadow-[var(--shadow-brand)]"
                     : "cursor-not-allowed bg-[var(--color-disabled)] text-[var(--color-disabled-fg)]",
                 )}
               >
-                Mulai Membaca <IconArrow width={15} height={15} />
+                {submitting ? "Menyimpan…" : "Mulai Membaca"} <IconArrow width={15} height={15} />
               </button>
             </div>
           </div>
