@@ -1,1 +1,1 @@
-export { default } from "@/components/shared/ComprehensionCheck";
+export { default } from "@/components/comprehension/ComprehensionPage"
