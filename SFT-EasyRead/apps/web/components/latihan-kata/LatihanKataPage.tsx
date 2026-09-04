@@ -129,11 +129,13 @@ export default function SyllableBreaker() {
                   <IconClose width={16} height={16} />
                 </button>
               </div>
-              <div className="font-dyslexic text-xl font-bold">{selected.word}</div>
+              <div className="font-dyslexic font-bold" style={{ fontSize: "calc(var(--reading-font-size) * 1.25)" }}>
+                {selected.word}
+              </div>
 
               <div className="mt-4">
                 <div className="text-xs font-medium opacity-70">Pemecahan Suku Kata</div>
-                <div className="mt-1 font-dyslexic text-lg font-bold">
+                <div className="mt-1 font-dyslexic font-bold" style={{ fontSize: "calc(var(--reading-font-size) * 1.1)" }}>
                   {selected.breakdown}
                 </div>
               </div>

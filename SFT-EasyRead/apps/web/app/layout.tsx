@@ -1,3 +1,4 @@
+import type { CSSProperties, ReactNode } from "react";
 import type { Metadata } from "next";
 import { Atkinson_Hyperlegible, DM_Mono, Lexend, Open_Sans } from "next/font/google";
 import FontPreference from "@/components/layout/FontPreference";
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html
@@ -45,7 +46,15 @@ export default function RootLayout({
       data-ui-font="lexend"
       data-reading-font="atkinson"
       data-reading-contrast="cream-ink"
-      style={{ ["--reading-bg" as string]: "#fcf6e7", ["--reading-fg" as string]: "#1B3C53" }}
+      style={
+        {
+          "--reading-bg": "#fcf6e7",
+          "--reading-fg": "#1B3C53",
+          "--reading-font-size": "20px",
+          "--reading-letter-spacing": "0.12em",
+          "--reading-word-spacing": "0.42em",
+        } as CSSProperties
+      }
     >
       <body className="font-sans antialiased">
         <FontPreference />

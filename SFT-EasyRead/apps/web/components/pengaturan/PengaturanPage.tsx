@@ -189,9 +189,6 @@ export default function Settings() {
               <p
                 className="reading-area !mt-0 !max-w-none"
                 style={{
-                  fontSize: settings.fontSize,
-                  letterSpacing: `${settings.letterSpacing}em`,
-                  wordSpacing: `${wordSpacingFromLetter(settings.letterSpacing)}em`,
                   backgroundColor: contrast.background,
                   color: contrast.text,
                 }}

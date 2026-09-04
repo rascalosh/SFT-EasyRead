@@ -201,6 +201,11 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
       ? Math.min(0.35, Math.max(0, raw.letterSpacing))
       : defaultSettings.letterSpacing
 
+  const fontSize =
+    typeof raw.fontSize === "number" && Number.isFinite(raw.fontSize)
+      ? Math.min(30, Math.max(16, Math.round(raw.fontSize)))
+      : defaultSettings.fontSize
+
   let contrastId: ReadingContrastId = CONTRAST_IDS.has(raw.contrastId ?? "")
     ? (raw.contrastId as ReadingContrastId)
     : contrastFromLegacyOverlay(raw.overlay)
@@ -212,6 +217,7 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
     ...raw,
     uiFont,
     readingFont,
+    fontSize,
     letterSpacing,
     contrastId,
     overlay: contrast.background,
@@ -242,16 +248,22 @@ export function saveSettings(settings: ReadingSettings) {
   }
 }
 
-/** Terapkan preferensi font & kontras warna ke <html>. */
+/** Terapkan preferensi font, ukuran, jarak, & kontras warna ke <html>. */
 export function applyFontPreferences(settings: ReadingSettings = loadSettings()) {
   if (typeof document === "undefined") return
   const root = document.documentElement
   const contrast = getContrastOption(settings.contrastId)
+  const letter = settings.letterSpacing
+  const word = wordSpacingFromLetter(letter)
+
   root.dataset.uiFont = settings.uiFont
   root.dataset.readingFont = settings.readingFont
   root.dataset.readingContrast = settings.contrastId
   root.style.setProperty("--reading-bg", contrast.background)
   root.style.setProperty("--reading-fg", contrast.text)
+  root.style.setProperty("--reading-font-size", `${settings.fontSize}px`)
+  root.style.setProperty("--reading-letter-spacing", `${letter}em`)
+  root.style.setProperty("--reading-word-spacing", `${word}em`)
 }
 
 // ── Progress sesi (in-memory, reset per sesi) ────────────────────────────────

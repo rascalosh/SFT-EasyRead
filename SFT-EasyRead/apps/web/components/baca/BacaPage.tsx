@@ -15,6 +15,7 @@ import {
   wordSpacingFromLetter,
   getContrastOption,
   READING_CONTRAST_OPTIONS,
+  SETTINGS_EVENT,
   type ActiveMaterial,
   type ReadingContrastId,
   type ReadingSettings,
@@ -35,13 +36,22 @@ export default function ReadingInterface() {
 
   // Setelah mount: baca localStorage & session (aman dari SSR)
   useEffect(() => {
-    const s = loadSettings()
-    settingsRef.current = s
-    setDyslexic(s.dyslexicFont)
-    setSize(s.fontSize)
-    setSpacing(s.letterSpacing)
-    setContrastId(s.contrastId)
+    const sync = () => {
+      const s = loadSettings()
+      settingsRef.current = s
+      setDyslexic(s.dyslexicFont)
+      setSize(s.fontSize)
+      setSpacing(s.letterSpacing)
+      setContrastId(s.contrastId)
+    }
+    sync()
     setMaterial(getActiveMaterial())
+    window.addEventListener(SETTINGS_EVENT, sync)
+    window.addEventListener("storage", sync)
+    return () => {
+      window.removeEventListener(SETTINGS_EVENT, sync)
+      window.removeEventListener("storage", sync)
+    }
   }, [])
 
   const contrast = getContrastOption(contrastId)
@@ -105,13 +115,17 @@ export default function ReadingInterface() {
       >
         <div
           className={cx("mx-auto max-w-2xl text-left", dyslexic && "font-dyslexic")}
-          style={{
-            fontSize: size,
-            lineHeight: 1.5,
-            letterSpacing: `${spacing}em`,
-            wordSpacing: `${wordSpacingFromLetter(spacing)}em`,
-            color: contrast.text,
-          }}
+          style={
+            dyslexic
+              ? { color: contrast.text }
+              : {
+                  fontSize: size,
+                  lineHeight: 1.5,
+                  letterSpacing: `${spacing}em`,
+                  wordSpacing: `${wordSpacingFromLetter(spacing)}em`,
+                  color: contrast.text,
+                }
+          }
         >
           {lines.map((line, i) => (
             <p

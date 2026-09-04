@@ -101,6 +101,9 @@
     scroll-behavior: smooth;
     --reading-bg: #fcf6e7;
     --reading-fg: #1B3C53;
+    --reading-font-size: 20px;
+    --reading-letter-spacing: 0.12em;
+    --reading-word-spacing: 0.42em;
   }
 
   a {
@@ -196,10 +199,10 @@
  */
 .font-dyslexic {
   font-family: var(--font-reading);
-  font-size: 1.0625rem;
+  font-size: var(--reading-font-size);
   line-height: 1.5;
-  letter-spacing: 0.12em;
-  word-spacing: 0.42em;
+  letter-spacing: var(--reading-letter-spacing);
+  word-spacing: var(--reading-word-spacing);
   text-align: left;
   text-transform: none;
   color: var(--reading-fg);
@@ -210,10 +213,10 @@
   background-color: var(--reading-bg);
   border-radius: var(--radius-card);
   padding: 1.75rem 2rem;
-  font-size: 1.0625rem;
+  font-size: var(--reading-font-size);
   line-height: 1.5;
-  letter-spacing: 0.12em;
-  word-spacing: 0.42em;
+  letter-spacing: var(--reading-letter-spacing);
+  word-spacing: var(--reading-word-spacing);
   text-align: left;
   text-transform: none;
   color: var(--reading-fg);
@@ -483,7 +486,8 @@ input[type="checkbox"], input[type="radio"] {
 .reading-surface .reading-area {
   color: var(--reading-fg);
   font-family: var(--font-reading);
+  font-size: var(--reading-font-size);
   line-height: 1.5;
-  letter-spacing: 0.12em;
-  word-spacing: 0.42em;
+  letter-spacing: var(--reading-letter-spacing);
+  word-spacing: var(--reading-word-spacing);
 }
