@@ -126,18 +126,18 @@ export function SimplifyPage() {
           description="Masukkan teks, pilih level mudah dibaca, dan dapatkan versi sederhana serta ringkasan inti dalam satu tampilan."
         />
 
-        <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                <Sparkles className="h-5 w-5" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <Sparkles className="h-6 w-6" />
               </div>
 
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">
                   Simplifikasi teks
                 </p>
-                <h2 className="text-sm font-semibold text-slate-800">
+                <h2 className="text-lg font-semibold text-slate-800">
                   Tingkatkan keterbacaan tanpa kehilangan inti pesan
                 </h2>
               </div>
@@ -150,7 +150,7 @@ export function SimplifyPage() {
                   type="button"
                   onClick={() => setSelectedLevel(level.label)}
                   className={[
-                    "rounded-full border px-3 py-1.5 text-[10px] font-medium transition",
+                    "rounded-full border px-4 py-2 text-sm font-medium transition",
                     selectedLevel === level.label
                       ? "border-blue-200 bg-blue-50 text-blue-700"
                       : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-slate-100",
@@ -167,31 +167,31 @@ export function SimplifyPage() {
               type="button"
               onClick={handleSimplify}
               disabled={isLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-[10px] font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
             >
-              <Wand2 className="h-3.5 w-3.5" />
+              <Wand2 className="h-4 w-4" />
               {isLoading ? "Memproses..." : "Sederhanakan"}
             </button>
 
             <button
               type="button"
               onClick={handleUseExample}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-4 w-4" />
               Contoh teks
             </button>
 
             <button
               type="button"
               onClick={handleReset}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <RotateCcw className="h-4 w-4" />
               Reset
             </button>
 
-            <div className="ml-auto flex items-center gap-2 rounded-full bg-slate-100 px-2.5 py-1.5 text-[9px] text-slate-600">
+            <div className="ml-auto flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-600">
               <span className="font-semibold text-slate-700">{wordCount}</span>
               kata • sekitar {readingMinutes} menit baca
             </div>

@@ -24,24 +24,20 @@ export function SimplifiedTextPanel({
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50">
             <Sparkles className="h-4 w-4 text-blue-500" />
           </div>
-
-          <h2 className="text-xs font-bold text-slate-700">Versi Sederhana</h2>
+          <h2 className="text-base font-bold text-slate-700">Versi Sederhana</h2>
         </div>
-
-        <span className={`rounded-full px-2 py-1 text-[9px] font-medium ${difficultyStyles[difficulty]}`}>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${difficultyStyles[difficulty]}`}>
           {difficulty}
         </span>
       </div>
-
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <p className="text-[11px] leading-[1.9] text-slate-600">
-          {text || "Hasil simplifikasi akan muncul di sini..."}
+        <p className="text-base leading-tight text-slate-600">
+        {text || "Hasil simplifikasi akan muncul di sini..."}
         </p>
       </div>
-
       <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
-        <span className="text-[9px] text-slate-500">{wordCount || 0} kata</span>
-        <span className="text-[9px] font-medium text-slate-600">Tingkat baca: {difficulty}</span>
+        <span className="text-xs text-slate-500">{wordCount || 0} kata</span>
+        <span className="text-xs font-medium text-slate-600">Tingkat baca: {difficulty}</span>
       </div>
     </section>
   );

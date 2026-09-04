@@ -1,175 +1,125 @@
 'use client'
 
-import {
-  BarChart3,
-  BookOpen,
-  BookOpenText,
-  CircleHelp,
-  Home,
-  ListChecks,
-  LucideIcon,
-  Mic,
-  Settings,
-  Sparkles,
-  Target,
-  Upload,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Home, Plus, FileText, BarChart3, Mic, Settings, BookOpen } from "lucide-react"
+import { UploadModal } from "../dashboard/UploadModal"
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { createClient } from "@repo/db/client"
+type Doc = { id: string; title: string; created_at?: string }
 
-interface NavItem {
-  label: string, 
-  icon: LucideIcon,
-  href: string
-}
+const bottomNav = [
+  { label: "Pencapaian", icon: BarChart3, href: "/pencapaian" },
+  { label: "Penilaian Membaca", icon: Mic, href: "/penilaian" },
+  { label: "Pengaturan & Bantuan", icon: Settings, href: "/pengaturan" },
+]
 
-const navItems: NavItem[] = [
-  {
-    label: "Beranda",
-    icon: Home,
-    href: "/home"
-  },
-  {
-    label: "Baca Teks",
-    icon: BookOpenText,
-    href: "/read"
-  },
-  {
-    label: "Simplify & Ringkasan",
-    icon: ListChecks,
-    href: "/simplify"
-  },
-  {
-    label: "Reading Comprehension",
-    icon: CircleHelp,
-    href: "/comprehension"
-  },
-  {
-    label: "Latihan Kata",
-    icon: Target,
-    href: "/latihan"
-  },
-  {
-    label: "Penilaian Membaca (Suara)",
-    icon: Mic,
-    href: "/penilaian"
-  },
-  {
-    label: "Progress & Achievement",
-    icon: BarChart3,
-    href: "/achievement"
-  },
-  {
-    label: "Pengaturan",
-    icon: Settings,
-    href: "/pengaturan"
-  },
-  {
-    label: "Bantuan",
-    icon: CircleHelp,
-    href: "/bantuan"
-  },
-];
+export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
+  const pathname = usePathname()
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [docs, setDocs] = useState<Doc[]>([])
 
-export function Sidebar() {
-  const pathname = usePathname();
-  const [user, setUser] = useState<any>(null)
-
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-    })
+  const loadDocs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/documents")
+      if (!res.ok) return
+      const json = await res.json()
+      const list = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []
+      setDocs(list)
+    } catch {}
   }, [])
 
-  const displayName =
-    user?.user_metadata?.full_name ?? 
-    user?.email?.split("@")[0] ??
-    "User"
+  useEffect(() => { loadDocs() }, [loadDocs])
 
   return (
-    <aside className="hidden h-screen w-[172px] shrink-0 overflow-y-auto border-r border-slate-200 bg-white xl:flex xl:flex-col">
-      {/* Logo */}
-      <div className="flex h-[100px] items-center justify-center border-b border-slate-100">
-        <div className="flex flex-col items-center">
-          <div className="relative mb-1 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <BookOpen className="h-7 w-7" strokeWidth={1.8} />
-
-            <Sparkles className="absolute -right-2 -top-2 h-4 w-4 text-blue-500" />
+    <>
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white transition-transform duration-300",
+          "xl:static xl:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full xl:translate-x-0",
+        ].join(" ")}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-5 py-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 text-white">
+            <BookOpen className="h-6 w-6" strokeWidth={1.8} />
           </div>
-
-          <span className="text-[15px] font-bold tracking-tight text-slate-800">
-            EasyRead<span className="text-blue-600">AI</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4">
-        <div className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-
-            return (
-              <Link 
-                key={item.label}
-                href={item.href}
-                className={[
-                  "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[11px] font-medium transition",
-                  isActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                ].join(" ")}
-              >
-                <Icon
-                  className={[
-                    "h-[16px] w-[16px] shrink-0",
-                    isActive
-                      ? "text-blue-600"
-                      : "text-slate-500 group-hover:text-slate-700",
-                  ].join(" ")}
-                  strokeWidth={1.8}
-                />
-
-                <span className="leading-tight">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Illustration */}
-      <div className="relative h-[185px] overflow-hidden">
-        <div className="absolute -bottom-12 -left-5 h-32 w-40 rotate-[-12deg] rounded-[50%] bg-blue-50" />
-
-        <div className="absolute bottom-4 left-8 h-14 w-20 rotate-[-20deg] rounded-[8px] border-4 border-blue-500 bg-white shadow-sm">
-          <div className="absolute left-1/2 top-1/2 h-9 w-px -translate-x-1/2 -translate-y-1/2 bg-blue-200" />
+          <div className="leading-tight">
+            <p className="text-lg font-bold text-ink">
+              EasyRead <span className="text-brand-600">AI</span>
+            </p>
+            <p className="text-xs text-ink-soft">Membaca Jadi Lebih Mudah</p>
+          </div>
         </div>
 
-        <div className="absolute bottom-4 right-5">
-          <div className="h-11 w-7 rounded-t-full rounded-br-full bg-emerald-200 opacity-80" />
-          <div className="absolute -left-2 bottom-0 h-9 w-10 rounded-t-full bg-emerald-100" />
-        </div>
-      </div>
+        <div className="flex-1 overflow-y-auto px-3 pb-3">
+          {/* Beranda */}
+          <Link
+            href="/home"
+            onClick={onClose}
+            className={[
+              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+              pathname.startsWith("/home") ? "bg-brand-500 text-white" : "text-ink hover:bg-slate-50",
+            ].join(" ")}
+          >
+            <Home className="h-5 w-5" strokeWidth={1.8} />
+            Beranda
+          </Link>
 
-      {/* User */}
-      <div className="mx-3 mb-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm">
-          👨🏻‍💻
-        </div>
+          {/* + Materi Baru */}
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            className="mt-2 flex w-full items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-100"
+          >
+            <Plus className="h-5 w-5" strokeWidth={2} />
+            Materi Baru
+          </button>
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[10px] font-semibold text-slate-800">
-            {displayName}
+          {/* Materi Terbaru */}
+          <p className="px-3 pb-2 pt-5 text-xs font-bold uppercase tracking-wide text-ink-soft">
+            Materi Terbaru
           </p>
-
-          <p className="text-[9px] text-slate-500">Level 2</p>
+          <div className="space-y-1">
+            {docs.length === 0 ? (
+              <p className="px-3 text-xs text-ink-soft">Belum ada materi. Klik &quot;Materi Baru&quot;.</p>
+            ) : (
+              docs.map((doc) => (
+                <Link
+                  key={doc.id}
+                  href={`/materi/${doc.id}`}
+                  onClick={onClose}
+                  className="flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-slate-50"
+                >
+                  <FileText className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" strokeWidth={1.8} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{doc.title}</p>
+                    <p className="text-xs text-ink-soft">Materi tersimpan</p>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
         </div>
-      </div>
-    </aside>
-  );
+
+        {/* Menu bawah */}
+        <div className="space-y-1 border-t border-slate-100 px-3 py-3">
+          {bottomNav.map(({ label, icon: Icon, href }) => (
+            <Link
+              key={label}
+              href={href}
+              onClick={onClose}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-slate-50"
+            >
+              <Icon className="h-5 w-5 text-ink-soft" strokeWidth={1.8} />
+              {label}
+            </Link>
+          ))}
+        </div>
+      </aside>
+
+      <UploadModal open={uploadOpen} onClose={() => { setUploadOpen(false); loadDocs() }} />
+    </>
+  )
 }

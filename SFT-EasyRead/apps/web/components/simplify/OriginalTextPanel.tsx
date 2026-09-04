@@ -18,23 +18,19 @@ export function OriginalTextPanel({
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50">
             <FileText className="h-4 w-4 text-blue-500" />
           </div>
-
-          <h2 className="text-xs font-bold text-slate-700">Teks Asli</h2>
+          <h2 className="text-base font-bold text-slate-700">Teks Asli</h2>
         </div>
-
-        <span className="rounded-full bg-slate-100 px-2 py-1 text-[9px] font-medium text-slate-600">
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
           {wordCount} kata
         </span>
       </div>
-
       <div className="flex-1 px-4 py-4">
         <textarea
           value={text}
           onChange={(event) => onChange(event.target.value)}
           placeholder="Paste atau ketik teks yang ingin disederhanakan..."
-          className="h-full min-h-[290px] w-full resize-none border-0 bg-transparent text-[11px] leading-[1.8] text-slate-700 outline-none placeholder:text-slate-400"
-        />
-      </div>
+          className="h-full min-h-[290px] w-full resize-none border-0 bg-transparent text-base leading-tight text-slate-700 outline-none placeholder:text-slate-400"
+        />      </div>
     </section>
   );
 }

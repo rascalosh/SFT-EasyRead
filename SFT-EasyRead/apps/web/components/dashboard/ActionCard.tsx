@@ -5,6 +5,7 @@ type ActionCardProps = {
   description: string;
   button: React.ReactNode;
   buttonClass: string;
+  onClick?: () => void;
 };
 
 export function ActionCard({
@@ -14,23 +15,21 @@ export function ActionCard({
   description,
   button,
   buttonClass,
+  onClick,
 }: ActionCardProps) {
   return (
-    <div className="flex min-h-[235px] flex-col items-center rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm">
-      <div
-        className={`mb-3 flex h-14 w-14 items-center justify-center rounded-full ${iconBackground}`}
-      >
+    <div className="flex h-full min-h-[320px] flex-col items-center rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className={`mb-5 flex h-20 w-20 items-center justify-center rounded-full ${iconBackground}`}>
         {icon}
       </div>
-
-      <h2 className="text-xs font-bold text-slate-700">{title}</h2>
-
-      <p className="mt-2 max-w-[190px] text-[9px] leading-[1.55] text-slate-500">
+      <h2 className="text-xl font-bold text-ink">{title}</h2>
+      <p className="mt-3 max-w-[260px] text-sm leading-relaxed text-ink-soft">
         {description}
       </p>
-
       <button
-        className={`mt-auto flex items-center gap-1.5 rounded-md px-4 py-2 text-[10px] font-semibold transition ${buttonClass}`}
+        type="button"
+        onClick={onClick}
+        className={`mt-6 flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition ${buttonClass}`}
       >
         {button}
       </button>
