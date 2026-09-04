@@ -12,7 +12,7 @@ import {
   type ReadingHistory,
 } from "@/lib/mock"
 import { cx } from "@/components/shared/ui"
-import { IconPlus, IconClose, IconBook, IconSidebar, IconChevron } from "@/components/shared/icons"
+import { IconPlus, IconClose, IconBook, IconSidebar, IconChevron, IconSettings } from "@/components/shared/icons"
 import Logo from "./Logo"
 
 type Props = {
@@ -193,19 +193,36 @@ export default function Sidebar({ open, onClose }: Props) {
           </ul>
         </div>
 
-        <Link
-          href={hrefFor("settings")}
-          onClick={onClose}
-          className="m-3 flex items-center gap-3 rounded-xl border border-line bg-canvas p-3 hover:border-brand/40 transition-colors"
-        >
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand text-sm font-bold text-[var(--color-brand-ink)]">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1 leading-tight">
-            <div className="truncate text-sm font-semibold text-ink">{displayName}</div>
-          </div>
-          <IconChevron width={14} height={14} className="shrink-0 text-ink-mute" />
-        </Link>
+        <div className="mx-3 mb-3 space-y-2 border-t border-line pt-3">
+          <Link
+            href={hrefFor("settings")}
+            onClick={onClose}
+            aria-current={active === "settings" ? "page" : undefined}
+            className={cx(
+              "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
+              active === "settings"
+                ? "bg-brand-soft text-brand-strong"
+                : "text-ink-soft hover:bg-[var(--color-line-soft)] hover:text-ink",
+            )}
+          >
+            <IconSettings width={16} height={16} aria-hidden className="shrink-0" />
+            Pengaturan
+          </Link>
+
+          <Link
+            href={hrefFor("settings")}
+            onClick={onClose}
+            className="flex items-center gap-3 rounded-xl border border-line bg-canvas p-3 hover:border-brand/40 transition-colors"
+          >
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand text-sm font-bold text-[var(--color-brand-ink)]">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <div className="truncate text-sm font-semibold text-ink">{displayName}</div>
+            </div>
+            <IconChevron width={14} height={14} className="shrink-0 text-ink-mute" />
+          </Link>
+        </div>
       </aside>
     </>
   )

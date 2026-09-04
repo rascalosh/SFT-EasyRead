@@ -220,15 +220,7 @@ export default function LensViewer({
 
           {mode === "dyslexic" ? (
             <div
-              className="rounded-xl px-5 py-4 text-ink"
-              style={{
-                background: "var(--color-overlay-cream)",
-                fontFamily: "var(--font-reading)",
-                fontSize: "1rem",
-                lineHeight: "2.1",
-                letterSpacing: "0.04em",
-                wordSpacing: "0.2em",
-              }}
+              className="reading-area !rounded-xl !px-5 !py-4 !max-w-none"
             >
               {DEMO_OCR}
             </div>
@@ -238,8 +230,13 @@ export default function LensViewer({
                 Ringkasan AI
               </p>
               <p
-                className="text-sm text-ink-soft leading-relaxed"
-                style={{ fontFamily: "var(--font-reading)", lineHeight: "1.9" }}
+                className="text-sm text-ink-soft"
+                style={{
+                  fontFamily: "var(--font-reading)",
+                  lineHeight: 1.5,
+                  letterSpacing: "0.12em",
+                  wordSpacing: "0.42em",
+                }}
               >
                 {DEMO_SUMMARY}
               </p>

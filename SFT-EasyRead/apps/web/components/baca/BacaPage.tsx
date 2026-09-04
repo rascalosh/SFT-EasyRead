@@ -6,7 +6,13 @@ import { hrefFor } from "@/lib/nav"
 import { Card, Button, cx } from "@/components/shared/ui"
 import { IconSparkle, IconSpeaker, IconTextSize, IconBook } from "@/components/shared/icons"
 import { demoTitle, demoParagraphs } from "@/lib/mock"
-import { getActiveMaterial, loadSettings, defaultSettings, type ActiveMaterial } from "@/lib/session"
+import {
+  getActiveMaterial,
+  loadSettings,
+  defaultSettings,
+  wordSpacingFromLetter,
+  type ActiveMaterial,
+} from "@/lib/session"
 
 const overlays = [
   { id: "cream",  label: "Krem",   value: "var(--color-overlay-cream)" },
@@ -88,7 +94,12 @@ export default function ReadingInterface() {
       >
         <div
           className={cx("mx-auto max-w-2xl text-left", dyslexic && "font-dyslexic")}
-          style={{ fontSize: size, lineHeight: 1.9, letterSpacing: `${spacing}em` }}
+          style={{
+            fontSize: size,
+            lineHeight: 1.5,
+            letterSpacing: `${spacing}em`,
+            wordSpacing: `${wordSpacingFromLetter(spacing)}em`,
+          }}
         >
           {lines.map((line, i) => (
             <p
@@ -137,12 +148,17 @@ export default function ReadingInterface() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-ink">Jarak Huruf</label>
+            <label className="mb-2 block text-sm font-semibold text-ink">
+              Jarak Huruf · {spacing.toFixed(2)}em
+            </label>
             <input
-              type="range" min={0} max={0.16} step={0.01} value={spacing}
+              type="range" min={0.05} max={0.35} step={0.01} value={spacing}
               onChange={(e) => setSpacing(+e.target.value)}
               className="w-full accent-[var(--color-brand)]"
             />
+            <p className="mt-1 text-xs text-ink-mute">
+              Jarak kata {wordSpacingFromLetter(spacing).toFixed(2)}em (3.5×)
+            </p>
           </div>
 
           <div>

@@ -38,8 +38,38 @@ export function getActiveMaterial(): ActiveMaterial | null {
 
 // ── Pengaturan (localStorage agar persisten antar sesi) ──────────────────────
 
-export type UiFontId = "lexend" | "opendyslexic"
-export type ReadingFontId = "atkinson" | "opendyslexic"
+/** Font sans-serif yang direkomendasikan untuk keterbacaan (BDA-style). */
+export const UI_FONT_OPTIONS = [
+  { id: "lexend", label: "Lexend (default)" },
+  { id: "opendyslexic", label: "OpenDyslexic" },
+  { id: "open-sans", label: "Open Sans" },
+  { id: "arial", label: "Arial" },
+  { id: "verdana", label: "Verdana" },
+  { id: "tahoma", label: "Tahoma" },
+  { id: "trebuchet", label: "Trebuchet MS" },
+  { id: "calibri", label: "Calibri" },
+  { id: "century-gothic", label: "Century Gothic" },
+  { id: "comic-sans", label: "Comic Sans" },
+] as const
+
+export const READING_FONT_OPTIONS = [
+  { id: "atkinson", label: "Atkinson Hyperlegible (default)" },
+  { id: "opendyslexic", label: "OpenDyslexic" },
+  { id: "open-sans", label: "Open Sans" },
+  { id: "arial", label: "Arial" },
+  { id: "verdana", label: "Verdana" },
+  { id: "tahoma", label: "Tahoma" },
+  { id: "trebuchet", label: "Trebuchet MS" },
+  { id: "calibri", label: "Calibri" },
+  { id: "century-gothic", label: "Century Gothic" },
+  { id: "comic-sans", label: "Comic Sans" },
+] as const
+
+export type UiFontId = (typeof UI_FONT_OPTIONS)[number]["id"]
+export type ReadingFontId = (typeof READING_FONT_OPTIONS)[number]["id"]
+
+const UI_FONT_IDS = new Set<string>(UI_FONT_OPTIONS.map((f) => f.id))
+const READING_FONT_IDS = new Set<string>(READING_FONT_OPTIONS.map((f) => f.id))
 
 export type ReadingSettings = {
   /** Font antarmuka (tombol, sidebar, label). */
@@ -49,6 +79,7 @@ export type ReadingSettings = {
   /** @deprecated diganti readingFont; tetap dibaca untuk kompatibilitas */
   dyslexicFont?: boolean
   fontSize: number
+  /** Jarak antar huruf (em). Target ~0.12em ≈ 35% lebar huruf rata-rata. */
   letterSpacing: number
   overlay: string
   autoTts: boolean
@@ -59,12 +90,17 @@ export type ReadingSettings = {
 const SETTINGS_KEY = "easyread-settings"
 export const SETTINGS_EVENT = "easyread-settings"
 
+/** Word spacing = 3.5 × letter spacing (panduan ramah disleksia). */
+export function wordSpacingFromLetter(letterSpacingEm: number) {
+  return Math.max(0, letterSpacingEm * 3.5)
+}
+
 export const defaultSettings: ReadingSettings = {
   uiFont: "lexend",
   readingFont: "atkinson",
   dyslexicFont: true,
   fontSize: 20,
-  letterSpacing: 0.06,
+  letterSpacing: 0.12,
   overlay: "var(--color-overlay-cream)",
   autoTts: false,
   ttsSpeed: 1.0,
@@ -72,22 +108,31 @@ export const defaultSettings: ReadingSettings = {
 }
 
 function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
-  const uiFont: UiFontId = raw.uiFont === "opendyslexic" ? "opendyslexic" : "lexend"
-  let readingFont: ReadingFontId =
-    raw.readingFont === "opendyslexic" ? "opendyslexic" : "atkinson"
+  const uiFont: UiFontId = UI_FONT_IDS.has(raw.uiFont ?? "")
+    ? (raw.uiFont as UiFontId)
+    : "lexend"
+
+  let readingFont: ReadingFontId = READING_FONT_IDS.has(raw.readingFont ?? "")
+    ? (raw.readingFont as ReadingFontId)
+    : "atkinson"
 
   // Migrasi toggle lama: dyslexicFont false → tetap pakai atkinson sebagai default bacaan
-  // (area bacaan tanpa class font-dyslexic tetap mengikuti UI)
   if (!raw.readingFont && raw.dyslexicFont === false) {
     readingFont = "atkinson"
   }
+
+  const letterSpacing =
+    typeof raw.letterSpacing === "number" && Number.isFinite(raw.letterSpacing)
+      ? Math.min(0.35, Math.max(0, raw.letterSpacing))
+      : defaultSettings.letterSpacing
 
   return {
     ...defaultSettings,
     ...raw,
     uiFont,
     readingFont,
-    dyslexicFont: readingFont === "opendyslexic" || raw.dyslexicFont !== false,
+    letterSpacing,
+    dyslexicFont: raw.dyslexicFont !== false,
   }
 }
 

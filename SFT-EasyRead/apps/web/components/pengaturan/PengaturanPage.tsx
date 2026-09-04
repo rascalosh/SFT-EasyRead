@@ -8,6 +8,9 @@ import {
   loadSettings,
   saveSettings,
   applyFontPreferences,
+  wordSpacingFromLetter,
+  UI_FONT_OPTIONS,
+  READING_FONT_OPTIONS,
   type ReadingSettings,
   type UiFontId,
   type ReadingFontId,
@@ -46,11 +49,14 @@ export default function Settings() {
                 onChange={(e) => update("uiFont", e.target.value as UiFontId)}
                 className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink"
               >
-                <option value="lexend">Lexend (sekarang)</option>
-                <option value="opendyslexic">OpenDyslexic</option>
+                {UI_FONT_OPTIONS.map((font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.label}
+                  </option>
+                ))}
               </select>
               <p className="mt-1.5 text-xs text-ink-mute">
-                Dipakai di menu, tombol, sidebar, dan label.
+                Dipakai di menu, tombol, sidebar, dan label. Preferensi: sans-serif agar huruf tidak terasa rapat.
               </p>
             </div>
 
@@ -61,8 +67,11 @@ export default function Settings() {
                 onChange={(e) => update("readingFont", e.target.value as ReadingFontId)}
                 className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink"
               >
-                <option value="atkinson">Atkinson Hyperlegible (sekarang)</option>
-                <option value="opendyslexic">OpenDyslexic</option>
+                {READING_FONT_OPTIONS.map((font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.label}
+                  </option>
+                ))}
               </select>
               <p className="mt-1.5 text-xs text-ink-mute">
                 Dipakai di area bacaan, simplify, latihan kata, dan mode ramah disleksia.
@@ -91,6 +100,24 @@ export default function Settings() {
               onChange={(e) => update("fontSize", +e.target.value)}
               className="w-full accent-[var(--color-brand)]"
             />
+
+            <label className="mb-2 mt-4 block text-sm font-semibold text-ink">
+              Jarak Huruf Default · {settings.letterSpacing.toFixed(2)}em
+            </label>
+            <input
+              type="range"
+              min={0.05}
+              max={0.35}
+              step={0.01}
+              value={settings.letterSpacing}
+              onChange={(e) => update("letterSpacing", +e.target.value)}
+              className="w-full accent-[var(--color-brand)]"
+            />
+            <p className="mt-1.5 text-xs text-ink-mute">
+              Target sekitar 0.12em (~35% lebar huruf). Jarak kata otomatis{" "}
+              {wordSpacingFromLetter(settings.letterSpacing).toFixed(2)}em (3.5× jarak huruf).
+            </p>
+
             <div className="mt-3 grid gap-2">
               <p className="text-xs font-medium text-ink-mute">Pratinjau UI</p>
               <p
@@ -99,12 +126,17 @@ export default function Settings() {
               >
                 Tombol · Menu · Label antarmuka
               </p>
-              <p className="text-xs font-medium text-ink-mute">Pratinjau teks bacaan</p>
+              <p className="text-xs font-medium text-ink-mute">Pratinjau teks bacaan (kotak ramah disleksia)</p>
               <p
-                className="rounded-lg bg-canvas p-3 text-ink font-dyslexic"
-                style={{ fontSize: settings.fontSize }}
+                className="reading-area !mt-0 !max-w-none"
+                style={{
+                  fontSize: settings.fontSize,
+                  letterSpacing: `${settings.letterSpacing}em`,
+                  wordSpacing: `${wordSpacingFromLetter(settings.letterSpacing)}em`,
+                }}
               >
-                Contoh teks bacaan dengan font ramah disleksia.
+                Contoh teks bacaan dengan jarak huruf dan kata yang nyaman. Hindari huruf kapital beruntun;
+                penekanan pakai <strong>tebal</strong>, bukan miring.
               </p>
             </div>
           </div>
@@ -145,7 +177,8 @@ export default function Settings() {
             </select>
           </div>
           <p className="mt-4 text-xs text-ink-mute">
-            Pengaturan disimpan otomatis ke perangkat ini.
+            Pengaturan disimpan otomatis ke perangkat ini. Latar bacaan memakai krem/pastel (bukan putih
+            menyilaukan) dengan teks gelap dan rata kiri.
           </p>
         </Card>
       </div>

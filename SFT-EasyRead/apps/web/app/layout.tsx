@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Atkinson_Hyperlegible, DM_Mono, Lexend } from "next/font/google";
+import { Atkinson_Hyperlegible, DM_Mono, Lexend, Open_Sans } from "next/font/google";
 import FontPreference from "@/components/layout/FontPreference";
 import "./globals.css";
 
@@ -14,6 +14,12 @@ const atkinson = Atkinson_Hyperlegible({
   weight: ["400", "700"],
   style: ["normal", "italic"],
   variable: "--font-atkinson",
+});
+
+const openSans = Open_Sans({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-open-sans",
 });
 
 const dmMono = DM_Mono({
@@ -35,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="id"
-      className={`${lexend.variable} ${atkinson.variable} ${dmMono.variable}`}
+      className={`${lexend.variable} ${atkinson.variable} ${openSans.variable} ${dmMono.variable}`}
       data-ui-font="lexend"
       data-reading-font="atkinson"
     >

@@ -183,12 +183,23 @@
   letter-spacing: -0.01em;
 }
 
+/*
+ * Kotak teks ramah disleksia (BDA-style):
+ * - letter-spacing ~35% lebar huruf rata-rata (~0.12em)
+ * - word-spacing ≥ 3.5 × letter-spacing
+ * - line-height 150%
+ * - rata kiri, tanpa justify
+ * - tanpa italic/underline; penekanan pakai bold
+ * - latar krem/pastel, teks gelap, kontras cukup
+ */
 .font-dyslexic {
   font-family: var(--font-reading);
   font-size: 1.0625rem;
-  line-height: 1.9;
-  letter-spacing: 0.05em;
-  word-spacing: 0.2em;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+  word-spacing: 0.42em;
+  text-align: left;
+  text-transform: none;
   color: var(--color-ink);
 }
 
@@ -198,29 +209,90 @@
   border-radius: var(--radius-card);
   padding: 1.75rem 2rem;
   font-size: 1.0625rem;
-  line-height: 1.9;
-  letter-spacing: 0.05em;
-  word-spacing: 0.2em;
-  text-align: justify;
-  text-align-last: left;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+  word-spacing: 0.42em;
+  text-align: left;
+  text-transform: none;
   color: var(--color-ink);
+  max-width: 70ch;
+}
+
+.font-dyslexic em,
+.font-dyslexic i,
+.reading-area em,
+.reading-area i {
+  font-style: normal;
+  font-weight: 700;
+}
+
+.font-dyslexic u,
+.reading-area u {
+  text-decoration: none;
+  font-weight: 700;
 }
 
 /* Preferensi font dari Pengaturan (data attributes di <html>) */
-html[data-ui-font="opendyslexic"] {
-  --font-sans: var(--font-opendyslexic);
-}
-
 html[data-ui-font="lexend"] {
   --font-sans: var(--font-lexend), ui-sans-serif, system-ui, sans-serif;
 }
-
-html[data-reading-font="opendyslexic"] {
-  --font-reading: var(--font-opendyslexic);
+html[data-ui-font="opendyslexic"] {
+  --font-sans: var(--font-opendyslexic);
+}
+html[data-ui-font="open-sans"] {
+  --font-sans: var(--font-open-sans), "Open Sans", sans-serif;
+}
+html[data-ui-font="arial"] {
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+html[data-ui-font="verdana"] {
+  --font-sans: Verdana, Geneva, sans-serif;
+}
+html[data-ui-font="tahoma"] {
+  --font-sans: Tahoma, Verdana, sans-serif;
+}
+html[data-ui-font="trebuchet"] {
+  --font-sans: "Trebuchet MS", "Lucida Grande", sans-serif;
+}
+html[data-ui-font="calibri"] {
+  --font-sans: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+}
+html[data-ui-font="century-gothic"] {
+  --font-sans: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+}
+html[data-ui-font="comic-sans"] {
+  --font-sans: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
 }
 
 html[data-reading-font="atkinson"] {
   --font-reading: var(--font-atkinson), var(--font-lexend), sans-serif;
+}
+html[data-reading-font="opendyslexic"] {
+  --font-reading: var(--font-opendyslexic);
+}
+html[data-reading-font="open-sans"] {
+  --font-reading: var(--font-open-sans), "Open Sans", sans-serif;
+}
+html[data-reading-font="arial"] {
+  --font-reading: Arial, Helvetica, sans-serif;
+}
+html[data-reading-font="verdana"] {
+  --font-reading: Verdana, Geneva, sans-serif;
+}
+html[data-reading-font="tahoma"] {
+  --font-reading: Tahoma, Verdana, sans-serif;
+}
+html[data-reading-font="trebuchet"] {
+  --font-reading: "Trebuchet MS", "Lucida Grande", sans-serif;
+}
+html[data-reading-font="calibri"] {
+  --font-reading: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+}
+html[data-reading-font="century-gothic"] {
+  --font-reading: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+}
+html[data-reading-font="comic-sans"] {
+  --font-reading: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
 }
 
 .reading-area p + p {
