@@ -134,9 +134,7 @@ export default function Sidebar({ open, onClose }: Props) {
             aria-current={active === "home" ? "page" : undefined}
             className={cx(
               "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150",
-              active === "home"
-                ? "bg-brand text-[var(--color-brand-ink)] shadow-[var(--shadow-brand)]"
-                : "bg-brand-soft text-brand-strong hover:bg-brand hover:text-[var(--color-brand-ink)]",
+              "bg-brand text-[var(--color-brand-ink)] shadow-[var(--shadow-brand)] hover:bg-brand-strong",
             )}
           >
             <IconPlus width={16} height={16} aria-hidden />
@@ -170,7 +168,7 @@ export default function Sidebar({ open, onClose }: Props) {
                     className={cx(
                       "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors duration-100",
                       isActive
-                        ? "bg-brand-soft text-brand-strong"
+                        ? "bg-surface text-brand-strong outline outline-2 outline-brand -outline-offset-2"
                         : "text-ink-soft hover:bg-[var(--color-line-soft)] hover:text-ink",
                     )}
                   >

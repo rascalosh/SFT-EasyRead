@@ -77,7 +77,7 @@ export function SimplifyPageShell({
         <div className="flex items-center gap-2">
           <Badge tone="brand"><IconSparkle width={13} height={13} /> Dihasilkan oleh AI</Badge>
           <Button onClick={onSimplify} disabled={loading || !sourceText.trim()}>
-            {loading ? "Menyederhanakan…" : "Sederhanakan Teks"}
+            {loading ? "Menyederhanakan…" : done ? "Proses Ulang" : "Sederhanakan Teks"}
           </Button>
         </div>
       </div>
@@ -105,6 +105,7 @@ export default function SimplifyPage() {
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [booting, setBooting] = useState(true)
+  const [fromCache, setFromCache] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -145,6 +146,31 @@ export default function SimplifyPage() {
           setActiveMaterial(active)
           setMaterial(active)
           setSourceText(originalText)
+
+          // Muat hasil AI tersimpan (tanpa panggil Gemini lagi)
+          const [simplifyRes, summaryRes] = await Promise.all([
+            fetch(`/api/documents/${result.document.id}/simplify`),
+            fetch(`/api/documents/${result.document.id}/summary`),
+          ])
+
+          if (cancelled) return
+
+          if (simplifyRes.ok) {
+            const nextText = extractSimplifiedText(await simplifyRes.json())
+            if (nextText) {
+              setResultText(nextText)
+              setDone(true)
+              setFromCache(true)
+            }
+          }
+          if (summaryRes.ok) {
+            const nextPoints = extractSummaryPoints(await summaryRes.json())
+            if (nextPoints.length) {
+              setPoints(nextPoints)
+              setFromCache(true)
+            }
+          }
+
           setBooting(false)
           return
         }
@@ -180,6 +206,7 @@ export default function SimplifyPage() {
 
     setLoading(true)
     setDone(false)
+    setFromCache(false)
     setError(null)
 
     try {
@@ -230,15 +257,17 @@ export default function SimplifyPage() {
       }
       if (!simplifyResponse.ok) throw new Error("simplify-failed")
 
-      const nextText = extractSimplifiedText(await simplifyResponse.json())
-      const nextPoints = summaryResponse.ok
-        ? extractSummaryPoints(await summaryResponse.json())
-        : []
+      const simplifyPayload = await simplifyResponse.json() as { cached?: boolean }
+      const summaryPayload = summaryResponse.ok ? await summaryResponse.json() : null
+
+      const nextText = extractSimplifiedText(simplifyPayload)
+      const nextPoints = summaryPayload ? extractSummaryPoints(summaryPayload) : []
 
       if (!nextText) throw new Error("invalid-simplification")
       setResultText(nextText)
       setPoints(nextPoints)
       setDone(true)
+      setFromCache(Boolean(simplifyPayload.cached))
     } catch {
       setError("Teks gagal diproses oleh AI. Silakan coba lagi.")
     } finally {
@@ -258,14 +287,25 @@ export default function SimplifyPage() {
   const subtitle = booting
     ? "Memuat teks materi…"
     : material
-      ? `Menyederhanakan: ${material.title}`
+      ? fromCache
+        ? `Menyederhanakan: ${material.title} · hasil tersimpan`
+        : `Menyederhanakan: ${material.title}`
       : "Belum ada materi dipilih. Tempel teks di bawah, atau buka materi dulu dari sidebar."
 
   return (
     <SimplifyPageShell
       subtitle={subtitle}
       sourceText={sourceText}
-      onSourceChange={setSourceText}
+      onSourceChange={(value) => {
+        setSourceText(value)
+        // Teks diubah → hasil lama tidak berlaku sampai diproses ulang
+        if (done) {
+          setDone(false)
+          setResultText("")
+          setPoints([])
+          setFromCache(false)
+        }
+      }}
       resultText={resultText}
       points={points}
       title={title}
