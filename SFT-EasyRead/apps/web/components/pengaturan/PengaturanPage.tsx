@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Card, SectionTitle } from "@/components/shared/ui"
+import { useEffect, useState } from "react"
+import { Card, SectionTitle, cx } from "@/components/shared/ui"
 import { IconSettings, IconBook, IconSpeaker, IconTextSize } from "@/components/shared/icons"
 import SettingsToggle from "./SettingsToggle"
 import {
@@ -9,15 +9,29 @@ import {
   saveSettings,
   applyFontPreferences,
   wordSpacingFromLetter,
+  getContrastOption,
+  defaultSettings,
   UI_FONT_OPTIONS,
   READING_FONT_OPTIONS,
+  READING_CONTRAST_OPTIONS,
   type ReadingSettings,
   type UiFontId,
   type ReadingFontId,
+  type ReadingContrastId,
 } from "@/lib/session"
 
 export default function Settings() {
-  const [settings, setSettings] = useState(loadSettings)
+  // SSR + first client paint must match: never read localStorage in the initializer.
+  const [settings, setSettings] = useState<ReadingSettings>(() => ({ ...defaultSettings }))
+  const [ready, setReady] = useState(false)
+  const contrast = getContrastOption(settings.contrastId)
+
+  useEffect(() => {
+    const loaded = loadSettings()
+    setSettings({ ...loaded })
+    applyFontPreferences(loaded)
+    setReady(true)
+  }, [])
 
   function update<K extends keyof ReadingSettings>(key: K, value: ReadingSettings[K]) {
     setSettings((prev) => {
@@ -41,8 +55,60 @@ export default function Settings() {
         <Card>
           <SectionTitle icon={<IconBook width={18} height={18} />} title="Tampilan & Font" />
 
-          <div className="space-y-4">
+          <div className={cx("space-y-4", !ready && "opacity-80")}>
             <div>
+              <label className="mb-2 block text-sm font-semibold text-ink">
+                Kontras teks & latar bacaan
+              </label>
+              <p className="mb-2 text-xs text-ink-mute">
+                Pilih kombinasi warna dengan kontras luminansi tinggi. Latar pastel + teks gelap.
+              </p>
+              <div
+                className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                role="radiogroup"
+                aria-label="Kombinasi warna teks dan latar bacaan"
+              >
+                {READING_CONTRAST_OPTIONS.map((option) => {
+                  const selected = settings.contrastId === option.id
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => update("contrastId", option.id as ReadingContrastId)}
+                      className={cx(
+                        "flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
+                        selected
+                          ? "border-brand outline outline-2 outline-brand -outline-offset-2"
+                          : "border-line hover:border-brand/40",
+                      )}
+                    >
+                      <span
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-line text-sm font-bold"
+                        style={{ backgroundColor: option.background, color: option.text }}
+                        aria-hidden
+                      >
+                        Aa
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-ink">
+                          {option.label}
+                        </span>
+                        <span
+                          className="mt-0.5 block truncate rounded px-1.5 py-0.5 text-[11px]"
+                          style={{ backgroundColor: option.background, color: option.text }}
+                        >
+                          Contoh teks bacaan
+                        </span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="border-t border-line pt-4">
               <label className="mb-2 block text-sm font-semibold text-ink">Font Antarmuka (UI)</label>
               <select
                 value={settings.uiFont}
@@ -56,7 +122,7 @@ export default function Settings() {
                 ))}
               </select>
               <p className="mt-1.5 text-xs text-ink-mute">
-                Dipakai di menu, tombol, sidebar, dan label. Preferensi: sans-serif agar huruf tidak terasa rapat.
+                Dipakai di menu, tombol, sidebar, dan label.
               </p>
             </div>
 
@@ -119,20 +185,15 @@ export default function Settings() {
             </p>
 
             <div className="mt-3 grid gap-2">
-              <p className="text-xs font-medium text-ink-mute">Pratinjau UI</p>
-              <p
-                className="rounded-lg bg-canvas p-3 text-ink font-sans"
-                style={{ fontSize: Math.max(14, settings.fontSize - 4) }}
-              >
-                Tombol · Menu · Label antarmuka
-              </p>
-              <p className="text-xs font-medium text-ink-mute">Pratinjau teks bacaan (kotak ramah disleksia)</p>
+              <p className="text-xs font-medium text-ink-mute">Pratinjau teks bacaan</p>
               <p
                 className="reading-area !mt-0 !max-w-none"
                 style={{
                   fontSize: settings.fontSize,
                   letterSpacing: `${settings.letterSpacing}em`,
                   wordSpacing: `${wordSpacingFromLetter(settings.letterSpacing)}em`,
+                  backgroundColor: contrast.background,
+                  color: contrast.text,
                 }}
               >
                 Contoh teks bacaan dengan jarak huruf dan kata yang nyaman. Hindari huruf kapital beruntun;
@@ -177,8 +238,7 @@ export default function Settings() {
             </select>
           </div>
           <p className="mt-4 text-xs text-ink-mute">
-            Pengaturan disimpan otomatis ke perangkat ini. Latar bacaan memakai krem/pastel (bukan putih
-            menyilaukan) dengan teks gelap dan rata kiri.
+            Pengaturan disimpan otomatis ke perangkat ini.
           </p>
         </Card>
       </div>

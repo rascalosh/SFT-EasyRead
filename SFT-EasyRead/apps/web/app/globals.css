@@ -99,6 +99,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    --reading-bg: #fcf6e7;
+    --reading-fg: #1B3C53;
   }
 
   a {
@@ -190,7 +192,7 @@
  * - line-height 150%
  * - rata kiri, tanpa justify
  * - tanpa italic/underline; penekanan pakai bold
- * - latar krem/pastel, teks gelap, kontras cukup
+ * - pasangan warna kontras tinggi (--reading-bg / --reading-fg), bisa dipilih user
  */
 .font-dyslexic {
   font-family: var(--font-reading);
@@ -200,12 +202,12 @@
   word-spacing: 0.42em;
   text-align: left;
   text-transform: none;
-  color: var(--color-ink);
+  color: var(--reading-fg);
 }
 
 .reading-area {
   font-family: var(--font-reading);
-  background-color: var(--color-overlay-cream);
+  background-color: var(--reading-bg);
   border-radius: var(--radius-card);
   padding: 1.75rem 2rem;
   font-size: 1.0625rem;
@@ -214,7 +216,7 @@
   word-spacing: 0.42em;
   text-align: left;
   text-transform: none;
-  color: var(--color-ink);
+  color: var(--reading-fg);
   max-width: 70ch;
 }
 

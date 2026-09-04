@@ -44,6 +44,8 @@ export default function RootLayout({
       className={`${lexend.variable} ${atkinson.variable} ${openSans.variable} ${dmMono.variable}`}
       data-ui-font="lexend"
       data-reading-font="atkinson"
+      data-reading-contrast="cream-ink"
+      style={{ ["--reading-bg" as string]: "#fcf6e7", ["--reading-fg" as string]: "#1B3C53" }}
     >
       <body className="font-sans antialiased">
         <FontPreference />

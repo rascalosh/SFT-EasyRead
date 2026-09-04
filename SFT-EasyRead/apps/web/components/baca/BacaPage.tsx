@@ -9,30 +9,28 @@ import { demoTitle, demoParagraphs } from "@/lib/mock"
 import {
   getActiveMaterial,
   loadSettings,
+  saveSettings,
+  applyFontPreferences,
   defaultSettings,
   wordSpacingFromLetter,
+  getContrastOption,
+  READING_CONTRAST_OPTIONS,
   type ActiveMaterial,
+  type ReadingContrastId,
+  type ReadingSettings,
 } from "@/lib/session"
-
-const overlays = [
-  { id: "cream",  label: "Krem",   value: "var(--color-overlay-cream)" },
-  { id: "peach",  label: "Persik", value: "var(--color-overlay-peach)" },
-  { id: "mint",   label: "Mint",   value: "var(--color-overlay-mint)" },
-  { id: "blue",   label: "Biru",   value: "var(--color-overlay-blue)" },
-  { id: "lilac",  label: "Lila",   value: "var(--color-overlay-lilac)" },
-]
 
 export default function ReadingInterface() {
   const router = useRouter()
   const settingsRef = useRef(defaultSettings)
 
   // Gunakan defaultSettings sebagai initial value agar SSR & client match
-  const [material,  setMaterial]  = useState<ActiveMaterial | null>(null)
-  const [dyslexic,  setDyslexic]  = useState(defaultSettings.dyslexicFont)
-  const [size,      setSize]      = useState(defaultSettings.fontSize)
-  const [spacing,   setSpacing]   = useState(defaultSettings.letterSpacing)
-  const [overlay,   setOverlay]   = useState(defaultSettings.overlay)
-  const [ruler,     setRuler]     = useState<number | null>(null)
+  const [material, setMaterial] = useState<ActiveMaterial | null>(null)
+  const [dyslexic, setDyslexic] = useState(defaultSettings.dyslexicFont)
+  const [size, setSize] = useState(defaultSettings.fontSize)
+  const [spacing, setSpacing] = useState(defaultSettings.letterSpacing)
+  const [contrastId, setContrastId] = useState<ReadingContrastId>(defaultSettings.contrastId)
+  const [ruler, setRuler] = useState<number | null>(null)
   const [ttsActive, setTtsActive] = useState(false)
 
   // Setelah mount: baca localStorage & session (aman dari SSR)
@@ -42,9 +40,18 @@ export default function ReadingInterface() {
     setDyslexic(s.dyslexicFont)
     setSize(s.fontSize)
     setSpacing(s.letterSpacing)
-    setOverlay(s.overlay)
+    setContrastId(s.contrastId)
     setMaterial(getActiveMaterial())
   }, [])
+
+  const contrast = getContrastOption(contrastId)
+
+  function persist(partial: Partial<ReadingSettings>) {
+    const next = { ...settingsRef.current, ...partial }
+    settingsRef.current = next
+    saveSettings(next)
+    applyFontPreferences(next)
+  }
 
   const title = material?.title ?? demoTitle
   const lines =
@@ -71,7 +78,11 @@ export default function ReadingInterface() {
   }
 
   const toggleTts = () => {
-    if (ttsActive) { stopSpeak() } else { speak(lines.join(" ")) }
+    if (ttsActive) {
+      stopSpeak()
+    } else {
+      speak(lines.join(" "))
+    }
   }
 
   return (
@@ -90,7 +101,7 @@ export default function ReadingInterface() {
 
       <div
         className="rounded-[var(--radius-card)] border border-line p-6 sm:p-10 transition-colors"
-        style={{ backgroundColor: overlay }}
+        style={{ backgroundColor: contrast.background, color: contrast.text }}
       >
         <div
           className={cx("mx-auto max-w-2xl text-left", dyslexic && "font-dyslexic")}
@@ -99,6 +110,7 @@ export default function ReadingInterface() {
             lineHeight: 1.5,
             letterSpacing: `${spacing}em`,
             wordSpacing: `${wordSpacingFromLetter(spacing)}em`,
+            color: contrast.text,
           }}
         >
           {lines.map((line, i) => (
@@ -126,13 +138,29 @@ export default function ReadingInterface() {
             </label>
             <div className="inline-flex rounded-xl border border-line bg-canvas p-1">
               <button
-                onClick={() => setDyslexic(true)}
-                className={cx("rounded-lg px-3 py-1.5 text-sm font-medium", dyslexic ? "bg-brand text-[var(--color-brand-ink)]" : "text-ink-soft")}
-              >Ramah Disleksia</button>
+                onClick={() => {
+                  setDyslexic(true)
+                  persist({ dyslexicFont: true })
+                }}
+                className={cx(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium",
+                  dyslexic ? "bg-brand text-[var(--color-brand-ink)]" : "text-ink-soft",
+                )}
+              >
+                Ramah Disleksia
+              </button>
               <button
-                onClick={() => setDyslexic(false)}
-                className={cx("rounded-lg px-3 py-1.5 text-sm font-medium", !dyslexic ? "bg-brand text-[var(--color-brand-ink)]" : "text-ink-soft")}
-              >Standar</button>
+                onClick={() => {
+                  setDyslexic(false)
+                  persist({ dyslexicFont: false })
+                }}
+                className={cx(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium",
+                  !dyslexic ? "bg-brand text-[var(--color-brand-ink)]" : "text-ink-soft",
+                )}
+              >
+                Standar
+              </button>
             </div>
           </div>
 
@@ -141,8 +169,15 @@ export default function ReadingInterface() {
               <IconTextSize width={16} height={16} className="text-brand" /> Ukuran Teks · {size}px
             </label>
             <input
-              type="range" min={16} max={30} value={size}
-              onChange={(e) => setSize(+e.target.value)}
+              type="range"
+              min={16}
+              max={30}
+              value={size}
+              onChange={(e) => {
+                const fontSize = +e.target.value
+                setSize(fontSize)
+                persist({ fontSize })
+              }}
               className="w-full accent-[var(--color-brand)]"
             />
           </div>
@@ -152,8 +187,16 @@ export default function ReadingInterface() {
               Jarak Huruf · {spacing.toFixed(2)}em
             </label>
             <input
-              type="range" min={0.05} max={0.35} step={0.01} value={spacing}
-              onChange={(e) => setSpacing(+e.target.value)}
+              type="range"
+              min={0.05}
+              max={0.35}
+              step={0.01}
+              value={spacing}
+              onChange={(e) => {
+                const letterSpacing = +e.target.value
+                setSpacing(letterSpacing)
+                persist({ letterSpacing })
+              }}
               className="w-full accent-[var(--color-brand)]"
             />
             <p className="mt-1 text-xs text-ink-mute">
@@ -162,17 +205,27 @@ export default function ReadingInterface() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-ink">Overlay Warna</label>
-            <div className="flex flex-wrap gap-2">
-              {overlays.map((o) => (
+            <label className="mb-2 block text-sm font-semibold text-ink">Kontras warna</label>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Kontras teks dan latar">
+              {READING_CONTRAST_OPTIONS.map((option) => (
                 <button
-                  key={o.id}
-                  onClick={() => setOverlay(o.value)}
-                  aria-label={o.label}
-                  aria-pressed={overlay === o.value}
-                  className={cx("h-8 w-8 rounded-full border-2 transition-transform", overlay === o.value ? "scale-110 border-brand" : "border-line")}
-                  style={{ backgroundColor: o.value }}
-                />
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-label={option.label}
+                  aria-checked={contrastId === option.id}
+                  onClick={() => {
+                    setContrastId(option.id)
+                    persist({ contrastId: option.id })
+                  }}
+                  className={cx(
+                    "grid h-8 w-8 place-items-center rounded-full border-2 text-[10px] font-bold transition-transform",
+                    contrastId === option.id ? "scale-110 border-brand" : "border-line",
+                  )}
+                  style={{ backgroundColor: option.background, color: option.text }}
+                >
+                  Aa
+                </button>
               ))}
             </div>
           </div>

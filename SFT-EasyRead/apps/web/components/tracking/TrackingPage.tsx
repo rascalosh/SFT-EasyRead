@@ -97,7 +97,7 @@ export default function AudioVisualTracking() {
         </p>
       </div>
 
-      <Card className="bg-[var(--color-overlay-cream)]">
+      <Card className="bg-[var(--reading-bg)] text-[var(--reading-fg)]">
         <div className="mb-3 text-sm font-semibold text-ink-mute">Teks Bacaan · {title}</div>
         <p className="font-dyslexic max-w-3xl leading-relaxed">
           {words.map((w, i) => (

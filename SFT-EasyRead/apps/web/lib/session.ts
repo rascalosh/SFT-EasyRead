@@ -71,6 +71,77 @@ export type ReadingFontId = (typeof READING_FONT_OPTIONS)[number]["id"]
 const UI_FONT_IDS = new Set<string>(UI_FONT_OPTIONS.map((f) => f.id))
 const READING_FONT_IDS = new Set<string>(READING_FONT_OPTIONS.map((f) => f.id))
 
+/**
+ * Pasangan latar + teks dengan kontras luminansi tinggi.
+ * Hindari hijau & merah/pink sebagai pilihan utama (kesulitan untuk color blindness).
+ */
+export const READING_CONTRAST_OPTIONS = [
+  {
+    id: "cream-ink",
+    label: "Krem · teks gelap",
+    background: "#fcf6e7",
+    text: "#1B3C53",
+  },
+  {
+    id: "paper-black",
+    label: "Kertas · kontras tinggi",
+    background: "#f5f0e6",
+    text: "#0a0a0a",
+  },
+  {
+    id: "blue-ink",
+    label: "Biru lembut · teks gelap",
+    background: "#e2ecf9",
+    text: "#14283a",
+  },
+  {
+    id: "peach-ink",
+    label: "Persik · teks gelap",
+    background: "#fbe8d9",
+    text: "#2c1810",
+  },
+  {
+    id: "lilac-ink",
+    label: "Lila · teks gelap",
+    background: "#ede5f5",
+    text: "#241536",
+  },
+  {
+    id: "yellow-black",
+    label: "Kuning lembut · teks hitam",
+    background: "#fef7d6",
+    text: "#1a1a1a",
+  },
+  {
+    id: "slate-black",
+    label: "Abu · teks hitam",
+    background: "#e8eaed",
+    text: "#111827",
+  },
+] as const
+
+export type ReadingContrastId = (typeof READING_CONTRAST_OPTIONS)[number]["id"]
+const CONTRAST_IDS = new Set<string>(READING_CONTRAST_OPTIONS.map((c) => c.id))
+
+export function getContrastOption(id: ReadingContrastId | string | undefined) {
+  return (
+    READING_CONTRAST_OPTIONS.find((c) => c.id === id) ??
+    READING_CONTRAST_OPTIONS[0]
+  )
+}
+
+/** Migrasi overlay lama (hanya warna latar) → pasangan kontras. */
+function contrastFromLegacyOverlay(overlay?: string): ReadingContrastId {
+  if (!overlay) return "cream-ink"
+  if (overlay.includes("peach")) return "peach-ink"
+  if (overlay.includes("blue")) return "blue-ink"
+  if (overlay.includes("lilac")) return "lilac-ink"
+  if (overlay.includes("yellow")) return "yellow-black"
+  // mint/hijau diganti ke biru agar lebih aman untuk color vision deficiency
+  if (overlay.includes("mint")) return "blue-ink"
+  return "cream-ink"
+}
+
 export type ReadingSettings = {
   /** Font antarmuka (tombol, sidebar, label). */
   uiFont: UiFontId
@@ -81,6 +152,9 @@ export type ReadingSettings = {
   fontSize: number
   /** Jarak antar huruf (em). Target ~0.12em ≈ 35% lebar huruf rata-rata. */
   letterSpacing: number
+  /** Pasangan warna teks + latar bacaan (kontras tinggi). */
+  contrastId: ReadingContrastId
+  /** @deprecated diganti contrastId; tetap disimpan agar kompatibel */
   overlay: string
   autoTts: boolean
   ttsSpeed: number
@@ -101,7 +175,8 @@ export const defaultSettings: ReadingSettings = {
   dyslexicFont: true,
   fontSize: 20,
   letterSpacing: 0.12,
-  overlay: "var(--color-overlay-cream)",
+  contrastId: "cream-ink",
+  overlay: READING_CONTRAST_OPTIONS[0].background,
   autoTts: false,
   ttsSpeed: 1.0,
   language: "id-ID",
@@ -126,12 +201,20 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
       ? Math.min(0.35, Math.max(0, raw.letterSpacing))
       : defaultSettings.letterSpacing
 
+  let contrastId: ReadingContrastId = CONTRAST_IDS.has(raw.contrastId ?? "")
+    ? (raw.contrastId as ReadingContrastId)
+    : contrastFromLegacyOverlay(raw.overlay)
+
+  const contrast = getContrastOption(contrastId)
+
   return {
     ...defaultSettings,
     ...raw,
     uiFont,
     readingFont,
     letterSpacing,
+    contrastId,
+    overlay: contrast.background,
     dyslexicFont: raw.dyslexicFont !== false,
   }
 }
@@ -159,12 +242,16 @@ export function saveSettings(settings: ReadingSettings) {
   }
 }
 
-/** Terapkan preferensi font ke <html> (CSS variables / data attributes). */
+/** Terapkan preferensi font & kontras warna ke <html>. */
 export function applyFontPreferences(settings: ReadingSettings = loadSettings()) {
   if (typeof document === "undefined") return
   const root = document.documentElement
+  const contrast = getContrastOption(settings.contrastId)
   root.dataset.uiFont = settings.uiFont
   root.dataset.readingFont = settings.readingFont
+  root.dataset.readingContrast = settings.contrastId
+  root.style.setProperty("--reading-bg", contrast.background)
+  root.style.setProperty("--reading-fg", contrast.text)
 }
 
 // ── Progress sesi (in-memory, reset per sesi) ────────────────────────────────

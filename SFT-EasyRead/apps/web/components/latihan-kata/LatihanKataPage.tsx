@@ -88,7 +88,7 @@ export default function SyllableBreaker() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card className="bg-[var(--color-overlay-cream)]">
+          <Card className="bg-[var(--reading-bg)] text-[var(--reading-fg)]">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink-mute">
               <IconTap width={16} height={16} className="text-brand" /> {title} · semua kata bisa diketuk
             </div>
