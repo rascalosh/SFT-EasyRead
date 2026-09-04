@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Metadata } from "next";
 import { Atkinson_Hyperlegible, DM_Mono, Lexend, Open_Sans } from "next/font/google";
+import "@fontsource/opendyslexic/400.css";
+import "@fontsource/opendyslexic/700.css";
 import FontPreference from "@/components/layout/FontPreference";
 import "./globals.css";
 
