@@ -88,11 +88,11 @@ export default function SyllableBreaker() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card className="bg-[var(--reading-bg)] text-[var(--reading-fg)]">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink-mute">
-              <IconTap width={16} height={16} className="text-brand" /> {title} · semua kata bisa diketuk
+          <Card variant="reading">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold opacity-70">
+              <IconTap width={16} height={16} /> {title} · semua kata bisa diketuk
             </div>
-            <p className="font-dyslexic leading-relaxed">
+            <p className="font-dyslexic">
               {tokens.map((t, i) =>
                 /^\s+$/.test(t.raw) ? (
                   <span key={i}>{t.raw}</span>
@@ -104,8 +104,8 @@ export default function SyllableBreaker() {
                     onClick={() => handleWordClick(t.key, t.raw)}
                     className={
                       dict.has(t.key)
-                        ? "mx-0.5 rounded bg-brand-soft px-1 font-semibold text-brand-strong underline decoration-brand/40 decoration-2 underline-offset-4 hover:bg-brand hover:text-[var(--color-brand-ink)]"
-                        : "mx-0.5 rounded px-0.5 hover:bg-[var(--color-line-soft)] hover:text-ink transition-colors cursor-pointer"
+                        ? "mx-0.5 rounded bg-[color-mix(in_srgb,var(--reading-fg)_14%,transparent)] px-1 font-bold hover:bg-brand hover:text-[var(--color-brand-ink)]"
+                        : "mx-0.5 rounded px-0.5 font-medium hover:bg-[color-mix(in_srgb,var(--reading-fg)_10%,transparent)] transition-colors cursor-pointer"
                     }
                   >
                     {t.raw}
@@ -118,28 +118,28 @@ export default function SyllableBreaker() {
 
         <div className="space-y-6">
           {selected && (
-            <Card className="border-brand">
+            <Card variant="reading" className="border-brand">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-brand">Kata Dipilih</span>
+                <span className="text-xs font-bold uppercase tracking-wide opacity-70">Kata Dipilih</span>
                 <button
                   onClick={() => setSelected(null)}
-                  className="text-ink-mute hover:text-ink"
+                  className="opacity-60 hover:opacity-100"
                   aria-label="Tutup"
                 >
                   <IconClose width={16} height={16} />
                 </button>
               </div>
-              <div className="font-dyslexic text-xl font-bold text-ink">{selected.word}</div>
+              <div className="font-dyslexic text-xl font-bold">{selected.word}</div>
 
               <div className="mt-4">
-                <div className="text-xs font-medium text-ink-mute">Pemecahan Suku Kata</div>
-                <div className="mt-1 font-dyslexic text-lg font-semibold tracking-wide text-brand-strong">
+                <div className="text-xs font-medium opacity-70">Pemecahan Suku Kata</div>
+                <div className="mt-1 font-dyslexic text-lg font-bold">
                   {selected.breakdown}
                 </div>
               </div>
 
               <div className="mt-4">
-                <div className="text-xs font-medium text-ink-mute">Cara Pengucapan</div>
+                <div className="text-xs font-medium opacity-70">Cara Pengucapan</div>
                 <Button
                   variant="soft"
                   size="sm"
@@ -151,27 +151,27 @@ export default function SyllableBreaker() {
               </div>
 
               <div className="mt-4">
-                <div className="text-xs font-medium text-ink-mute">Arti Sederhana</div>
-                <p className="mt-1 text-sm text-ink-soft">{selected.meaning}</p>
+                <div className="text-xs font-medium opacity-70">Arti Sederhana</div>
+                <p className="mt-1 font-dyslexic text-sm opacity-80">{selected.meaning}</p>
               </div>
             </Card>
           )}
 
-          <Card>
+          <Card variant="reading">
             <SectionTitle title="Riwayat Kata yang Diperiksa" />
-            <ul className="divide-y divide-line">
+            <ul className="divide-y divide-[color-mix(in_srgb,var(--reading-fg)_15%,transparent)]">
               {history.slice(0, 10).map((s) => (
                 <li key={s.word} className="flex items-center gap-3 py-2.5">
                   <button
                     onClick={() => selectWord(s)}
                     className="min-w-0 flex-1 text-left"
                   >
-                    <span className="block truncate font-dyslexic font-medium text-ink">{s.word}</span>
-                    <span className="block text-xs text-ink-mute">{s.checkedAgo}</span>
+                    <span className="block truncate font-dyslexic font-bold">{s.word}</span>
+                    <span className="block text-xs opacity-60">{s.checkedAgo}</span>
                   </button>
                   <button
                     onClick={() => speak(s.word)}
-                    className="grid h-8 w-8 place-items-center rounded-full bg-canvas text-brand hover:bg-brand-soft"
+                    className="grid h-8 w-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--reading-fg)_10%,transparent)] hover:bg-brand hover:text-[var(--color-brand-ink)]"
                     aria-label={`Dengarkan ${s.word}`}
                   >
                     <IconPlay width={14} height={14} />

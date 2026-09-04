@@ -15,10 +15,10 @@ export function SimplifiedTextPanel({
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
 
   return (
-    <Card className={done ? "border-brand" : ""}>
+    <Card className={done ? "border-brand" : ""} variant="reading">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 font-semibold text-ink">
-          <IconSparkle width={17} height={17} className="text-brand" /> Teks yang Disederhanakan
+        <h2 className="flex items-center gap-2 font-semibold">
+          <IconSparkle width={17} height={17} /> Teks yang Disederhanakan
         </h2>
         {done && (
           <Badge tone="good">Tingkat Kesulitan: Mudah</Badge>
@@ -26,11 +26,11 @@ export function SimplifiedTextPanel({
       </div>
       {done ? (
         <>
-          <div className="reading-area text-ink">{text}</div>
-          <div className="mt-4 text-xs text-ink-mute">{wordCount} kata</div>
+          <div className="reading-area !max-w-none !bg-transparent !p-0">{text}</div>
+          <div className="mt-4 text-xs opacity-60">{wordCount} kata</div>
         </>
       ) : (
-        <div className="grid h-full min-h-40 place-items-center text-center text-sm text-ink-mute">
+        <div className="grid h-full min-h-40 place-items-center text-center text-sm opacity-60">
           {loading ? "AI sedang menyederhanakan teks…" : "Tekan \"Sederhanakan Teks\" untuk melihat versi yang lebih mudah dibaca."}
         </div>
       )}

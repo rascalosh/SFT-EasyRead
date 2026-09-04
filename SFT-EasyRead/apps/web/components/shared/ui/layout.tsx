@@ -9,19 +9,25 @@ export function Card({
   as: Tag = "div",
   onClick,
   hover = false,
+  variant = "default",
 }: {
   className?: string
   children: ReactNode
   as?: "div" | "article" | "section"
   onClick?: () => void
   hover?: boolean
+  /** "reading" = latar/teks ramah disleksia (--reading-bg / --reading-fg) */
+  variant?: "default" | "reading"
 }) {
   return (
     <Tag
       onClick={onClick}
       className={cx(
-        "rounded-[var(--radius-card)] border border-line bg-surface p-5",
+        "rounded-[var(--radius-card)] border p-5",
         "shadow-[var(--shadow-xs)]",
+        variant === "reading"
+          ? "reading-surface border-[color-mix(in_srgb,var(--reading-fg)_18%,transparent)]"
+          : "border-line bg-surface",
         hover && "cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] hover:border-brand/40",
         className,
       )}

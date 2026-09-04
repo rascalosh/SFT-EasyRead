@@ -97,17 +97,17 @@ export default function AudioVisualTracking() {
         </p>
       </div>
 
-      <Card className="bg-[var(--reading-bg)] text-[var(--reading-fg)]">
-        <div className="mb-3 text-sm font-semibold text-ink-mute">Teks Bacaan · {title}</div>
-        <p className="font-dyslexic max-w-3xl leading-relaxed">
+      <Card variant="reading">
+        <div className="mb-3 text-sm font-semibold opacity-70">Teks Bacaan · {title}</div>
+        <p className="font-dyslexic max-w-3xl">
           {words.map((w, i) => (
             <span
               key={i}
               onClick={() => setActive(i)}
               className={cx(
                 "cursor-pointer rounded px-0.5 transition-colors",
-                i === active && "bg-brand text-[var(--color-brand-ink)]",
-                i < active && "text-ink-mute",
+                i === active && "bg-brand font-bold text-[var(--color-brand-ink)]",
+                i < active && "opacity-45",
               )}
             >
               {w}{" "}

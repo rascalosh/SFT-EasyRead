@@ -453,3 +453,37 @@ input[type="checkbox"], input[type="radio"] {
   cursor: pointer;
 }
 }
+
+/*
+ * Di luar @layer agar mengalahkan utility Tailwind seperti bg-surface.
+ * Dipakai Card variant="reading" dan kotak bacaan.
+ */
+.reading-surface {
+  background-color: var(--reading-bg) !important;
+  color: var(--reading-fg) !important;
+  font-family: var(--font-reading);
+}
+
+.reading-surface .text-ink,
+.reading-surface .text-ink-soft,
+.reading-surface .text-ink-mute {
+  color: inherit !important;
+  opacity: 0.8;
+}
+
+.reading-surface h1,
+.reading-surface h2,
+.reading-surface h3,
+.reading-surface .text-brand,
+.reading-surface .text-brand-strong {
+  color: var(--reading-fg) !important;
+}
+
+.reading-surface .font-dyslexic,
+.reading-surface .reading-area {
+  color: var(--reading-fg);
+  font-family: var(--font-reading);
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+  word-spacing: 0.42em;
+}
