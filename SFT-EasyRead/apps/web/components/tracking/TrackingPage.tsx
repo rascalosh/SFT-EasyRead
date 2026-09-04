@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react"
 import { Card, Button, cx } from "@/components/shared/ui"
 import { IconPlay, IconPause, IconWave, IconSpeaker } from "@/components/shared/icons"
 import { demoTitle, demoParagraphs } from "@/lib/mock"
-import { getActiveMaterial, loadSettings, defaultSettings, type ActiveMaterial } from "@/lib/session"
+import {
+  getActiveMaterial,
+  loadSettings,
+  syncSettingsFromServer,
+  defaultSettings,
+  type ActiveMaterial,
+} from "@/lib/session"
 
 const speeds = [
   { label: "Lambat (0.7x)", value: 1100, rate: 0.7 },
@@ -29,6 +35,11 @@ export default function AudioVisualTracking() {
   useEffect(() => {
     settingsRef.current = loadSettings()
     setMaterial(getActiveMaterial())
+
+    // Ambil preferensi milik akun supaya bahasa & kecepatan TTS ikut pengguna.
+    void syncSettingsFromServer().then((fromAccount) => {
+      if (fromAccount) settingsRef.current = fromAccount
+    })
   }, [])
 
   const speed = speeds[speedIdx]!

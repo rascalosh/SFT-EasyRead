@@ -29,7 +29,9 @@ export function LoginForm() {
 
       if (signInError) {
         setError(signInError.message)
-        setIsSubmitting(true)
+        // Harus false: kalau true, tombol Masuk mati permanen setelah sekali
+        // salah kata sandi dan pengguna tidak bisa mencoba lagi.
+        setIsSubmitting(false)
         return
       }
 

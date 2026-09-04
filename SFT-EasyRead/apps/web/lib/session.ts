@@ -159,6 +159,8 @@ export type ReadingSettings = {
   autoTts: boolean
   ttsSpeed: number
   language: string
+  /** Sorot baris aktif saat teks bacaan diketuk. */
+  focusRuler: boolean
 }
 
 const SETTINGS_KEY = "easyread-settings"
@@ -180,6 +182,7 @@ export const defaultSettings: ReadingSettings = {
   autoTts: false,
   ttsSpeed: 1.0,
   language: "id-ID",
+  focusRuler: true,
 }
 
 function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
@@ -206,7 +209,7 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
       ? Math.min(30, Math.max(16, Math.round(raw.fontSize)))
       : defaultSettings.fontSize
 
-  let contrastId: ReadingContrastId = CONTRAST_IDS.has(raw.contrastId ?? "")
+  const contrastId: ReadingContrastId = CONTRAST_IDS.has(raw.contrastId ?? "")
     ? (raw.contrastId as ReadingContrastId)
     : contrastFromLegacyOverlay(raw.overlay)
 
@@ -222,6 +225,7 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
     contrastId,
     overlay: contrast.background,
     dyslexicFont: raw.dyslexicFont !== false,
+    focusRuler: raw.focusRuler !== false,
   }
 }
 
@@ -298,4 +302,68 @@ export function getActivityLog(): SessionActivity[] {
   } catch {
     return []
   }
+}
+
+// ── Sinkronisasi preferensi dengan akun ──────────────────────────────────────
+
+/**
+ * Preferensi disimpan dua tempat: localStorage (cepat, jalan tanpa login, dan
+ * jadi cache offline) serta tabel `reading_preferences` (ikut pengguna lintas
+ * perangkat). localStorage tetap jadi sumber render pertama supaya tidak ada
+ * kedipan, lalu ditimpa nilai dari akun begitu tiba.
+ */
+
+/** Ambil preferensi akun, terapkan, dan simpan ke localStorage. */
+export async function syncSettingsFromServer(): Promise<ReadingSettings | null> {
+  if (typeof window === "undefined") return null
+
+  const { fetchPreferences, isOk } = await import("./api")
+  const result = await fetchPreferences()
+
+  // Belum login atau server bermasalah — setelan lokal tetap dipakai.
+  if (!isOk(result)) return null
+
+  // Server mengirim id font/kontras sebagai string biasa; normalizeSettings
+  // yang memvalidasinya dan jatuh ke default kalau idnya tidak dikenal.
+  const merged = normalizeSettings({
+    ...loadSettings(),
+    ...result.data,
+  } as Partial<ReadingSettings>)
+
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged))
+    window.dispatchEvent(new Event(SETTINGS_EVENT))
+  } catch {
+    // private/incognito bisa throw
+  }
+
+  applyFontPreferences(merged)
+  return merged
+}
+
+/** Simpan ke perangkat sekarang juga, lalu titipkan ke akun di latar belakang. */
+export function saveSettingsEverywhere(settings: ReadingSettings) {
+  saveSettings(settings)
+
+  if (typeof window === "undefined") return
+
+  void (async () => {
+    try {
+      const { savePreferencesToAccount } = await import("./api")
+
+      await savePreferencesToAccount({
+        uiFont: settings.uiFont,
+        readingFont: settings.readingFont,
+        contrastId: settings.contrastId,
+        fontSize: settings.fontSize,
+        letterSpacing: settings.letterSpacing,
+        ttsSpeed: settings.ttsSpeed,
+        autoTts: settings.autoTts,
+        focusRuler: settings.focusRuler,
+        language: settings.language,
+      })
+    } catch {
+      // Gagal menyimpan ke akun tidak boleh mengganggu; nilai lokal sudah aman.
+    }
+  })()
 }

@@ -5,6 +5,7 @@ import { Card, Button, ProgressBar, StatusPill, cx } from "@/components/shared/u
 import { IconClipboard, IconSparkle, IconArrow, IconCheck, IconInfo } from "@/components/shared/icons"
 import { demoTitle, demoParagraphs, quizQuestions } from "@/lib/mock"
 import { getActiveMaterial, logActivity, type ActiveMaterial } from "@/lib/session"
+import { fetchQuiz, submitQuizAnswer, isOk } from "@/lib/api"
 
 type Analysis = {
   ok: boolean
@@ -14,9 +15,18 @@ type Analysis = {
   feedback: string
 }
 
+/** Soal bisa datang dari server (punya id) atau dari fallback lokal (id null). */
+type Question = {
+  id: string | null
+  prompt: string
+  keywords: string[]
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 /**
  * Analisis lokal berbasis kata kunci + panjang jawaban.
- * Bisa diganti API Gemini di masa depan.
+ * Dipakai hanya sebagai cadangan saat pengguna belum login atau API gagal.
  */
 function analyze(answer: string, keywords: string[]): Analysis {
   const text = answer.toLowerCase()
@@ -41,7 +51,7 @@ function analyze(answer: string, keywords: string[]): Analysis {
  * Buat pertanyaan sederhana dari teks aktif jika tersedia.
  * Ambil 3 kalimat pertama sebagai pertanyaan implisit.
  */
-function buildQuestions(paragraphs: string[]) {
+function buildQuestions(paragraphs: string[]): Question[] {
   const sentences = paragraphs
     .join(" ")
     .split(/[.!?]+/)
@@ -49,9 +59,10 @@ function buildQuestions(paragraphs: string[]) {
     .filter((s) => s.length > 20)
     .slice(0, 3)
 
-  if (sentences.length < 2) return quizQuestions
+  if (sentences.length < 2) return quizQuestions.map((q) => ({ id: null, ...q }))
 
   return sentences.map((s) => ({
+    id: null,
     prompt: `Apa yang dimaksud dengan: "${s.slice(0, 80)}…"?`,
     // kata-kata konten (>4 huruf) jadi kunci
     keywords: s.toLowerCase().match(/\b\w{5,}\b/g) ?? [],
@@ -60,6 +71,8 @@ function buildQuestions(paragraphs: string[]) {
 
 export default function ComprehensionCheck({ embedded = false }: { embedded?: boolean }) {
   const [material, setMaterial] = useState<ActiveMaterial | null>(null)
+  const [serverQuestions, setServerQuestions] = useState<Question[] | null>(null)
+  const [quizLoading, setQuizLoading] = useState(false)
   const [idx, setIdx] = useState(0)
   const [answer, setAnswer] = useState("")
   const [result, setResult] = useState<Analysis | null>(null)
@@ -67,7 +80,36 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
   const [finished, setFinished] = useState(false)
 
   useEffect(() => {
-    setMaterial(getActiveMaterial())
+    const active = getActiveMaterial()
+    setMaterial(active)
+
+    // Materi mock (id bukan UUID) tidak punya baris di database, jadi kuisnya
+    // tetap dibuat lokal.
+    if (!active?.id || !UUID.test(active.id)) return
+
+    let alive = true
+    setQuizLoading(true)
+
+    void fetchQuiz(active.id).then((quiz) => {
+      if (!alive) return
+
+      if (isOk(quiz) && quiz.data.questions.length > 0) {
+        setServerQuestions(
+          quiz.data.questions.map((q) => ({
+            id: q.id,
+            prompt: q.prompt,
+            keywords: q.keywords,
+          })),
+        )
+        setIdx(0)
+      }
+
+      setQuizLoading(false)
+    })
+
+    return () => {
+      alive = false
+    }
   }, [])
 
   const title = material?.title ?? demoTitle
@@ -77,28 +119,36 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
       : material?.originalText?.trim()
         ? [material.originalText]
         : demoParagraphs
-  const questions = buildQuestions(paragraphs)
+  const questions = serverQuestions ?? buildQuestions(paragraphs)
   const q = questions[idx]!
 
-  const submit = () => {
+  const submit = async () => {
     setLoading(true)
     setResult(null)
-    setTimeout(() => {
-      const r = analyze(answer, q.keywords)
-      setResult(r)
-      setLoading(false)
-      // Log ke sesi
-      if (idx === questions.length - 1) {
-        logActivity({
-          date: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
-          activity: "Kuis Pemahaman",
-          materialTitle: title,
-          result: r.ok ? "Paham" : "Belum Paham",
-          status: r.ok ? "Paham" : "Belum Paham",
-        })
-        setFinished(true)
-      }
-    }, 800)
+
+    let r: Analysis | null = null
+
+    if (q.id) {
+      const response = await submitQuizAnswer(q.id, answer)
+      if (isOk(response)) r = response.data
+    }
+
+    // Belum login, materi mock, atau server gagal → nilai secara lokal.
+    if (!r) r = analyze(answer, q.keywords)
+
+    setResult(r)
+    setLoading(false)
+
+    if (idx === questions.length - 1) {
+      logActivity({
+        date: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+        activity: "Kuis Pemahaman",
+        materialTitle: title,
+        result: r.ok ? "Paham" : "Belum Paham",
+        status: r.ok ? "Paham" : "Belum Paham",
+      })
+      setFinished(true)
+    }
   }
 
   const next = () => {
@@ -158,7 +208,9 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
               </div>
               <ProgressBar value={((idx + 1) / questions.length) * 100} />
 
-              <h2 className="mt-5 text-lg font-semibold text-ink">{idx + 1}. {q.prompt}</h2>
+              <h2 className="mt-5 text-lg font-semibold text-ink">
+                {quizLoading ? "Menyiapkan pertanyaan dari bacaanmu…" : `${idx + 1}. ${q.prompt}`}
+              </h2>
               <p className="mt-1 text-sm text-ink-mute">Jawab dengan kalimatmu sendiri.</p>
 
               <textarea
@@ -166,6 +218,7 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
                 onChange={(e) => setAnswer(e.target.value)}
                 maxLength={500}
                 rows={5}
+                disabled={quizLoading}
                 placeholder="Ketik jawabanmu di sini…"
                 className="mt-3 w-full resize-none rounded-xl border border-line bg-canvas p-3 text-[15px] text-ink outline-none focus:border-brand"
               />
@@ -188,7 +241,7 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
                     Selanjutnya <IconArrow width={15} height={15} />
                   </Button>
                 ) : (
-                  <Button onClick={submit} disabled={!answer.trim() || loading}>
+                  <Button onClick={submit} disabled={!answer.trim() || loading || quizLoading}>
                     {loading ? "Menganalisis…" : "Periksa Jawaban"}
                   </Button>
                 )}

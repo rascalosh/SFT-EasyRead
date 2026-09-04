@@ -5,25 +5,23 @@ import { Card, Button, SectionTitle } from "@/components/shared/ui"
 import { IconLetters, IconSpeaker, IconClose, IconPlay, IconTap } from "@/components/shared/icons"
 import { demoTitle, syllableWords, type Syllable } from "@/lib/mock"
 import { getActiveMaterial, loadSettings, defaultSettings, type ActiveMaterial } from "@/lib/session"
+import { breakdownOf } from "@/lib/syllabify"
+import { fetchSyllables, isOk } from "@/lib/api"
 
-// Kamus fallback kata sulit
-const builtinDict = new Map(syllableWords.map((s) => [s.word.toLowerCase(), s]))
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** Hasilkan entri suku kata sederhana dari kata yang tidak ada di kamus. */
-function makeSyllable(word: string): Syllable {
-  // Pecah suku kata naif: pasangan konsonan-vokal
-  const vowels = new Set("aiueo")
-  let breakdown = ""
-  let syllable = ""
-  for (const ch of word.toLowerCase()) {
-    syllable += ch
-    if (vowels.has(ch) && syllable.length >= 2) {
-      breakdown += (breakdown ? " - " : "") + syllable
-      syllable = ""
-    }
+/**
+ * Pemecahan lokal memakai mesin aturan yang sama dengan server, jadi hasilnya
+ * identik dan bisa tampil seketika tanpa menunggu jaringan. Panggilan API
+ * menyusul hanya untuk melengkapi arti dari glossary.
+ */
+function localSyllable(word: string): Syllable {
+  return {
+    word,
+    breakdown: breakdownOf(word),
+    meaning: "Lihat kamus untuk arti.",
+    checkedAgo: "Baru saja",
   }
-  if (syllable) breakdown += (breakdown ? " - " : "") + syllable
-  return { word, breakdown: breakdown || word, meaning: "Lihat kamus untuk arti.", checkedAgo: "Baru saja" }
 }
 
 function tokenize(text: string) {
@@ -33,23 +31,35 @@ function tokenize(text: string) {
 export default function SyllableBreaker() {
   const settingsRef = useRef(defaultSettings)
   const [material, setMaterial] = useState<ActiveMaterial | null>(null)
-  const [selected, setSelected] = useState<Syllable | null>(syllableWords[0] ?? null)
-  const [history, setHistory] = useState<Syllable[]>(syllableWords)
+  const [ready, setReady] = useState(false)
+  const [selected, setSelected] = useState<Syllable | null>(null)
+  const [history, setHistory] = useState<Syllable[]>([])
 
   useEffect(() => {
     settingsRef.current = loadSettings()
-    setMaterial(getActiveMaterial())
+
+    const active = getActiveMaterial()
+    setMaterial(active)
+
+    // Tanpa materi aktif, halaman tetap bisa dicoba memakai contoh bawaan.
+    if (!active) {
+      setSelected(syllableWords[0] ?? null)
+      setHistory(syllableWords)
+    }
+
+    setReady(true)
   }, [])
 
   const title = material?.title ?? demoTitle
+  const documentId = material?.id && UUID.test(material.id) ? material.id : null
   const rawText =
     material?.originalText?.trim() ||
     material?.paragraphs?.join(" ") ||
     syllableWords.map((s) => s.word).join(" ")
   const tokens = tokenize(rawText)
 
-  // Bangun kamus: gabung bawaan + semua kata dari teks aktif jika >4 huruf
-  const dict = new Map(builtinDict)
+  // Kata yang sudah pernah diperiksa ditebalkan agar mudah ditemukan lagi.
+  const checked = new Set(history.map((s) => s.word))
 
   const speak = (text: string) => {
     if (!("speechSynthesis" in window)) return
@@ -60,19 +70,36 @@ export default function SyllableBreaker() {
     window.speechSynthesis.speak(u)
   }
 
-  const selectWord = (entry: Syllable) => {
-    setSelected(entry)
-    // tambah ke history jika belum ada
+  const remember = (entry: Syllable) => {
     setHistory((prev) => {
-      if (prev.some((s) => s.word === entry.word)) return prev
-      return [{ ...entry, checkedAgo: "Baru saja" }, ...prev.slice(0, 19)]
+      const rest = prev.filter((s) => s.word !== entry.word)
+      return [{ ...entry, checkedAgo: "Baru saja" }, ...rest].slice(0, 20)
     })
   }
 
-  const handleWordClick = (key: string, raw: string) => {
+  const selectWord = (entry: Syllable) => {
+    setSelected(entry)
+    remember(entry)
+  }
+
+  const handleWordClick = async (key: string, raw: string) => {
     if (!key) return
-    const entry = dict.get(key) ?? makeSyllable(raw.toLowerCase().replace(/[^a-z]/g, ""))
-    selectWord(entry)
+
+    const word = raw.toLowerCase().replace(/[^a-z]/g, "")
+    if (!word) return
+
+    // Tampilkan hasil aturan lokal dulu supaya ketukan terasa instan.
+    const optimistic = localSyllable(word)
+    selectWord(optimistic)
+
+    const result = await fetchSyllables([word], documentId)
+    if (!isOk(result)) return
+
+    const enriched = result.data.words[0]
+    if (!enriched) return
+
+    setSelected((current) => (current?.word === enriched.word ? enriched : current))
+    setHistory((prev) => prev.map((s) => (s.word === enriched.word ? { ...enriched, checkedAgo: s.checkedAgo } : s)))
   }
 
   return (
@@ -101,9 +128,9 @@ export default function SyllableBreaker() {
                 ) : (
                   <button
                     key={i}
-                    onClick={() => handleWordClick(t.key, t.raw)}
+                    onClick={() => void handleWordClick(t.key, t.raw)}
                     className={
-                      dict.has(t.key)
+                      checked.has(t.key)
                         ? "mx-0.5 rounded bg-[color-mix(in_srgb,var(--reading-fg)_14%,transparent)] px-1 font-bold hover:bg-brand hover:text-[var(--color-brand-ink)]"
                         : "mx-0.5 rounded px-0.5 font-medium hover:bg-[color-mix(in_srgb,var(--reading-fg)_10%,transparent)] transition-colors cursor-pointer"
                     }
@@ -161,6 +188,11 @@ export default function SyllableBreaker() {
 
           <Card variant="reading">
             <SectionTitle title="Riwayat Kata yang Diperiksa" />
+            {ready && history.length === 0 && (
+              <p className="py-4 text-center text-sm opacity-60">
+                Belum ada kata diperiksa. Ketuk kata di bacaan untuk memulai.
+              </p>
+            )}
             <ul className="divide-y divide-[color-mix(in_srgb,var(--reading-fg)_15%,transparent)]">
               {history.slice(0, 10).map((s) => (
                 <li key={s.word} className="flex items-center gap-3 py-2.5">

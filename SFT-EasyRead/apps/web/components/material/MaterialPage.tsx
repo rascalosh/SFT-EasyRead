@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { fetchUserDocument } from "@/lib/documents"
 import { getSessionMaterials } from "@/lib/mock"
 import { getActiveMaterial, setActiveMaterial } from "@/lib/session"
+import { startReadingSession, updateReadingSessionBeacon, isOk } from "@/lib/api"
 import { ActivityPicker } from "./ActivityPicker"
 import { MaterialHeader } from "./MaterialHeader"
 import { MaterialNotFound } from "./MaterialNotFound"
@@ -23,6 +24,8 @@ export default function MaterialDetail() {
   const [material, setMaterial] = useState<{ id: string; title: string } | null>(null)
   const [paragraphs, setParagraphs] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const sessionId = useRef<string | null>(null)
+  const openedAt = useRef<number>(Date.now())
 
   useEffect(() => {
     let active = true
@@ -50,6 +53,12 @@ export default function MaterialDetail() {
           paragraphs: paras,
         })
         setLoading(false)
+
+        // Catat sesi membaca. Gagal mencatat tidak boleh mengganggu membaca.
+        openedAt.current = Date.now()
+        const started = await startReadingSession(result.document.id)
+        if (active && isOk(started)) sessionId.current = started.data.id
+
         return
       }
 
@@ -87,7 +96,19 @@ export default function MaterialDetail() {
     }
 
     void load()
-    return () => { active = false }
+
+    return () => {
+      active = false
+
+      // Tutup sesi saat pengguna meninggalkan halaman, dengan durasi sebenarnya.
+      if (sessionId.current) {
+        updateReadingSessionBeacon(sessionId.current, {
+          durationSeconds: Math.round((Date.now() - openedAt.current) / 1000),
+          completed: true,
+        })
+        sessionId.current = null
+      }
+    }
   }, [id, router])
 
   if (loading) return <p className="text-sm text-ink-soft">Memuat materi…</p>

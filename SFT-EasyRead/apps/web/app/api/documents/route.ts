@@ -29,5 +29,16 @@ export async function POST(request: Request) {
         originalText: typeof body.originalText === "string" ? body.originalText : "",
     })
 
+    // Supabase mengembalikan galat di dalam envelope, bukan sebagai throw.
+    // Tanpa pemeriksaan ini insert yang ditolak CHECK (mis. source_type tidak
+    // sah) tetap dibalas 201 dan materi hilang diam-diam.
+    if (newDocument.error) {
+        console.error(newDocument.error)
+        return NextResponse.json(
+            { error: newDocument.error.message || "Failed to create document" },
+            { status: 400 },
+        )
+    }
+
     return NextResponse.json(newDocument, { status: 201 })
 }
