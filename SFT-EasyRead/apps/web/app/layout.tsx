@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Atkinson_Hyperlegible, DM_Mono, Lexend } from "next/font/google";
+import FontPreference from "@/components/layout/FontPreference";
 import "./globals.css";
 
 const lexend = Lexend({
@@ -35,8 +36,13 @@ export default function RootLayout({
     <html
       lang="id"
       className={`${lexend.variable} ${atkinson.variable} ${dmMono.variable}`}
+      data-ui-font="lexend"
+      data-reading-font="atkinson"
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <FontPreference />
+        {children}
+      </body>
     </html>
   );
 }

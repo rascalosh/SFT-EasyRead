@@ -38,8 +38,16 @@ export function getActiveMaterial(): ActiveMaterial | null {
 
 // ── Pengaturan (localStorage agar persisten antar sesi) ──────────────────────
 
+export type UiFontId = "lexend" | "opendyslexic"
+export type ReadingFontId = "atkinson" | "opendyslexic"
+
 export type ReadingSettings = {
-  dyslexicFont: boolean
+  /** Font antarmuka (tombol, sidebar, label). */
+  uiFont: UiFontId
+  /** Font area teks bacaan / ramah disleksia. */
+  readingFont: ReadingFontId
+  /** @deprecated diganti readingFont; tetap dibaca untuk kompatibilitas */
+  dyslexicFont?: boolean
   fontSize: number
   letterSpacing: number
   overlay: string
@@ -49,8 +57,11 @@ export type ReadingSettings = {
 }
 
 const SETTINGS_KEY = "easyread-settings"
+export const SETTINGS_EVENT = "easyread-settings"
 
 export const defaultSettings: ReadingSettings = {
+  uiFont: "lexend",
+  readingFont: "atkinson",
   dyslexicFont: true,
   fontSize: 20,
   letterSpacing: 0.06,
@@ -60,11 +71,33 @@ export const defaultSettings: ReadingSettings = {
   language: "id-ID",
 }
 
+function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
+  const uiFont: UiFontId = raw.uiFont === "opendyslexic" ? "opendyslexic" : "lexend"
+  let readingFont: ReadingFontId =
+    raw.readingFont === "opendyslexic" ? "opendyslexic" : "atkinson"
+
+  // Migrasi toggle lama: dyslexicFont false → tetap pakai atkinson sebagai default bacaan
+  // (area bacaan tanpa class font-dyslexic tetap mengikuti UI)
+  if (!raw.readingFont && raw.dyslexicFont === false) {
+    readingFont = "atkinson"
+  }
+
+  return {
+    ...defaultSettings,
+    ...raw,
+    uiFont,
+    readingFont,
+    dyslexicFont: readingFont === "opendyslexic" || raw.dyslexicFont !== false,
+  }
+}
+
 export function loadSettings(): ReadingSettings {
   if (typeof window === "undefined") return defaultSettings
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    return raw ? { ...defaultSettings, ...(JSON.parse(raw) as Partial<ReadingSettings>) } : defaultSettings
+    return raw
+      ? normalizeSettings(JSON.parse(raw) as Partial<ReadingSettings>)
+      : defaultSettings
   } catch {
     return defaultSettings
   }
@@ -73,10 +106,20 @@ export function loadSettings(): ReadingSettings {
 export function saveSettings(settings: ReadingSettings) {
   if (typeof window === "undefined") return
   try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+    const next = normalizeSettings(settings)
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(next))
+    window.dispatchEvent(new Event(SETTINGS_EVENT))
   } catch {
     // ignore
   }
+}
+
+/** Terapkan preferensi font ke <html> (CSS variables / data attributes). */
+export function applyFontPreferences(settings: ReadingSettings = loadSettings()) {
+  if (typeof document === "undefined") return
+  const root = document.documentElement
+  root.dataset.uiFont = settings.uiFont
+  root.dataset.readingFont = settings.readingFont
 }
 
 // ── Progress sesi (in-memory, reset per sesi) ────────────────────────────────

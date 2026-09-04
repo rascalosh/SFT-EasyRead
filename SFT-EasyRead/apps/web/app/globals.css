@@ -1,8 +1,11 @@
 @import "tailwindcss";
+@import "@fontsource/opendyslexic/400.css";
+@import "@fontsource/opendyslexic/700.css";
 
 @theme {
   --font-sans: var(--font-lexend), ui-sans-serif, system-ui, sans-serif;
   --font-reading: var(--font-atkinson), var(--font-lexend), sans-serif;
+  --font-opendyslexic: "OpenDyslexic", var(--font-atkinson), sans-serif;
   --font-mono: var(--font-dm-mono), ui-monospace, "Cascadia Code", monospace;
 
   --color-canvas: #eeeeee;
@@ -201,6 +204,23 @@
   text-align: justify;
   text-align-last: left;
   color: var(--color-ink);
+}
+
+/* Preferensi font dari Pengaturan (data attributes di <html>) */
+html[data-ui-font="opendyslexic"] {
+  --font-sans: var(--font-opendyslexic);
+}
+
+html[data-ui-font="lexend"] {
+  --font-sans: var(--font-lexend), ui-sans-serif, system-ui, sans-serif;
+}
+
+html[data-reading-font="opendyslexic"] {
+  --font-reading: var(--font-opendyslexic);
+}
+
+html[data-reading-font="atkinson"] {
+  --font-reading: var(--font-atkinson), var(--font-lexend), sans-serif;
 }
 
 .reading-area p + p {
