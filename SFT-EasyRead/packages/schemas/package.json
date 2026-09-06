@@ -4,6 +4,11 @@
   "private": true,
   "exports": {
     "./simplify": "./src/simplify.schema.ts",
-    "./summary": "./src/summary.schema.ts"
+    "./summary": "./src/summary.schema.ts",
+    "./quiz": "./src/quiz.schema.ts",
+    "./quiz-evaluation": "./src/quiz-evaluation.schema.ts",
+    "./preferences": "./src/preferences.schema.ts",
+    "./ocr": "./src/ocr.schema.ts",
+    "./speech": "./src/speech.schema.ts"
   }
 }

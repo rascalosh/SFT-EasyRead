@@ -24,6 +24,10 @@ export default function HomeDashboard() {
   const [loadMethod, setLoadMethod] = useState<LoadMethod>("upload")
   const [lensFile, setLensFile] = useState<File | null>(null)
   const [pasteText, setPasteText] = useState("")
+  // Teks & jenis sumber yang benar-benar akan disimpan. Dipisah dari pasteText
+  // karena isinya bisa datang dari OCR atau dari berkas .txt.
+  const [pendingText, setPendingText] = useState("")
+  const [pendingSource, setPendingSource] = useState<"text" | "image" | "pdf">("text")
   const [titleValue, setTitleValue] = useState("")
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -38,9 +42,25 @@ export default function HomeDashboard() {
     setTimeout(() => setStage("title"), 2000)
   }
 
-  function handleDocChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files?.length) startLoading("upload")
+  async function handleDocChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
     e.target.value = ""
+    if (!file) return
+
+    const name = file.name.toLowerCase()
+
+    // Berkas teks bisa dibaca langsung di browser. PDF/DOCX belum bisa diurai
+    // di sini, jadi materinya dibuat kosong dan teksnya ditempel menyusul.
+    if (name.endsWith(".txt")) {
+      const text = await file.text().catch(() => "")
+      setPendingText(text.trim())
+      setPendingSource("text")
+    } else {
+      setPendingText("")
+      setPendingSource(name.endsWith(".pdf") ? "pdf" : "text")
+    }
+
+    startLoading("upload")
   }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -54,19 +74,26 @@ export default function HomeDashboard() {
 
   function handlePasteConfirm() {
     if (!pasteText.trim()) return
+    setPendingText(pasteText.trim())
+    setPendingSource("text")
     startLoading("paste")
   }
 
   async function handleTitleSubmit() {
     if (!titleValue.trim() || submitting) return
+    if (!pendingText.trim()) {
+      setSubmitError("Teks materi masih kosong. Tambahkan teks terlebih dulu sebelum menyimpan.")
+      return
+    }
     setSubmitError(null)
     setSubmitting(true)
 
     try {
       const result = await createUserDocument({
         title: titleValue.trim(),
-        originalText: loadMethod === "paste" ? pasteText.trim() : "",
-        sourceType: loadMethod === "paste" ? "text" : "upload",
+        originalText: pendingText,
+        // CHECK documents.source_type hanya menerima text | image | pdf.
+        sourceType: pendingSource,
       })
 
       if ("unauthorized" in result) {
@@ -75,7 +102,7 @@ export default function HomeDashboard() {
       }
 
       if ("document" in result) {
-        const text = loadMethod === "paste" ? pasteText.trim() : ""
+        const text = pendingText
         const material = {
           id: result.document.id,
           title: result.document.title ?? titleValue.trim(),
@@ -107,6 +134,8 @@ export default function HomeDashboard() {
     setTitleValue("")
     setLensFile(null)
     setPasteText("")
+    setPendingText("")
+    setPendingSource("text")
     setSubmitError(null)
     setSubmitting(false)
   }
@@ -240,7 +269,11 @@ export default function HomeDashboard() {
         {stage === "lens" && lensFile && (
           <LensViewer
             imageFile={lensFile}
-            onConfirm={() => setStage("title")}
+            onConfirm={(text) => {
+              setPendingText(text)
+              setPendingSource("image")
+              setStage("title")
+            }}
             onCancel={reset}
           />
         )}

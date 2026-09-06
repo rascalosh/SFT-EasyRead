@@ -10,7 +10,20 @@
     "./lib/prompts/summary.prompt": "./lib/prompts/summary.prompt.ts",
     "./services/document.service": "./services/document.service.ts",
     "./services/simplify.service": "./services/simplify.service.ts",
-    "./services/summary.service": "./services/summary.service.ts"
+    "./services/summary.service": "./services/summary.service.ts",
+    "./lib/syllabify": "./lib/syllabify.ts",
+    "./lib/progress-rules": "./lib/progress-rules.ts",
+    "./lib/speech-align": "./lib/speech-align.ts",
+    "./lib/prompts/quiz.prompt": "./lib/prompts/quiz.prompt.ts",
+    "./lib/prompts/quiz-eval.prompt": "./lib/prompts/quiz-eval.prompt.ts",
+    "./lib/prompts/ocr.prompt": "./lib/prompts/ocr.prompt.ts",
+    "./services/quiz.service": "./services/quiz.service.ts",
+    "./services/preferences.service": "./services/preferences.service.ts",
+    "./services/session.service": "./services/session.service.ts",
+    "./services/progress.service": "./services/progress.service.ts",
+    "./services/syllable.service": "./services/syllable.service.ts",
+    "./services/ocr.service": "./services/ocr.service.ts",
+    "./services/speech.service": "./services/speech.service.ts"
   },
   "scripts": {
     "dev": "next dev --port 3000",

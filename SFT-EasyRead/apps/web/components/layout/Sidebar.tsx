@@ -8,10 +8,12 @@ import { hrefFor, screenFromPath } from "@/lib/nav"
 import { fetchUserDocuments } from "@/lib/documents"
 import {
   getSessionMaterials,
-  user as mockUser,
   type ReadingHistory,
 } from "@/lib/mock"
 import { cx } from "@/components/shared/ui"
+
+/** Nama sementara sebelum sesi Supabase terbaca (atau saat belum login). */
+const GUEST_NAME = "Pengguna"
 import { IconPlus, IconClose, IconBook, IconSidebar, IconChevron, IconSettings } from "@/components/shared/icons"
 import Logo from "./Logo"
 
@@ -27,7 +29,7 @@ export default function Sidebar({ open, onClose }: Props) {
     ? pathname.slice("/material/".length)
     : null
   const [materials, setMaterials] = useState<ReadingHistory[]>([])
-  const [displayName, setDisplayName] = useState(mockUser.name)
+  const [displayName, setDisplayName] = useState(GUEST_NAME)
   const [materialsLoaded, setMaterialsLoaded] = useState(false)
 
   useEffect(() => {
@@ -76,11 +78,11 @@ export default function Sidebar({ open, onClose }: Props) {
         setDisplayName(
           authUser.user_metadata?.full_name ??
           authUser.email?.split("@")[0] ??
-          mockUser.name,
+          GUEST_NAME,
         )
       })
     } catch {
-      setDisplayName(mockUser.name)
+      setDisplayName(GUEST_NAME)
     }
   }, [])
 

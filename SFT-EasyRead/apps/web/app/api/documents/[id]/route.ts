@@ -36,7 +36,7 @@ export async function DELETE(
     }
 
     const { id } = await params
-    const { data, error } = await deleteDocument(id, user.id)
+    const { error } = await deleteDocument(id, user.id)
 
     if (error) {
         return NextResponse.json(

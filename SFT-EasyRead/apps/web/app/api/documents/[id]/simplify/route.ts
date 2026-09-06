@@ -22,6 +22,12 @@ export async function GET(
 
 		return NextResponse.json({ ...cached, cached: true })
 	} catch (error) {
+		const message = error instanceof Error ? error.message : ""
+
+		if (message === "Document not found") {
+			return NextResponse.json({ message }, { status: 404 })
+		}
+
 		console.error(error)
 		return NextResponse.json({ message: "Failed to load simplification" }, { status: 500 })
 	}
@@ -44,6 +50,16 @@ export async function POST(
 			status: simplification.cached ? 200 : 201,
 		})
 	} catch (error) {
+		const message = error instanceof Error ? error.message : ""
+
+		if (message === "Document not found") {
+			return NextResponse.json({ message }, { status: 404 })
+		}
+
+		if (message === "Document text is empty") {
+			return NextResponse.json({ message }, { status: 400 })
+		}
+
 		console.error(error)
 		return NextResponse.json({ message: "Failed to simplify document" }, { status: 500 })
 	}
