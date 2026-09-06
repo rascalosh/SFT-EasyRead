@@ -9,6 +9,7 @@
     "./lib/prompts/simplify.prompt": "./lib/prompts/simplify.prompt.ts",
     "./lib/prompts/summary.prompt": "./lib/prompts/summary.prompt.ts",
     "./services/document.service": "./services/document.service.ts",
+    "./services/document-upload.service": "./services/document-upload.service.ts",
     "./services/simplify.service": "./services/simplify.service.ts",
     "./services/summary.service": "./services/summary.service.ts",
     "./lib/syllabify": "./lib/syllabify.ts",
@@ -39,7 +40,9 @@
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "dotenv": "^17.4.2",
+    "mammoth": "^1.12.2",
     "next": "16.3.0",
+    "pdf-parse": "^2.4.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

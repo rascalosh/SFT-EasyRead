@@ -15,6 +15,12 @@ type DocumentListResult =
   | { unauthorized: true; documents: [] }
   | { error: true; documents: [] }
 
+export type UploadedDocument = {
+  title: string
+  sourceType: "text" | "pdf"
+  text: string
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null
 }
@@ -56,6 +62,42 @@ export async function createUserDocument(input: {
 
   const document = extractDocument(await response.json())
   return document ? { document } : { error: true as const }
+}
+
+export async function uploadDocument(file: File): Promise<
+  | { upload: UploadedDocument }
+  | { unauthorized: true }
+  | { error: true; message?: string }
+> {
+  const form = new FormData()
+  form.append("file", file)
+
+  const response = await fetch("/api/documents/upload", {
+    method: "POST",
+    body: form,
+  })
+
+  if (response.status === 401) return { unauthorized: true as const }
+
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string; title?: string; sourceType?: "text" | "pdf"; text?: string }
+    | null
+
+  if (!response.ok || !payload?.text || !payload.title || !payload.sourceType) {
+    console.error("Document upload failed", {
+      status: response.status,
+      message: payload?.error,
+    })
+    return { error: true as const, message: payload?.error }
+  }
+
+  return {
+    upload: {
+      title: payload.title,
+      sourceType: payload.sourceType,
+      text: payload.text,
+    },
+  }
 }
 
 export async function fetchUserDocuments(): Promise<DocumentListResult> {
