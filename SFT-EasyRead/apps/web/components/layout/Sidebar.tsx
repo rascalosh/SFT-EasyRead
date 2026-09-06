@@ -1,175 +1,229 @@
-'use client'
+"use client"
 
-import {
-  BarChart3,
-  BookOpen,
-  BookOpenText,
-  CircleHelp,
-  Home,
-  ListChecks,
-  LucideIcon,
-  Mic,
-  Settings,
-  Sparkles,
-  Target,
-  Upload,
-} from "lucide-react";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { createClient } from "@repo/db/client"
+import { hrefFor, screenFromPath } from "@/lib/nav"
+import { fetchUserDocuments } from "@/lib/documents"
+import {
+  getSessionMaterials,
+  user as mockUser,
+  type ReadingHistory,
+} from "@/lib/mock"
+import { cx } from "@/components/shared/ui"
+import { IconPlus, IconClose, IconBook, IconSidebar, IconChevron, IconSettings } from "@/components/shared/icons"
+import Logo from "./Logo"
 
-interface NavItem {
-  label: string, 
-  icon: LucideIcon,
-  href: string
+type Props = {
+  open: boolean
+  onClose: () => void
 }
 
-const navItems: NavItem[] = [
-  {
-    label: "Beranda",
-    icon: Home,
-    href: "/home"
-  },
-  {
-    label: "Baca Teks",
-    icon: BookOpenText,
-    href: "/read"
-  },
-  {
-    label: "Simplify & Ringkasan",
-    icon: ListChecks,
-    href: "/simplify"
-  },
-  {
-    label: "Reading Comprehension",
-    icon: CircleHelp,
-    href: "/comprehension"
-  },
-  {
-    label: "Latihan Kata",
-    icon: Target,
-    href: "/latihan"
-  },
-  {
-    label: "Penilaian Membaca (Suara)",
-    icon: Mic,
-    href: "/penilaian"
-  },
-  {
-    label: "Progress & Achievement",
-    icon: BarChart3,
-    href: "/achievement"
-  },
-  {
-    label: "Pengaturan",
-    icon: Settings,
-    href: "/pengaturan"
-  },
-  {
-    label: "Bantuan",
-    icon: CircleHelp,
-    href: "/bantuan"
-  },
-];
-
-export function Sidebar() {
-  const pathname = usePathname();
-  const [user, setUser] = useState<any>(null)
+export default function Sidebar({ open, onClose }: Props) {
+  const pathname = usePathname()
+  const active = screenFromPath(pathname)
+  const selectedId = pathname.startsWith("/material/")
+    ? pathname.slice("/material/".length)
+    : null
+  const [materials, setMaterials] = useState<ReadingHistory[]>([])
+  const [displayName, setDisplayName] = useState(mockUser.name)
+  const [materialsLoaded, setMaterialsLoaded] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-    })
+    let active = true
+
+    fetchUserDocuments()
+      .then((result) => {
+        if (!active) return
+        if ("unauthorized" in result) {
+          // Jangan tampilkan materi mock palsu — hanya yang ada di session lokal
+          setMaterials(getSessionMaterials())
+          setMaterialsLoaded(true)
+          return
+        }
+        if ("error" in result) {
+          setMaterials(getSessionMaterials())
+          setMaterialsLoaded(true)
+          return
+        }
+        setMaterials(result.documents.map((document) => ({
+          id: document.id,
+          title: document.title ?? "Tanpa judul",
+          meta: "Tersimpan di akun",
+          progress: 0,
+          pages: 0,
+        })))
+        setMaterialsLoaded(true)
+      })
+      .catch(() => {
+        if (!active) return
+        setMaterials(getSessionMaterials())
+        setMaterialsLoaded(true)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [pathname])
+
+  useEffect(() => {
+    try {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data }) => {
+        const authUser = data.user
+        if (!authUser) return
+        setDisplayName(
+          authUser.user_metadata?.full_name ??
+          authUser.email?.split("@")[0] ??
+          mockUser.name,
+        )
+      })
+    } catch {
+      setDisplayName(mockUser.name)
+    }
   }, [])
 
-  const displayName =
-    user?.user_metadata?.full_name ?? 
-    user?.email?.split("@")[0] ??
-    "User"
-
   return (
-    <aside className="hidden h-screen w-[172px] shrink-0 overflow-y-auto border-r border-slate-200 bg-white xl:flex xl:flex-col">
-      {/* Logo */}
-      <div className="flex h-[100px] items-center justify-center border-b border-slate-100">
-        <div className="flex flex-col items-center">
-          <div className="relative mb-1 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <BookOpen className="h-7 w-7" strokeWidth={1.8} />
+    <>
+      {open && (
+        <button
+          aria-label="Tutup menu"
+          onClick={onClose}
+          className="fixed inset-0 z-30 bg-[rgba(36,48,63,0.35)] lg:hidden"
+        />
+      )}
 
-            <Sparkles className="absolute -right-2 -top-2 h-4 w-4 text-blue-500" />
-          </div>
-
-          <span className="text-[15px] font-bold tracking-tight text-slate-800">
-            EasyRead<span className="text-blue-600">AI</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4">
-        <div className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-
-            return (
-              <Link 
-                key={item.label}
-                href={item.href}
-                className={[
-                  "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[11px] font-medium transition",
-                  isActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                ].join(" ")}
-              >
-                <Icon
-                  className={[
-                    "h-[16px] w-[16px] shrink-0",
-                    isActive
-                      ? "text-blue-600"
-                      : "text-slate-500 group-hover:text-slate-700",
-                  ].join(" ")}
-                  strokeWidth={1.8}
-                />
-
-                <span className="leading-tight">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Illustration */}
-      <div className="relative h-[185px] overflow-hidden">
-        <div className="absolute -bottom-12 -left-5 h-32 w-40 rotate-[-12deg] rounded-[50%] bg-blue-50" />
-
-        <div className="absolute bottom-4 left-8 h-14 w-20 rotate-[-20deg] rounded-[8px] border-4 border-blue-500 bg-white shadow-sm">
-          <div className="absolute left-1/2 top-1/2 h-9 w-px -translate-x-1/2 -translate-y-1/2 bg-blue-200" />
+      <aside
+        aria-label="Menu samping"
+        className={cx(
+          "z-40 flex w-64 shrink-0 flex-col",
+          "border-r border-line bg-surface",
+          "fixed inset-y-0 left-0 lg:sticky lg:top-0 lg:h-screen",
+          "transition-transform duration-300",
+          open ? "translate-x-0" : "-translate-x-full lg:hidden",
+        )}
+      >
+        <div className="flex items-center justify-between px-3 py-4">
+          <Link
+            href={hrefFor("home")}
+            className="flex-1 rounded-lg px-2 py-1 text-left hover:bg-[var(--color-line-soft)] transition-colors"
+          >
+            <Logo />
+          </Link>
+          <button
+            onClick={onClose}
+            aria-label="Tutup sidebar"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-mute hover:bg-[var(--color-line-soft)] hover:text-ink transition-colors lg:hidden"
+          >
+            <IconClose width={16} height={16} />
+          </button>
+          <button
+            onClick={onClose}
+            aria-label="Ciutkan sidebar"
+            className="hidden lg:grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-mute hover:bg-[var(--color-line-soft)] hover:text-ink transition-colors"
+          >
+            <IconSidebar width={16} height={16} />
+          </button>
         </div>
 
-        <div className="absolute bottom-4 right-5">
-          <div className="h-11 w-7 rounded-t-full rounded-br-full bg-emerald-200 opacity-80" />
-          <div className="absolute -left-2 bottom-0 h-9 w-10 rounded-t-full bg-emerald-100" />
+        <div className="px-3 pb-3">
+          <Link
+            href={hrefFor("home")}
+            onClick={onClose}
+            aria-current={active === "home" ? "page" : undefined}
+            className={cx(
+              "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150",
+              "bg-brand text-[var(--color-brand-ink)] shadow-[var(--shadow-brand)] hover:bg-brand-strong",
+            )}
+          >
+            <IconPlus width={16} height={16} aria-hidden />
+            Materi Baru
+          </Link>
         </div>
-      </div>
 
-      {/* User */}
-      <div className="mx-3 mb-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm">
-          👨🏻‍💻
-        </div>
+        <div className="mx-3 mb-1 border-t border-line" />
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[10px] font-semibold text-slate-800">
-            {displayName}
+        <div className="flex-1 overflow-y-auto px-3 py-1">
+          <p className="px-2 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-ink-mute">
+            Materi Terbaru
           </p>
-
-          <p className="text-[9px] text-slate-500">Level 2</p>
+          <ul className="space-y-0.5">
+            {!materialsLoaded && (
+              <li className="px-3 py-2 text-xs text-ink-mute">Memuat materi…</li>
+            )}
+            {materialsLoaded && materials.length === 0 && (
+              <li className="px-3 py-2 text-xs text-ink-mute">
+                Belum ada materi. Buat dari tombol Materi Baru.
+              </li>
+            )}
+            {materials.map((material) => {
+              const isActive = selectedId === material.id
+              return (
+                <li key={material.id}>
+                  <Link
+                    href={hrefFor("material", material.id)}
+                    onClick={onClose}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cx(
+                      "group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors duration-100",
+                      isActive
+                        ? "bg-surface text-brand-strong outline outline-2 outline-brand -outline-offset-2"
+                        : "text-ink-soft hover:bg-[var(--color-line-soft)] hover:text-ink",
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        "mt-px shrink-0",
+                        isActive ? "text-brand" : "text-ink-mute group-hover:text-ink-soft",
+                      )}
+                    >
+                      <IconBook width={15} height={15} aria-hidden />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate text-sm font-medium leading-tight">
+                        {material.title}
+                      </span>
+                      <span className="block text-[11px] text-ink-mute mt-0.5">{material.meta}</span>
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
         </div>
-      </div>
-    </aside>
-  );
+
+        <div className="mx-3 mb-3 space-y-2 border-t border-line pt-3">
+          <Link
+            href={hrefFor("settings")}
+            onClick={onClose}
+            aria-current={active === "settings" ? "page" : undefined}
+            className={cx(
+              "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
+              active === "settings"
+                ? "bg-brand-soft text-brand-strong"
+                : "text-ink-soft hover:bg-[var(--color-line-soft)] hover:text-ink",
+            )}
+          >
+            <IconSettings width={16} height={16} aria-hidden className="shrink-0" />
+            Pengaturan
+          </Link>
+
+          <Link
+            href={hrefFor("settings")}
+            onClick={onClose}
+            className="flex items-center gap-3 rounded-xl border border-line bg-canvas p-3 hover:border-brand/40 transition-colors"
+          >
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand text-sm font-bold text-[var(--color-brand-ink)]">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <div className="truncate text-sm font-semibold text-ink">{displayName}</div>
+            </div>
+            <IconChevron width={14} height={14} className="shrink-0 text-ink-mute" />
+          </Link>
+        </div>
+      </aside>
+    </>
+  )
 }

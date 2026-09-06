@@ -1,219 +1,324 @@
-"use client";
+"use client"
 
-import { ArrowRight, Copy, RotateCcw, Sparkles, Wand2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button, Badge } from "@/components/shared/ui"
+import { IconSparkle } from "@/components/shared/icons"
+import { createUserDocument, fetchUserDocument } from "@/lib/documents"
+import { getActiveMaterial, setActiveMaterial, type ActiveMaterial } from "@/lib/session"
+import { OriginalTextPanel } from "./OriginalTextPanel"
+import { SimplifiedTextPanel } from "./SimplifiedTextPanel"
+import { SummaryCard } from "./SummaryCard"
 
-import { Header } from "../layout/Header";
+function extractSimplifiedText(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return ""
+  const root = payload as Record<string, unknown>
+  const data = root.data && typeof root.data === "object" ? (root.data as Record<string, unknown>) : root
+  const result = data.result && typeof data.result === "object" ? (data.result as Record<string, unknown>) : data
+  return typeof result.simplifiedText === "string" ? result.simplifiedText : ""
+}
 
-import { OriginalTextPanel } from "./OriginalTextPanel";
-import { SimplifiedTextPanel } from "./SimplifiedTextPanel";
-import { SummaryCard } from "./SummaryCard";
+function extractSummaryPoints(payload: unknown): string[] {
+  if (!payload || typeof payload !== "object") return []
+  const root = payload as Record<string, unknown>
+  const data = root.data && typeof root.data === "object" ? (root.data as Record<string, unknown>) : root
+  const result = data.result && typeof data.result === "object" ? (data.result as Record<string, unknown>) : data
+  return Array.isArray(result.bulletPoints)
+    ? result.bulletPoints.filter((item): item is string => typeof item === "string")
+    : []
+}
 
-const sampleOriginal =
-  "Proklamasi Kemerdekaan Indonesia dikumandangkan pada hari Jumat, 17 Agustus 1945, pukul 10.00 pagi di Jalan Pegangsaan Timur No. 56, Jakarta. Teks proklamasi dibacakan oleh Ir. Soekarno atas nama bangsa Indonesia, didampingi oleh Drs. Mohammad Hatta. Peristiwa bersejarah ini merupakan puncak dari perjuangan panjang rakyat Indonesia melawan penjajahan selama lebih dari tiga setengah abad. Setelah Jepang menyerah kepada Sekutu pada 15 Agustus 1945, para pemimpin bangsa segera memanfaatkan momentum tersebut untuk memproklamasikan kemerdekaan tanpa menunggu persetujuan dari pihak manapun. Kemerdekaan ini menjadi tonggak awal berdirinya Negara Kesatuan Republik Indonesia yang merdeka, berdaulat, adil dan makmur. Makna dari proklamasi tidak hanya sebatas bebas dari penjajahan, tetapi juga mengandung tanggung jawab besar untuk membangun bangsa yang bermartabat, sejahtera, dan berdiri sejajar dengan bangsa-bangsa lain.";
+function toParagraphs(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed) return []
+  const parts = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+  return parts.length ? parts : [trimmed]
+}
 
-const sampleSimplified =
-  "Proklamasi Kemerdekaan Indonesia terjadi pada 17 Agustus 1945, pukul 10 pagi di Jalan Pegangsaan Timur No. 56, Jakarta. Ir. Soekarno membacakan teks proklamasi atas nama bangsa Indonesia, didampingi oleh Drs. Mohammad Hatta. Peristiwa ini adalah hasil perjuangan panjang rakyat Indonesia melawan penjajahan selama lebih dari 350 tahun. Setelah Jepang menyerah pada 15 Agustus 1945, para pemimpin langsung memproklamasikan kemerdekaan tanpa menunggu izin siapa pun. Kemerdekaan ini menjadi awal berdirinya Negara Kesatuan Republik Indonesia. Proklamasi berarti bebas dari penjajahan. Namun, kemerdekaan juga berarti tugas besar untuk membangun bangsa yang adil, sejahtera, dan dihormati.";
-
-const summary = [
-  "Proklamasi Kemerdekaan Indonesia dibacakan pada 17 Agustus 1945 oleh Ir. Soekarno dan didampingi Drs. Mohammad Hatta.",
-  "Peristiwa ini merupakan hasil perjuangan panjang rakyat Indonesia melawan penjajahan selama lebih dari 350 tahun.",
-  "Setelah Jepang menyerah pada 15 Agustus 1945, para pemimpin bangsa segera memproklamasikan kemerdekaan.",
-  "Kemerdekaan Indonesia menjadi awal berdirinya NKRI dan membawa tanggung jawab untuk membangun bangsa yang adil dan sejahtera.",
-];
-
-const levels = [
-  { label: "Mudah", description: "Bahasa sehari-hari" },
-  { label: "Sedang", description: "Keseimbangan detail" },
-  { label: "Sulit", description: "Tetap detail akademik" },
-] as const;
-
-export function SimplifyPage() {
-  const [originalText, setOriginalText] = useState(sampleOriginal);
-  const [simplifiedText, setSimplifiedText] = useState(sampleSimplified);
-  const [selectedLevel, setSelectedLevel] = useState<(typeof levels)[number]["label"]>("Sedang");
-  const [copied, setCopied] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const wordCount = useMemo(
-    () => originalText.trim().split(/\s+/).filter(Boolean).length,
-    [originalText],
-  );
-
-  const readingMinutes = Math.max(1, Math.ceil(wordCount / 180));
-
-  const handleUseExample = () => {
-    setOriginalText(sampleOriginal);
-    setSimplifiedText(sampleSimplified);
-    setSelectedLevel("Sedang");
-  };
-
-  const handleReset = () => {
-    setOriginalText("");
-    setSimplifiedText("");
-    setSelectedLevel("Mudah");
-  };
-
-  const handleSimplify = async () => {
-    if (!originalText.trim()) {
-      setSimplifiedText("Teks masih kosong. Masukkan paragraf yang ingin kamu sederhanakan.");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const createResponse = await fetch("/api/documents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: "Dokumen yang disederhanakan",
-          sourceType: "text",
-          originalText,
-        }),
-      });
-
-      if (!createResponse.ok) {
-        throw new Error("Gagal membuat dokumen");
-      }
-
-      const createdDocument = await createResponse.json();
-      const document = createdDocument?.data ?? createdDocument;
-      const documentId = document?.id;
-
-      if (!documentId) {
-        throw new Error("Dokumen tidak valid");
-      }
-
-      const simplifyResponse = await fetch(`/api/documents/${documentId}/simplify`, {
-        method: "POST",
-      });
-
-      if (!simplifyResponse.ok) {
-        throw new Error("Gagal menyederhanakan teks");
-      }
-
-      const simplifyResult = await simplifyResponse.json();
-      const result = simplifyResult?.data ?? simplifyResult;
-      const nextText = result?.result?.simplifiedText ?? result?.simplifiedText ?? "";
-
-      setSimplifiedText(nextText || "Hasil simplifikasi tidak tersedia");
-    } catch (error) {
-      console.error(error);
-      setSimplifiedText("Gagal memproses simplifikasi. Coba lagi beberapa saat lagi.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCopySummary = async () => {
-    try {
-      await navigator.clipboard.writeText(summary.join("\n"));
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
-    } catch {
-      setCopied(false);
-    }
-  };
-
+/** Shell stabil untuk SSR + Suspense — hindari early-return yang beda dengan client. */
+export function SimplifyPageShell({
+  subtitle = "AI menyederhanakan teks yang sulit dan merangkum ide utama secara cepat.",
+  sourceText = "",
+  onSourceChange,
+  resultText = "",
+  points = [],
+  title = "Teks baru",
+  done = false,
+  loading = false,
+  error = null,
+  onSimplify,
+  onCopy,
+  emptyMaterialHint = null,
+}: {
+  subtitle?: string
+  sourceText?: string
+  onSourceChange?: (value: string) => void
+  resultText?: string
+  points?: string[]
+  title?: string
+  done?: boolean
+  loading?: boolean
+  error?: string | null
+  onSimplify?: () => void
+  onCopy?: () => void
+  emptyMaterialHint?: string | null
+}) {
   return (
-    <main className="p-4 sm:p-5 lg:p-7">
-      <div className="mx-auto max-w-[1220px]">
-        <Header
-          title="AI Smart Simplifier & Summary"
-          description="Masukkan teks, pilih level mudah dibaca, dan dapatkan versi sederhana serta ringkasan inti dalam satu tampilan."
-        />
-
-        <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                <Sparkles className="h-5 w-5" />
-              </div>
-
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-600">
-                  Simplifikasi teks
-                </p>
-                <h2 className="text-sm font-semibold text-slate-800">
-                  Tingkatkan keterbacaan tanpa kehilangan inti pesan
-                </h2>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {levels.map((level) => (
-                <button
-                  key={level.label}
-                  type="button"
-                  onClick={() => setSelectedLevel(level.label)}
-                  className={[
-                    "rounded-full border px-3 py-1.5 text-[10px] font-medium transition",
-                    selectedLevel === level.label
-                      ? "border-blue-200 bg-blue-50 text-blue-700"
-                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-slate-100",
-                  ].join(" ")}
-                >
-                  {level.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSimplify}
-              disabled={isLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-[10px] font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
-            >
-              <Wand2 className="h-3.5 w-3.5" />
-              {isLoading ? "Memproses..." : "Sederhanakan"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleUseExample}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              Contoh teks
-            </button>
-
-            <button
-              type="button"
-              onClick={handleReset}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset
-            </button>
-
-            <div className="ml-auto flex items-center gap-2 rounded-full bg-slate-100 px-2.5 py-1.5 text-[9px] text-slate-600">
-              <span className="font-semibold text-slate-700">{wordCount}</span>
-              kata • sekitar {readingMinutes} menit baca
-            </div>
-          </div>
-        </section>
-
-        <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_42px_minmax(0,1fr)]">
-          <OriginalTextPanel text={originalText} onChange={setOriginalText} />
-
-          <div className="hidden items-center justify-center xl:flex">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-blue-500 shadow-sm">
-              <ArrowRight className="h-4 w-4" />
-            </div>
-          </div>
-
-          <SimplifiedTextPanel text={simplifiedText} difficulty={selectedLevel} />
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
+            <IconSparkle className="text-brand" /> AI Smart Simplifier & Summary
+          </h1>
+          <p className="text-sm text-ink-soft" suppressHydrationWarning>
+            {subtitle}
+          </p>
         </div>
-
-        <div className="mt-4">
-          <SummaryCard summary={summary} onCopy={handleCopySummary} copied={copied} />
+        <div className="flex items-center gap-2">
+          <Badge tone="brand"><IconSparkle width={13} height={13} /> Dihasilkan oleh AI</Badge>
+          <Button onClick={onSimplify} disabled={loading || !sourceText.trim()}>
+            {loading ? "Menyederhanakan…" : done ? "Proses Ulang" : "Sederhanakan Teks"}
+          </Button>
         </div>
       </div>
-    </main>
-  );
+
+      <OriginalTextPanel text={sourceText} onChange={onSourceChange ?? (() => {})} />
+      {emptyMaterialHint && (
+        <p className="text-sm text-ink-mute">{emptyMaterialHint}</p>
+      )}
+      {error && <p className="text-sm text-error" role="alert">{error}</p>}
+      <SimplifiedTextPanel text={resultText} loading={loading} done={done} />
+      <SummaryCard title={title} points={points} done={done} onCopy={onCopy ?? (() => {})} />
+    </div>
+  )
+}
+
+export default function SimplifyPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const queryId = searchParams.get("id")
+
+  const [material, setMaterial] = useState<ActiveMaterial | null>(null)
+  const [sourceText, setSourceText] = useState("")
+  const [resultText, setResultText] = useState("")
+  const [points, setPoints] = useState<string[]>([])
+  const [done, setDone] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [booting, setBooting] = useState(true)
+  const [fromCache, setFromCache] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setBooting(true)
+      setError(null)
+
+      const session = getActiveMaterial()
+      const documentId = queryId || session?.id || null
+
+      if (!queryId && session?.id) {
+        router.replace(`/simplify?id=${encodeURIComponent(session.id)}`)
+        return
+      }
+
+      if (documentId) {
+        const result = await fetchUserDocument(documentId)
+
+        if (cancelled) return
+
+        if ("unauthorized" in result) {
+          router.push("/login")
+          return
+        }
+
+        if ("document" in result) {
+          const originalText = result.document.original_text?.trim() ?? ""
+          const title = result.document.title ?? "Tanpa judul"
+          const paragraphs = toParagraphs(originalText)
+          const active: ActiveMaterial = {
+            id: result.document.id,
+            title,
+            originalText,
+            paragraphs,
+          }
+          setActiveMaterial(active)
+          setMaterial(active)
+          setSourceText(originalText)
+
+          // Muat hasil AI tersimpan (tanpa panggil Gemini lagi)
+          const [simplifyRes, summaryRes] = await Promise.all([
+            fetch(`/api/documents/${result.document.id}/simplify`),
+            fetch(`/api/documents/${result.document.id}/summary`),
+          ])
+
+          if (cancelled) return
+
+          if (simplifyRes.ok) {
+            const nextText = extractSimplifiedText(await simplifyRes.json())
+            if (nextText) {
+              setResultText(nextText)
+              setDone(true)
+              setFromCache(true)
+            }
+          }
+          if (summaryRes.ok) {
+            const nextPoints = extractSummaryPoints(await summaryRes.json())
+            if (nextPoints.length) {
+              setPoints(nextPoints)
+              setFromCache(true)
+            }
+          }
+
+          setBooting(false)
+          return
+        }
+      }
+
+      if (cancelled) return
+
+      if (
+        session &&
+        (!queryId || session.id === queryId) &&
+        (session.originalText?.trim() || session.paragraphs?.length)
+      ) {
+        const text = session.originalText?.trim() || session.paragraphs.join("\n\n")
+        setMaterial(session)
+        setSourceText(text)
+        setBooting(false)
+        return
+      }
+
+      setMaterial(null)
+      setSourceText("")
+      setBooting(false)
+    }
+
+    void load()
+    return () => { cancelled = true }
+  }, [queryId, router])
+
+  const title = material?.title ?? "Teks baru"
+
+  const simplify = async () => {
+    if (!sourceText.trim()) return
+
+    setLoading(true)
+    setDone(false)
+    setFromCache(false)
+    setError(null)
+
+    try {
+      let documentId = material?.id
+
+      if (documentId) {
+        const updateResponse = await fetch(`/api/documents/${documentId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ originalText: sourceText, title }),
+        })
+        if (updateResponse.status === 401) {
+          router.push("/login")
+          return
+        }
+        if (!updateResponse.ok) documentId = undefined
+      }
+
+      if (!documentId) {
+        const created = await createUserDocument({
+          title,
+          sourceType: "text",
+          originalText: sourceText,
+        })
+
+        if ("unauthorized" in created) {
+          router.push("/login")
+          return
+        }
+        if (!("document" in created)) throw new Error("create-failed")
+        documentId = created.document.id
+        setMaterial({
+          id: documentId,
+          title,
+          originalText: sourceText,
+          paragraphs: toParagraphs(sourceText),
+        })
+      }
+
+      const [simplifyResponse, summaryResponse] = await Promise.all([
+        fetch(`/api/documents/${documentId}/simplify`, { method: "POST" }),
+        fetch(`/api/documents/${documentId}/summary`, { method: "POST" }),
+      ])
+
+      if (simplifyResponse.status === 401 || summaryResponse.status === 401) {
+        router.push("/login")
+        return
+      }
+      if (!simplifyResponse.ok) throw new Error("simplify-failed")
+
+      const simplifyPayload = await simplifyResponse.json() as { cached?: boolean }
+      const summaryPayload = summaryResponse.ok ? await summaryResponse.json() : null
+
+      const nextText = extractSimplifiedText(simplifyPayload)
+      const nextPoints = summaryPayload ? extractSummaryPoints(summaryPayload) : []
+
+      if (!nextText) throw new Error("invalid-simplification")
+      setResultText(nextText)
+      setPoints(nextPoints)
+      setDone(true)
+      setFromCache(Boolean(simplifyPayload.cached))
+    } catch {
+      setError("Teks gagal diproses oleh AI. Silakan coba lagi.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copySummary = async () => {
+    if (!points.length) return
+    try {
+      await navigator.clipboard.writeText(points.join("\n"))
+    } catch {
+      // ignore
+    }
+  }
+
+  const subtitle = booting
+    ? "Memuat teks materi…"
+    : material
+      ? fromCache
+        ? `Menyederhanakan: ${material.title} · hasil tersimpan`
+        : `Menyederhanakan: ${material.title}`
+      : "Belum ada materi dipilih. Tempel teks di bawah, atau buka materi dulu dari sidebar."
+
+  return (
+    <SimplifyPageShell
+      subtitle={subtitle}
+      sourceText={sourceText}
+      onSourceChange={(value) => {
+        setSourceText(value)
+        // Teks diubah → hasil lama tidak berlaku sampai diproses ulang
+        if (done) {
+          setDone(false)
+          setResultText("")
+          setPoints([])
+          setFromCache(false)
+        }
+      }}
+      resultText={resultText}
+      points={points}
+      title={title}
+      done={done}
+      loading={loading || booting}
+      error={error}
+      onSimplify={simplify}
+      onCopy={copySummary}
+      emptyMaterialHint={
+        !booting && !sourceText.trim() && material
+          ? `Materi “${material.title}” belum punya teks tersimpan. Tempel teks di panel atas, lalu sederhanakan.`
+          : null
+      }
+    />
+  )
 }

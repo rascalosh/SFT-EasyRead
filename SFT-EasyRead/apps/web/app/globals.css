@@ -1,1 +1,491 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-lexend), ui-sans-serif, system-ui, sans-serif;
+  --font-reading: var(--font-atkinson), var(--font-lexend), sans-serif;
+  --font-opendyslexic: "OpenDyslexic", var(--font-atkinson), sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, "Cascadia Code", monospace;
+
+  --color-canvas: #eeeeee;
+  --color-surface: #f6f6f6;
+  --color-surface-raised: #ffffff;
+  --color-reading: #f9f9f9;
+  --color-reading-alt: #f2f2f2;
+
+  --color-ink: #1B3C53;
+  --color-ink-soft: #456882;
+  --color-ink-mute: #7a96a8;
+  --color-ink-faint: #aabdca;
+
+  --color-brand: #234C6A;
+  --color-brand-strong: #1B3C53;
+  --color-brand-soft: #d6e4ed;
+  --color-brand-softer: #eaf1f6;
+  --color-brand-ink: #f4f8fb;
+
+  --color-line: #E3E3E3;
+  --color-line-soft: #ebebeb;
+  --color-line-strong: #c8c8c8;
+
+  --color-good: #1e7a53;
+  --color-good-strong: #155c3d;
+  --color-good-soft: #d4ede2;
+  --color-good-softer: #eaf6f0;
+  --color-good-ink: #f4fbf8;
+
+  --color-warn: #9b6618;
+  --color-warn-strong: #7a4e0f;
+  --color-warn-soft: #f5e6c8;
+  --color-warn-softer: #faf3e3;
+  --color-warn-ink: #fdf8f0;
+
+  --color-error: #c0392b;
+  --color-error-strong: #922b21;
+  --color-error-soft: #fad7d2;
+  --color-error-softer: #fdf0ee;
+  --color-error-ink: #fff8f7;
+
+  --color-disabled: #e9e3d6;
+  --color-disabled-fg: #a8a099;
+
+  --color-overlay-cream: #fcf6e7;
+  --color-overlay-peach: #fbe8d9;
+  --color-overlay-mint: #e3f0e4;
+  --color-overlay-blue: #e2ecf9;
+  --color-overlay-lilac: #ede5f5;
+  --color-overlay-yellow: #fef7d6;
+
+  --color-amber: #d97706;
+  --color-amber-soft: #fef3c7;
+  --color-amber-ink: #fff8e8;
+
+  --color-lavender: #7c5cbf;
+  --color-lavender-soft: #ede9f7;
+  --color-lavender-ink: #f8f6fc;
+
+  --shadow-xs: 0 1px 2px rgba(27,60,83,0.06);
+  --shadow-sm: 0 1px 4px rgba(27,60,83,0.08), 0 1px 2px rgba(27,60,83,0.05);
+  --shadow-md: 0 4px 12px rgba(27,60,83,0.10), 0 1px 3px rgba(27,60,83,0.06);
+  --shadow-lg: 0 8px 24px rgba(27,60,83,0.12), 0 2px 6px rgba(27,60,83,0.07);
+  --shadow-xl: 0 16px 40px rgba(27,60,83,0.15), 0 4px 12px rgba(27,60,83,0.08);
+  --shadow-brand: 0 4px 16px rgba(35,76,106,0.28);
+  --shadow-inner: inset 0 1px 3px rgba(27,60,83,0.08);
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-card: 18px;
+  --radius-full: 9999px;
+
+  --ease-default: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1.00);
+  --ease-out: cubic-bezier(0.00, 0.00, 0.20, 1.00);
+  --duration-fast: 120ms;
+  --duration-default: 200ms;
+  --duration-slow: 350ms;
+
+  --z-base: 0;
+  --z-raised: 10;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+  --z-tooltip: 400;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    --reading-bg: #fcf6e7;
+    --reading-fg: #1B3C53;
+    --reading-font-size: 20px;
+    --reading-letter-spacing: 0.12em;
+    --reading-word-spacing: 0.42em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.65;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer utilities {
+.text-display {
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.text-heading-1 {
+  font-size: clamp(1.375rem, 2.5vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.text-heading-2 {
+  font-size: clamp(1.125rem, 2vw, 1.375rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.text-heading-3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.text-body-lg {
+  font-size: 1rem;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+.text-body {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+}
+
+.text-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.text-caption {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-ink-mute);
+}
+
+.text-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-mute);
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Kotak teks ramah disleksia (BDA-style):
+ * - letter-spacing ~35% lebar huruf rata-rata (~0.12em)
+ * - word-spacing ≥ 3.5 × letter-spacing
+ * - line-height 150%
+ * - rata kiri, tanpa justify
+ * - tanpa italic/underline; penekanan pakai bold
+ * - pasangan warna kontras tinggi (--reading-bg / --reading-fg), bisa dipilih user
+ */
+.font-dyslexic {
+  font-family: var(--font-reading);
+  font-size: var(--reading-font-size);
+  line-height: 1.5;
+  letter-spacing: var(--reading-letter-spacing);
+  word-spacing: var(--reading-word-spacing);
+  text-align: left;
+  text-transform: none;
+  color: var(--reading-fg);
+}
+
+.reading-area {
+  font-family: var(--font-reading);
+  background-color: var(--reading-bg);
+  border-radius: var(--radius-card);
+  padding: 1.75rem 2rem;
+  font-size: var(--reading-font-size);
+  line-height: 1.5;
+  letter-spacing: var(--reading-letter-spacing);
+  word-spacing: var(--reading-word-spacing);
+  text-align: left;
+  text-transform: none;
+  color: var(--reading-fg);
+  max-width: 70ch;
+}
+
+.font-dyslexic em,
+.font-dyslexic i,
+.reading-area em,
+.reading-area i {
+  font-style: normal;
+  font-weight: 700;
+}
+
+.font-dyslexic u,
+.reading-area u {
+  text-decoration: none;
+  font-weight: 700;
+}
+
+/* Preferensi font dari Pengaturan (data attributes di <html>) */
+html[data-ui-font="lexend"] {
+  --font-sans: var(--font-lexend), ui-sans-serif, system-ui, sans-serif;
+}
+html[data-ui-font="opendyslexic"] {
+  --font-sans: var(--font-opendyslexic);
+}
+html[data-ui-font="open-sans"] {
+  --font-sans: var(--font-open-sans), "Open Sans", sans-serif;
+}
+html[data-ui-font="arial"] {
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+html[data-ui-font="verdana"] {
+  --font-sans: Verdana, Geneva, sans-serif;
+}
+html[data-ui-font="tahoma"] {
+  --font-sans: Tahoma, Verdana, sans-serif;
+}
+html[data-ui-font="trebuchet"] {
+  --font-sans: "Trebuchet MS", "Lucida Grande", sans-serif;
+}
+html[data-ui-font="calibri"] {
+  --font-sans: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+}
+html[data-ui-font="century-gothic"] {
+  --font-sans: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+}
+html[data-ui-font="comic-sans"] {
+  --font-sans: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
+}
+
+html[data-reading-font="atkinson"] {
+  --font-reading: var(--font-atkinson), var(--font-lexend), sans-serif;
+}
+html[data-reading-font="opendyslexic"] {
+  --font-reading: var(--font-opendyslexic);
+}
+html[data-reading-font="open-sans"] {
+  --font-reading: var(--font-open-sans), "Open Sans", sans-serif;
+}
+html[data-reading-font="arial"] {
+  --font-reading: Arial, Helvetica, sans-serif;
+}
+html[data-reading-font="verdana"] {
+  --font-reading: Verdana, Geneva, sans-serif;
+}
+html[data-reading-font="tahoma"] {
+  --font-reading: Tahoma, Verdana, sans-serif;
+}
+html[data-reading-font="trebuchet"] {
+  --font-reading: "Trebuchet MS", "Lucida Grande", sans-serif;
+}
+html[data-reading-font="calibri"] {
+  --font-reading: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+}
+html[data-reading-font="century-gothic"] {
+  --font-reading: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+}
+html[data-reading-font="comic-sans"] {
+  --font-reading: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
+}
+
+.reading-area p + p {
+  margin-top: 1.25em;
+}
+
+.syllable-highlight {
+  background: var(--color-brand-soft);
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+.word-current {
+  background: var(--color-amber-soft);
+  outline: 2px solid var(--color-amber);
+  outline-offset: 1px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 200ms;
+}
+*:hover {
+  scrollbar-color: var(--color-line) transparent;
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  background-clip: content-box;
+}
+
+::selection {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.surface-xs { box-shadow: var(--shadow-xs); }
+.surface-sm { box-shadow: var(--shadow-sm); }
+.surface-md { box-shadow: var(--shadow-md); }
+.surface-lg { box-shadow: var(--shadow-lg); }
+
+.transition-default {
+  transition: all var(--duration-default) var(--ease-default);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-line-soft) 25%,
+    var(--color-surface-raised) 50%,
+    var(--color-line-soft) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes loading-bar {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in var(--duration-slow) var(--ease-out) both;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  70% { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.animate-pulse-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down {
+  animation: slide-down var(--duration-default) var(--ease-out) both;
+}
+}
+
+@layer base {
+input, textarea, select {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--color-line-soft);
+  border-radius: var(--radius-full);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm), 0 0 0 3px var(--color-brand-soft);
+  transition: box-shadow var(--duration-fast) var(--ease-default);
+}
+input[type="range"]:focus::-webkit-slider-thumb {
+  box-shadow: var(--shadow-sm), 0 0 0 4px var(--color-brand-soft);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-brand);
+  cursor: pointer;
+}
+
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--color-brand);
+  width: 1.125rem;
+  height: 1.125rem;
+  cursor: pointer;
+}
+}
+
+/*
+ * Di luar @layer agar mengalahkan utility Tailwind seperti bg-surface.
+ * Dipakai Card variant="reading" dan kotak bacaan.
+ */
+.reading-surface {
+  background-color: var(--reading-bg) !important;
+  color: var(--reading-fg) !important;
+  font-family: var(--font-reading);
+}
+
+.reading-surface .text-ink,
+.reading-surface .text-ink-soft,
+.reading-surface .text-ink-mute {
+  color: inherit !important;
+  opacity: 0.8;
+}
+
+.reading-surface h1,
+.reading-surface h2,
+.reading-surface h3,
+.reading-surface .text-brand,
+.reading-surface .text-brand-strong {
+  color: var(--reading-fg) !important;
+}
+
+.reading-surface .font-dyslexic,
+.reading-surface .reading-area {
+  color: var(--reading-fg);
+  font-family: var(--font-reading);
+  font-size: var(--reading-font-size);
+  line-height: 1.5;
+  letter-spacing: var(--reading-letter-spacing);
+  word-spacing: var(--reading-word-spacing);
+}

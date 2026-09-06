@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "exports": {
+    "./proxy": "./proxy.ts",
+    "./lib/gemini": "./lib/gemini.ts",
+    "./lib/prompts/simplify.prompt": "./lib/prompts/simplify.prompt.ts",
+    "./lib/prompts/summary.prompt": "./lib/prompts/summary.prompt.ts",
+    "./services/document.service": "./services/document.service.ts",
+    "./services/simplify.service": "./services/simplify.service.ts",
+    "./services/summary.service": "./services/summary.service.ts"
+  },
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
@@ -11,8 +20,9 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/opendyslexic": "^5.3.0",
     "@repo/db": "*",
-    "@repo/ui": "*",
+    "@repo/schemas": "*",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "dotenv": "^17.4.2",

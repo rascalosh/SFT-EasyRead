@@ -39,7 +39,28 @@ export async function findCachedSimplification({
         .eq("input_hash", inputHash)
         .eq("pipeline_version", pipelineVersion)
         .eq("model", model)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
+
+    return data
+}
+
+/** Ambil hasil terakhir untuk dokumen + operasi (tanpa filter hash). */
+export async function findLatestSimplification(
+    documentId: string,
+    operation: string,
+) {
+    const supabase = await createClient()
+
+    const { data } = await supabase
+        .from("simplifications")
+        .select("*")
+        .eq("document_id", documentId)
+        .eq("operation", operation)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
     return data
 }
