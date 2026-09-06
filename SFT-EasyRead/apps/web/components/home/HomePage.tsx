@@ -74,11 +74,21 @@ export default function HomeDashboard() {
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) {
-      setLensFile(file)
-      setStage("lens")
-    }
     e.target.value = ""
+    if (!file) return
+
+    if (!(["image/jpeg", "image/png", "image/webp"] as string[]).includes(file.type)) {
+      setSubmitError("Format foto harus JPG, PNG, atau WebP. Foto HEIC belum didukung.")
+      setStage("options")
+      return
+    }
+
+    setSubmitError(null)
+    setPendingText("")
+    setPendingSource("image")
+    setTitleValue("")
+    setLensFile(file)
+    setStage("lens")
   }
 
   function handlePasteConfirm() {
