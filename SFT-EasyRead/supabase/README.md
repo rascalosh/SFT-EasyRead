@@ -22,7 +22,7 @@ supabase db pull
 | `20260814061641` | Index untuk foreign key yang belum terindeks |
 | `20260904013658` | `reading_sessions.words_read`, `quiz_answers.{verdict,scores,tip}`, `speech_assessments.reference_text`, unique index rekomendasi, INSERT policy achievements |
 | `20260904032136` | `reading_preferences.{auto_tts,language,overlay}` |
-| `20260904032952` | Default `font_family`→`dyslexic`, `letter_spacing`→`0.06` |
+| `20260904032952` | Default `font_family`→`dyslexic`, `letter_spacing`→`0.12`, `focus_ruler_enabled`→`true` |
 | `20260904165449` | `reading_preferences.{ui_font,reading_font,contrast_id}`, `letter_spacing` dilebarkan ke 0.35 |
 
 ## Constraint yang gampang bikin salah

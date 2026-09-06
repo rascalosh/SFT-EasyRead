@@ -81,6 +81,10 @@ export default function HomeDashboard() {
 
   async function handleTitleSubmit() {
     if (!titleValue.trim() || submitting) return
+    if (!pendingText.trim()) {
+      setSubmitError("Teks materi masih kosong. Tambahkan teks terlebih dulu sebelum menyimpan.")
+      return
+    }
     setSubmitError(null)
     setSubmitting(true)
 
