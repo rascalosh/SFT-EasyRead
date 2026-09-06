@@ -32,6 +32,7 @@ export default function ReadingInterface() {
   const [size, setSize] = useState(defaultSettings.fontSize)
   const [spacing, setSpacing] = useState(defaultSettings.letterSpacing)
   const [contrastId, setContrastId] = useState<ReadingContrastId>(defaultSettings.contrastId)
+  const [focusRuler, setFocusRuler] = useState(defaultSettings.focusRuler)
   const [ruler, setRuler] = useState<number | null>(null)
   const [ttsActive, setTtsActive] = useState(false)
 
@@ -44,6 +45,8 @@ export default function ReadingInterface() {
       setSize(s.fontSize)
       setSpacing(s.letterSpacing)
       setContrastId(s.contrastId)
+      setFocusRuler(s.focusRuler)
+      if (!s.focusRuler) setRuler(null)
     }
     sync()
     setMaterial(getActiveMaterial())
@@ -134,12 +137,25 @@ export default function ReadingInterface() {
           {lines.map((line, i) => (
             <p
               key={i}
-              onClick={() => setRuler(ruler === i ? null : i)}
+              onPointerDown={(event) => {
+                if (!focusRuler) return
+                event.preventDefault()
+                setRuler(ruler === i ? null : i)
+              }}
+              onKeyDown={(event) => {
+                if (!focusRuler || (event.key !== "Enter" && event.key !== " ")) return
+                event.preventDefault()
+                setRuler(ruler === i ? null : i)
+              }}
+              tabIndex={focusRuler ? 0 : -1}
+              role="button"
               className={cx(
-                "-mx-3 cursor-pointer rounded-lg px-3 py-1.5 transition-colors",
-                ruler === i
-                  ? "bg-[color-mix(in_srgb,var(--color-brand)_16%,transparent)] shadow-[inset_0_-2px_0_var(--color-brand)]"
-                  : "hover:bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)]",
+                "-mx-3 block w-[calc(100%+1.5rem)] rounded-lg px-3 py-1.5 transition-colors",
+                focusRuler && "cursor-pointer",
+                focusRuler && "select-none",
+                focusRuler && ruler === i
+                  ? "bg-[var(--color-brand-soft)] outline outline-1 outline-[var(--color-brand)] shadow-[inset_0_-3px_0_var(--color-brand)]"
+                  : focusRuler && "hover:bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)]",
               )}
             >
               {line}
