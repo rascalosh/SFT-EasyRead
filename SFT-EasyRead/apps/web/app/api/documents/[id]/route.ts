@@ -40,8 +40,8 @@ export async function DELETE(
 
     if (error) {
         return NextResponse.json(
-            { error: error.message || "Document not found" },
-            { status: 404 }
+            { error: error.message || "Failed to delete document" },
+            { status: error.code === "PGRST116" ? 404 : 500 }
         )
     }
 

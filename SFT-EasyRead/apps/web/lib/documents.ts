@@ -114,3 +114,22 @@ export async function fetchUserDocument(id: string): Promise<DocumentResult> {
   const document = extractDocument(await response.json())
   return document ? { document } : { error: true as const }
 }
+
+export async function deleteUserDocument(id: string) {
+  const response = await fetch(`/api/documents/${id}`, {
+    method: "DELETE",
+  })
+
+  if (response.status === 401) return { unauthorized: true as const }
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: unknown }
+      | null
+    return {
+      error: true as const,
+      message: typeof payload?.error === "string" ? payload.error : undefined,
+    }
+  }
+
+  return { deleted: true as const }
+}
