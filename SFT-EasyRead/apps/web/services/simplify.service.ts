@@ -1,4 +1,4 @@
-import { gemini, GEMINI_MODEL } from "@repo/web/lib/gemini"
+import { generateStructured, activeModel } from "@repo/web/lib/gemini"
 import { buildSimplifyPrompt } from "@repo/web/lib/prompts/simplify.prompt"
 import { simplifySchema } from "@repo/schemas/simplify"
 import * as documentRepository from "@repo/db/repositories/document"
@@ -9,48 +9,9 @@ const PIPELINE_VERSION = "v1"
 const OPERATION = "simplify"
 
 export async function simplifyText(originalText: string) {
-    const prompt = buildSimplifyPrompt(originalText)
-
-    let lastError: unknown
-
-    for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-            const response = await gemini.models.generateContent({
-                model: GEMINI_MODEL,
-                contents: prompt,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "object",
-                        properties: {
-                            title: { type: "string" },
-                            simplifiedText: { type: "string" },
-                            difficultWords: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        word: { type: "string" },
-                                        explanation: { type: "string" },
-                                    },
-                                    required: ["word", "explanation"],
-                                },
-                            },
-                        },
-                        required: ["title", "simplifiedText", "difficultWords"],
-                    },
-                },
-            })
-
-            const rawText = typeof response.text === "string" ? response.text : ""
-            const parsed = JSON.parse(rawText || "{}")
-            return simplifySchema.parse(parsed)
-        } catch (error) {
-            lastError = error
-        }
-    }
-
-    throw lastError
+    // Skema JSON untuk Gemini diturunkan langsung dari skema Zod, jadi tidak
+    // ada lagi dua definisi yang bisa melenceng satu sama lain.
+    return generateStructured(simplifySchema, buildSimplifyPrompt(originalText))
 }
 
 function hashInput(text: string) {
@@ -68,7 +29,7 @@ export async function getCachedSimplification(documentId: string, userId: string
     if (!originalText.trim()) return null
 
     const inputHash = hashInput(originalText)
-    const model = process.env.GEMINI_MODEL ?? GEMINI_MODEL
+    const model = activeModel()
 
     return simplificationRepository.findCachedSimplification({
         documentId: document.id,
@@ -93,7 +54,7 @@ export async function simplifyDocument(documentId: string, userId: string) {
     }
 
     const inputHash = hashInput(originalText)
-    const model = process.env.GEMINI_MODEL ?? GEMINI_MODEL
+    const model = activeModel()
 
     const cached = await simplificationRepository.findCachedSimplification({
         documentId: document.id,

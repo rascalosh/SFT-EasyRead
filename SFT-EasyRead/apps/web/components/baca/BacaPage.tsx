@@ -9,6 +9,7 @@ import { demoTitle, demoParagraphs } from "@/lib/mock"
 import {
   getActiveMaterial,
   loadSettings,
+  syncSettingsFromServer,
   saveSettings,
   applyFontPreferences,
   defaultSettings,
@@ -46,6 +47,9 @@ export default function ReadingInterface() {
     }
     sync()
     setMaterial(getActiveMaterial())
+    // Preferensi milik akun menimpa setelan perangkat; hasilnya memicu
+    // SETTINGS_EVENT sehingga `sync` di atas berjalan lagi dengan nilai baru.
+    void syncSettingsFromServer()
     window.addEventListener(SETTINGS_EVENT, sync)
     window.addEventListener("storage", sync)
     return () => {

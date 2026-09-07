@@ -5,38 +5,48 @@ import { Card, SectionTitle, Tabs, Badge, ScoreMeter, StatusPill, Button } from 
 import { IconChart, IconTrophy, IconArrow, IconTarget, IconPlay } from "@/components/shared/icons"
 import {
   progressStats, readingScores, achievements, practiceRecs,
-  type ReadingHistory,
 } from "@/lib/mock"
-import { getActivityLog, type SessionActivity } from "@/lib/session"
+import { getActivityLog } from "@/lib/session"
+import { fetchProgress, isOk, type ApiProgress } from "@/lib/api"
 import TrendChart from "./TrendChart"
 
 type Mode = "standar" | "personalized"
 
 export default function ProgressAchievement() {
   const [mode, setMode] = useState<Mode>("standar")
-  const [activity, setActivity] = useState<SessionActivity[]>([])
+  const [progress, setProgress] = useState<ApiProgress | null>(null)
 
   useEffect(() => {
-    setActivity(getActivityLog())
+    let alive = true
+
+    void fetchProgress().then((result) => {
+      if (alive && isOk(result)) setProgress(result.data)
+    })
+
+    return () => {
+      alive = false
+    }
   }, [])
 
-  // Merge session activity dengan mock activity (session lebih baru)
-  const allActivity = [
-    ...activity.map((a) => ({
-      date: a.date,
-      activity: a.activity,
-      mode: "Standar" as const,
-      task: a.materialTitle,
-      result: a.result,
-      status: a.status,
-    })),
-    ...([
-      { date: "20 Mei 2026", activity: "Kuis Pemahaman", mode: "Standar" as const, task: "Perjuangan Bangsa Indonesia", result: "86%", status: "Paham" as const },
-      { date: "19 Mei 2026", activity: "Penilaian Membaca", mode: "Personalized" as const, task: "Manfaat Membaca Setiap Hari", result: "88%", status: "Paham" as const },
-      { date: "18 Mei 2026", activity: "Kuis Pemahaman", mode: "Standar" as const, task: "Teknologi di Masa Depan", result: "58%", status: "Belum Paham" as const },
-      { date: "16 Mei 2026", activity: "Penilaian Membaca", mode: "Personalized" as const, task: "Sejarah Indonesia", result: "82%", status: "Paham" as const },
-    ]),
-  ].slice(0, 20)
+  // Data nyata dari akun; kalau belum login atau server gagal, tampilkan
+  // contoh dari mock supaya halaman tetap bisa dilihat.
+  const stats = progress?.progressStats ?? progressStats
+  const scores = progress?.readingScores ?? readingScores
+  const badges = progress?.achievements ?? achievements
+  const recs = progress?.practiceRecs ?? practiceRecs
+
+  // Riwayat sesi ini (sessionStorage) dipakai hanya saat belum ada data akun,
+  // supaya aktivitas tamu tetap terlihat tanpa mengotori angka pengguna login.
+  const allActivity = progress
+    ? progress.activity
+    : getActivityLog().map((a) => ({
+        date: a.date,
+        activity: a.activity,
+        mode: "Standar" as const,
+        task: a.materialTitle,
+        result: a.result,
+        status: a.status,
+      }))
 
   const paham = allActivity.filter((a) => a.status === "Paham").length
   const belumPaham = allActivity.filter((a) => a.status === "Belum Paham").length
@@ -58,7 +68,7 @@ export default function ProgressAchievement() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {progressStats.map((s) => (
+        {stats.map((s) => (
           <Card key={s.label}>
             <div className="text-sm text-ink-mute">{s.label}</div>
             <div className="mt-1 text-2xl font-bold text-ink">{s.value}</div>
@@ -72,7 +82,7 @@ export default function ProgressAchievement() {
           {mode === "standar" ? (
             <Card>
               <SectionTitle icon={<IconChart width={18} height={18} />} title="Tren Pemahaman (4 Minggu Terakhir)" />
-              <TrendChart />
+              <TrendChart data={progress?.comprehensionTrend} />
               <div className="mt-4 flex flex-wrap gap-3">
                 <Badge tone="good">Paham: {paham} sesi</Badge>
                 <Badge tone="warn">Belum Paham: {belumPaham} sesi</Badge>
@@ -83,7 +93,7 @@ export default function ProgressAchievement() {
             <Card>
               <SectionTitle icon={<IconChart width={18} height={18} />} title="Ringkasan Kemampuan Membaca" />
               <div className="grid gap-4 sm:grid-cols-2">
-                {readingScores.map((s) => (
+                {scores.map((s) => (
                   <ScoreMeter key={s.label} label={s.label} score={s.score} note={s.note} />
                 ))}
               </div>
@@ -135,8 +145,13 @@ export default function ProgressAchievement() {
         <div className="space-y-6">
           <Card>
             <SectionTitle icon={<IconTrophy width={18} height={18} />} title="Pencapaian Terbaru" />
+            {badges.length === 0 && (
+              <p className="py-6 text-center text-sm text-ink-mute">
+                Belum ada pencapaian. Selesaikan bacaan dan kuis pertamamu untuk membukanya.
+              </p>
+            )}
             <ul className="space-y-3">
-              {achievements.map((a) => (
+              {badges.map((a) => (
                 <li key={a.title} className="flex gap-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--color-good-soft)] text-[var(--color-good)]">
                     <IconTrophy width={18} height={18} />
@@ -154,7 +169,7 @@ export default function ProgressAchievement() {
           <Card>
             <SectionTitle icon={<IconTarget width={18} height={18} />} title="Rekomendasi Latihan" />
             <ul className="space-y-2">
-              {practiceRecs.map((r) => (
+              {recs.map((r) => (
                 <li key={r.title} className="flex items-center gap-3 rounded-xl border border-line p-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold text-ink">{r.title}</div>

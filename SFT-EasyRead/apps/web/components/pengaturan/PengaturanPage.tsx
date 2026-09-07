@@ -6,7 +6,8 @@ import { IconSettings, IconBook, IconSpeaker, IconTextSize } from "@/components/
 import SettingsToggle from "./SettingsToggle"
 import {
   loadSettings,
-  saveSettings,
+  saveSettingsEverywhere,
+  syncSettingsFromServer,
   applyFontPreferences,
   wordSpacingFromLetter,
   getContrastOption,
@@ -27,16 +28,27 @@ export default function Settings() {
   const contrast = getContrastOption(settings.contrastId)
 
   useEffect(() => {
+    // Render dulu dari perangkat supaya tidak berkedip, lalu timpa dengan
+    // setelan milik akun begitu tiba (kalau pengguna sudah login).
     const loaded = loadSettings()
     setSettings({ ...loaded })
     applyFontPreferences(loaded)
     setReady(true)
+
+    let active = true
+    void syncSettingsFromServer().then((fromAccount) => {
+      if (active && fromAccount) setSettings({ ...fromAccount })
+    })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   function update<K extends keyof ReadingSettings>(key: K, value: ReadingSettings[K]) {
     setSettings((prev) => {
       const next = { ...prev, [key]: value }
-      saveSettings(next)
+      saveSettingsEverywhere(next)
       applyFontPreferences(next)
       return next
     })
@@ -147,8 +159,8 @@ export default function Settings() {
 
           <div className="mt-4 divide-y divide-line border-t border-line">
             <SettingsToggle
-              on={true}
-              onToggle={() => {}}
+              on={settings.focusRuler}
+              onToggle={() => update("focusRuler", !settings.focusRuler)}
               label="Penggaris Fokus Digital"
               desc="Ketuk baris teks saat membaca untuk menyorot baris aktif."
             />
@@ -235,7 +247,7 @@ export default function Settings() {
             </select>
           </div>
           <p className="mt-4 text-xs text-ink-mute">
-            Pengaturan disimpan otomatis ke perangkat ini.
+            Pengaturan disimpan otomatis ke perangkat ini dan ke akunmu.
           </p>
         </Card>
       </div>

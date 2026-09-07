@@ -1,6 +1,6 @@
 import crypto from "crypto"
 
-import { gemini, GEMINI_MODEL } from "@repo/web/lib/gemini"
+import { generateStructured, activeModel } from "@repo/web/lib/gemini"
 import { buildSummaryPrompt } from "@repo/web/lib/prompts/summary.prompt"
 import { summarySchema } from "@repo/schemas/summary"
 
@@ -15,49 +15,10 @@ function hashInput(text: string) {
 }
 
 export async function summaryText(originalText: string) {
-    const prompt = buildSummaryPrompt(originalText)
-
-    let lastError: unknown
-
-    for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-            const response = await gemini.models.generateContent({
-                model: GEMINI_MODEL,
-                contents: prompt,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "object",
-                        properties: {
-                            title: { type: "string" },
-                            summary: { type: "string" },
-                            bulletPoints: {
-                                type: "array",
-                                items: {
-                                    type: "string",
-                                },
-                            },
-                        },
-                        required: ["title", "summary", "bulletPoints"],
-                    },
-                },
-            })
-
-            const text = response?.text
-
-            if (!text) {
-                throw new Error("Gemini response text is missing")
-            }
-
-            const parsed = JSON.parse(text)
-
-            return summarySchema.parse(parsed)
-        } catch (error) {
-            lastError = error
-        }
-    }
-
-    throw lastError
+    // Batas 3–5 poin ringkasan kini ikut terkirim ke Gemini karena skemanya
+    // diturunkan dari Zod; sebelumnya batas itu hanya ada di sisi validasi
+    // sehingga jawaban 2 atau 6 poin lolos lalu gagal dan membakar retry.
+    return generateStructured(summarySchema, buildSummaryPrompt(originalText))
 }
 
 export async function getCachedSummary(documentId: string, userId: string) {
@@ -71,7 +32,7 @@ export async function getCachedSummary(documentId: string, userId: string) {
     if (!originalText.trim()) return null
 
     const inputHash = hashInput(originalText)
-    const model = process.env.GEMINI_MODEL ?? GEMINI_MODEL
+    const model = activeModel()
 
     return simplificationRepository.findCachedSimplification({
         documentId: document.id,
@@ -99,7 +60,7 @@ export async function summarizeDocument(documentId: string, userId: string) {
     }
 
     const inputHash = hashInput(originalText)
-    const model = process.env.GEMINI_MODEL ?? GEMINI_MODEL
+    const model = activeModel()
 
     const cached = await simplificationRepository.findCachedSimplification({
         documentId: document.id,
