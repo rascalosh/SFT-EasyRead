@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, Button, cx } from "@/components/shared/ui"
 import { IconPlay, IconPause, IconWave, IconSpeaker } from "@/components/shared/icons"
+import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
 import { demoTitle, demoParagraphs } from "@/lib/mock"
 import {
   getActiveMaterial,
@@ -98,6 +99,7 @@ export default function AudioVisualTracking() {
   const totalMs = words.length * speed.value
 
   return (
+    <>
     <div className="space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
@@ -173,5 +175,7 @@ export default function AudioVisualTracking() {
         Ketuk kata mana pun untuk memulai dari sana. Fitur ini membantu menghubungkan bunyi kata dengan bentuk visualnya.
       </p>
     </div>
+      <ScrollEdgeButton />
+    </>
   )
 }

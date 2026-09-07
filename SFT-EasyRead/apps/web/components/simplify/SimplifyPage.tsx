@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button, Badge } from "@/components/shared/ui"
 import { IconSparkle } from "@/components/shared/icons"
+import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
 import { createUserDocument, fetchUserDocument } from "@/lib/documents"
 import { getActiveMaterial, setActiveMaterial, type ActiveMaterial } from "@/lib/session"
 import { OriginalTextPanel } from "./OriginalTextPanel"
@@ -64,7 +65,8 @@ export function SimplifyPageShell({
   emptyMaterialHint?: string | null
 }) {
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
@@ -89,7 +91,9 @@ export function SimplifyPageShell({
       {error && <p className="text-sm text-error" role="alert">{error}</p>}
       <SimplifiedTextPanel text={resultText} loading={loading} done={done} />
       <SummaryCard title={title} points={points} done={done} onCopy={onCopy ?? (() => {})} />
-    </div>
+      </div>
+      <ScrollEdgeButton />
+    </>
   )
 }
 
