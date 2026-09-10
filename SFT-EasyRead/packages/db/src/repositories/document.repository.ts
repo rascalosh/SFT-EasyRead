@@ -61,4 +61,6 @@ export async function deleteDocument(id: string, userId: string) {
         .delete()
         .eq("id", id)
         .eq("user_id", userId)
+        .select("id")
+        .single()
 }

@@ -68,11 +68,15 @@ export default function LensViewer({
     onCancel: () => void
 }) {
     const [imageUrl] = useState(() => URL.createObjectURL(imageFile))
+    const [imageSource, setImageSource] = useState(imageUrl)
+    const [fallbackTried, setFallbackTried] = useState(false)
     const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null)
     const [selection, setSelection] = useState<Rect | null>(null)
     const [dragging, setDragging] = useState(false)
     const [scanning, setScanning] = useState(false)
     const [scanError, setScanError] = useState<string | null>(null)
+    const [imageLoadError, setImageLoadError] = useState(false)
+    const [imageReady, setImageReady] = useState(false)
     const [ocr, setOcr] = useState<ApiOcr | null>(null)
     const [mode, setMode] = useState<"dyslexic" | "summary">("dyslexic")
     const containerRef = useRef<HTMLDivElement>(null)
@@ -92,7 +96,7 @@ export default function LensViewer({
     }
 
     function onStart(clientX: number, clientY: number) {
-        if (scanned || scanning) return
+        if (scanned || scanning || !imageReady || imageLoadError) return
         const p = relPos(clientX, clientY)
         setAnchor(p)
         setSelection(null)
@@ -136,7 +140,9 @@ export default function LensViewer({
             }
 
             if (!isOk(result)) {
-                setScanError("Gagal memindai teks. Periksa koneksi lalu coba lagi.")
+                setScanError(
+                    result.message ?? "Gagal memindai teks. Periksa koneksi lalu coba lagi.",
+                )
                 return
             }
 
@@ -193,8 +199,8 @@ export default function LensViewer({
             <div
                 ref={containerRef}
                 className={cx(
-                    "relative w-full overflow-hidden rounded-xl border border-line select-none",
-                    !scanned && !scanning && "cursor-crosshair",
+                    "relative min-h-40 w-full overflow-hidden rounded-xl border border-line select-none",
+                    !scanned && !scanning && imageReady && !imageLoadError && "cursor-crosshair",
                 )}
                 style={{ maxHeight: "44vh" }}
                 onMouseDown={(e) => onStart(e.clientX, e.clientY)}
@@ -212,18 +218,53 @@ export default function LensViewer({
                 }}
                 onTouchEnd={onEnd}
             >
-                {/* eslint-disable-next-line @next/next/no-img-element -- object URL dari berkas pengguna, bukan aset statis */}
-                <img
-                    ref={imageRef}
-                    src={imageUrl}
-                    alt="Foto pindaian"
-                    draggable={false}
-                    className="w-full object-contain pointer-events-none"
-                    style={{ maxHeight: "44vh" }}
-                />
+                {!imageLoadError && (
+                    /* eslint-disable-next-line @next/next/no-img-element -- object URL dari berkas pengguna, bukan aset statis */
+                    <img
+                        ref={imageRef}
+                        src={imageSource}
+                        alt="Foto pindaian"
+                        draggable={false}
+                        onLoad={() => setImageReady(true)}
+                        onError={() => {
+                            setImageReady(false)
+
+                            if (!fallbackTried) {
+                                setFallbackTried(true)
+                                const reader = new FileReader()
+                                reader.onload = () => {
+                                    if (typeof reader.result === "string") {
+                                        setImageSource(reader.result)
+                                        return
+                                    }
+
+                                    setImageLoadError(true)
+                                }
+                                reader.onerror = () => setImageLoadError(true)
+                                reader.readAsDataURL(imageFile)
+                                return
+                            }
+
+                            setImageLoadError(true)
+                        }}
+                        className="w-full object-contain pointer-events-none"
+                        style={{ maxHeight: "44vh" }}
+                    />
+                )}
+
+                {imageLoadError && (
+                    <div className="grid min-h-40 place-items-center px-6 py-8 text-center">
+                        <div>
+                            <p className="text-sm font-semibold text-ink">Foto tidak bisa dibuka</p>
+                            <p className="mt-1 text-xs text-ink-mute">
+                                Gunakan foto JPG, PNG, atau WebP. Foto HEIC belum didukung.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Dim overlay */}
-                {!scanned && (
+                {!scanned && imageReady && !imageLoadError && (
                     <div className="absolute inset-0 bg-black/25 pointer-events-none" />
                 )}
 
@@ -265,7 +306,7 @@ export default function LensViewer({
                 )}
 
                 {/* Hint */}
-                {!hasSelection && !scanned && !scanning && (
+                {!hasSelection && !scanned && !scanning && imageReady && !imageLoadError && (
                     <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
                         <span className="rounded-lg bg-black/60 px-4 py-1.5 text-xs text-white">
                             Seret untuk memilih area teks

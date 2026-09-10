@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { hrefFor } from "@/lib/nav"
-import { createUserDocument } from "@/lib/documents"
+import { createUserDocument, uploadDocument } from "@/lib/documents"
 import { saveSessionMaterial } from "@/lib/mock"
 import { setActiveMaterial } from "@/lib/session"
 import { cx } from "@/components/shared/ui"
@@ -39,7 +39,6 @@ export default function HomeDashboard() {
   function startLoading(method: LoadMethod) {
     setLoadMethod(method)
     setStage("loading")
-    setTimeout(() => setStage("title"), 2000)
   }
 
   async function handleDocChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -47,29 +46,49 @@ export default function HomeDashboard() {
     e.target.value = ""
     if (!file) return
 
-    const name = file.name.toLowerCase()
-
-    // Berkas teks bisa dibaca langsung di browser. PDF/DOCX belum bisa diurai
-    // di sini, jadi materinya dibuat kosong dan teksnya ditempel menyusul.
-    if (name.endsWith(".txt")) {
-      const text = await file.text().catch(() => "")
-      setPendingText(text.trim())
-      setPendingSource("text")
-    } else {
-      setPendingText("")
-      setPendingSource(name.endsWith(".pdf") ? "pdf" : "text")
-    }
-
     startLoading("upload")
+
+    try {
+      const result = await uploadDocument(file)
+
+      if ("unauthorized" in result) {
+        router.push("/login")
+        return
+      }
+
+      if ("error" in result) {
+        setSubmitError(result.message ?? "Dokumen gagal diproses. Silakan coba lagi.")
+        setStage("options")
+        return
+      }
+
+      setPendingText(result.upload.text)
+      setPendingSource(result.upload.sourceType)
+      setTitleValue(result.upload.title)
+      setStage("title")
+    } catch {
+      setSubmitError("Dokumen gagal diproses. Periksa koneksi lalu coba lagi.")
+      setStage("options")
+    }
   }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) {
-      setLensFile(file)
-      setStage("lens")
-    }
     e.target.value = ""
+    if (!file) return
+
+    if (!(["image/jpeg", "image/png", "image/webp"] as string[]).includes(file.type)) {
+      setSubmitError("Format foto harus JPG, PNG, atau WebP. Foto HEIC belum didukung.")
+      setStage("options")
+      return
+    }
+
+    setSubmitError(null)
+    setPendingText("")
+    setPendingSource("image")
+    setTitleValue("")
+    setLensFile(file)
+    setStage("lens")
   }
 
   function handlePasteConfirm() {
@@ -195,6 +214,9 @@ export default function HomeDashboard() {
                 <IconClose width={16} height={16} />
               </button>
             </div>
+            {submitError && (
+              <p className="mb-4 text-sm text-error" role="alert">{submitError}</p>
+            )}
             <div className="grid gap-3">
 
               {/* Upload Dokumen */}

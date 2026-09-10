@@ -6,7 +6,10 @@
  * dengan aman saat pengguna belum login atau server bermasalah.
  */
 
-export type ApiResult<T> = { data: T } | { unauthorized: true } | { error: true }
+export type ApiResult<T> =
+    | { data: T }
+    | { unauthorized: true }
+    | { error: true; message?: string }
 
 export function isOk<T>(result: ApiResult<T>): result is { data: T } {
     return "data" in result
@@ -17,7 +20,19 @@ async function request<T>(input: string, init?: RequestInit): Promise<ApiResult<
         const response = await fetch(input, init)
 
         if (response.status === 401) return { unauthorized: true }
-        if (!response.ok) return { error: true }
+        if (!response.ok) {
+            const payload = (await response.json().catch(() => null)) as
+                | { message?: unknown; error?: unknown }
+                | null
+            const message =
+                typeof payload?.message === "string"
+                    ? payload.message
+                    : typeof payload?.error === "string"
+                      ? payload.error
+                      : undefined
+
+            return message ? { error: true, message } : { error: true }
+        }
 
         return { data: (await response.json()) as T }
     } catch {
