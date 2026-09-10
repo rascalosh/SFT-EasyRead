@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, Button, SectionTitle } from "@/components/shared/ui"
 import { IconLetters, IconSpeaker, IconClose, IconPlay, IconTap } from "@/components/shared/icons"
+import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
 import { demoTitle, syllableWords, type Syllable } from "@/lib/mock"
 import { getActiveMaterial, loadSettings, defaultSettings, type ActiveMaterial } from "@/lib/session"
 import { breakdownOf } from "@/lib/syllabify"
@@ -103,6 +104,7 @@ export default function SyllableBreaker() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
@@ -217,5 +219,7 @@ export default function SyllableBreaker() {
         </div>
       </div>
     </div>
+      <ScrollEdgeButton />
+    </>
   )
 }

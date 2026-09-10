@@ -6,6 +6,7 @@ import { fetchUserDocument } from "@/lib/documents"
 import { getSessionMaterials } from "@/lib/mock"
 import { getActiveMaterial, setActiveMaterial } from "@/lib/session"
 import { startReadingSession, updateReadingSessionBeacon, isOk } from "@/lib/api"
+import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
 import { ActivityPicker } from "./ActivityPicker"
 import { MaterialHeader } from "./MaterialHeader"
 import { MaterialNotFound } from "./MaterialNotFound"
@@ -111,20 +112,34 @@ export default function MaterialDetail() {
     }
   }, [id, router])
 
+  useEffect(() => {
+    function onRenamed(event: Event) {
+      const detail = (event as CustomEvent<{ id?: string; title?: string }>).detail
+      if (!detail?.id || typeof detail.title !== "string") return
+      if (detail.id !== id) return
+      setMaterial((prev) => (prev ? { ...prev, title: detail.title } : prev))
+    }
+    window.addEventListener("easyread:material-renamed", onRenamed)
+    return () => window.removeEventListener("easyread:material-renamed", onRenamed)
+  }, [id])
+
   if (loading) return <p className="text-sm text-ink-soft">Memuat materi…</p>
   if (!material) return <MaterialNotFound />
 
   return (
-    <div className="space-y-8 animate-[fade-in_300ms_ease-out_both]">
-      <MaterialHeader
-        title={material.title}
-        paragraphs={
-          paragraphs.length
-            ? paragraphs
-            : ["Materi ini belum punya teks tersimpan. Tempel teks lewat beranda (Tempel Teks), lalu buka lagi."]
-        }
-      />
-      <ActivityPicker materialId={material.id} />
-    </div>
+    <>
+      <div className="space-y-8 animate-[fade-in_300ms_ease-out_both]">
+        <MaterialHeader
+          title={material.title}
+          paragraphs={
+            paragraphs.length
+              ? paragraphs
+              : ["Materi ini belum punya teks tersimpan. Tempel teks lewat beranda (Tempel Teks), lalu buka lagi."]
+          }
+        />
+        <ActivityPicker materialId={material.id} />
+      </div>
+      <ScrollEdgeButton />
+    </>
   )
 }

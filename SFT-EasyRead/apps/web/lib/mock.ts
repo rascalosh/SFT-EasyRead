@@ -63,6 +63,20 @@ export function saveSessionMaterial(material: ReadingHistory) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(next))
 }
 
+export function updateSessionMaterialTitle(id: string, title: string) {
+  if (typeof window === "undefined") return
+  const next = getSessionMaterials().map((item) =>
+    item.id === id ? { ...item, title } : item,
+  )
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(next))
+}
+
+export function removeSessionMaterial(id: string) {
+  if (typeof window === "undefined") return
+  const next = getSessionMaterials().filter((item) => item.id !== id)
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(next))
+}
+
 export function listMaterials(): ReadingHistory[] {
   const extra = getSessionMaterials()
   const extraIds = new Set(extra.map((item) => item.id))

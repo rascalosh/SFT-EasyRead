@@ -115,6 +115,34 @@ export async function fetchUserDocument(id: string): Promise<DocumentResult> {
   return document ? { document } : { error: true as const }
 }
 
+export async function updateUserDocumentTitle(
+  id: string,
+  title: string,
+): Promise<
+  | { ok: true }
+  | { unauthorized: true }
+  | { error: true }
+> {
+  const response = await fetch(`/api/documents/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  })
+  if (response.status === 401) return { unauthorized: true as const }
+  if (!response.ok) return { error: true as const }
+  return { ok: true as const }
+}
+
+export async function deleteUserDocument(id: string): Promise<
+  | { ok: true }
+  | { unauthorized: true }
+  | { error: true }
+> {
+  const response = await fetch(`/api/documents/${id}`, { method: "DELETE" })
+  if (response.status === 401) return { unauthorized: true as const }
+  if (!response.ok) return { error: true as const }
+  return { ok: true as const }
+}
 export async function deleteUserDocument(id: string) {
   const response = await fetch(`/api/documents/${id}`, {
     method: "DELETE",
