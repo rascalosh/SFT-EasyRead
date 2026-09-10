@@ -9,7 +9,7 @@ export async function GET(
     const user = await getCurrentUser()
 
     if (!user) {
-        return NextResponse.json({ error: "Unauthorized" })
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { id } = await params
@@ -32,16 +32,16 @@ export async function DELETE(
     const user = await getCurrentUser()
 
     if (!user) {
-        return NextResponse.json({ error: "Unauthorized" })
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { id } = await params
-    const { data, error } = await deleteDocument(id, user.id)
+    const { error } = await deleteDocument(id, user.id)
 
     if (error) {
         return NextResponse.json(
-            { error: error.message || "Document not found" },
-            { status: 404 }
+            { error: error.message || "Failed to delete document" },
+            { status: error.code === "PGRST116" ? 404 : 500 }
         )
     }
 

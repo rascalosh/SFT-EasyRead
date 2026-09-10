@@ -1,50 +1,52 @@
-import { Check, Clipboard, FileText } from "lucide-react";
+"use client"
 
-type SummaryCardProps = {
-  summary: string[];
-  onCopy?: () => void;
-  copied?: boolean;
-};
+import { Card, SectionTitle } from "@/components/shared/ui"
+import { IconClipboard, IconArrow } from "@/components/shared/icons"
 
 export function SummaryCard({
-  summary,
+  title,
+  points,
+  done,
   onCopy,
-  copied = false,
-}: SummaryCardProps) {
+}: {
+  title: string
+  points: string[]
+  done: boolean
+  onCopy?: () => void
+}) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-50">
-            <FileText className="h-4 w-4 text-blue-500" />
-          </div>
-
-          <h2 className="text-xs font-bold text-slate-700">Ringkasan Otomatis</h2>
-        </div>
-
-        <button
-          type="button"
-          onClick={onCopy}
-          className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-[9px] font-semibold text-blue-600 transition hover:bg-blue-50"
-        >
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
-          {copied ? "Tersalin" : "Salin Ringkasan"}
-        </button>
-      </div>
-
-      <div className="px-5 py-4">
-        <ul className="space-y-2">
-          {summary.map((item, index) => (
-            <li
-              key={`${item}-${index}`}
-              className="flex gap-2 text-[10px] leading-[1.6] text-slate-600"
-            >
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-              <span>{item}</span>
+    <Card variant="reading">
+      <SectionTitle
+        icon={<IconClipboard width={18} height={18} />}
+        title="Ringkasan Otomatis"
+        action={<span className="text-sm opacity-70">Bacaan: {title}</span>}
+      />
+      {done ? (
+        <ul className="font-dyslexic space-y-3">
+          {points.map((point) => (
+            <li key={point} className="flex gap-3">
+              <span
+                className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--reading-fg)]"
+                aria-hidden
+              />
+              <span>{point}</span>
             </li>
           ))}
         </ul>
-      </div>
-    </section>
-  );
+      ) : (
+        <p className="font-dyslexic text-sm opacity-70">
+          Ringkasan ide utama akan muncul di sini setelah teks disederhanakan.
+        </p>
+      )}
+      {done && (
+        <button
+          type="button"
+          onClick={onCopy}
+          className="mt-4 inline-flex items-center gap-1 text-sm font-bold hover:opacity-80"
+        >
+          Salin Ringkasan <IconArrow width={15} height={15} />
+        </button>
+      )}
+    </Card>
+  )
 }

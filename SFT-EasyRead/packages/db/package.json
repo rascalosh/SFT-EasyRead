@@ -8,6 +8,12 @@
     "./server": "./src/server.ts",
     "./middleware": "./src/middleware.ts",
     "./repositories/document": "./src/repositories/document.repository.ts",
-    "./repositories/simplification": "./src/repositories/simplification.repository.ts"
+    "./repositories/simplification": "./src/repositories/simplification.repository.ts",
+    "./repositories/quiz": "./src/repositories/quiz.repository.ts",
+    "./repositories/quiz-answer": "./src/repositories/quiz-answer.repository.ts",
+    "./repositories/reading-session": "./src/repositories/reading-session.repository.ts",
+    "./repositories/preferences": "./src/repositories/preferences.repository.ts",
+    "./repositories/speech": "./src/repositories/speech.repository.ts",
+    "./repositories/progress": "./src/repositories/progress.repository.ts"
   }
 }
