@@ -2,11 +2,17 @@ import { z } from "zod";
 
 export const simplifySchema = z.object({
   title: z.string(),
-  simplifiedText: z.string(),
-  difficultWords: z.array(
+  paragraphs: z.array(
     z.object({
-      word: z.string(),
-      explanation: z.string(),
+      original: z.string(),
+      simplified: z.string(),
+      difficulty: z.enum(["easy", "medium", "hard"]).optional(),
+      difficultWords: z.array(
+        z.object({
+          word: z.string(),
+          explanation: z.string(),
+        })
+      ).default([]),
     })
   ),
 });
