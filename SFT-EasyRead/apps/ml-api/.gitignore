@@ -1,27 +1,60 @@
-# Byte-compiled / optimized / DLL files
+# See https://help.github.com/articles/ignoring-files/ for more details.
+
+# --- Dependencies ---
+node_modules/
+.pnp/
+.pnp.js
+
+# --- Next.js / Turborepo ---
+.next/
+out/
+build/
+dist/
+.turbo/
+
+# --- Python / FastAPI ---
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Environments
-.env
-.venv
-env/
+*.so
+.Python
 venv/
+env/
 ENV/
-env.bak/
-venv.bak/
+.venv/
 
-# IDEs and Editors
+# --- ML Model Weights & Caches (PENTING SUPAYA TIDAK TIMEOUT LAGI) ---
+models/CACHEDIR.TAG
+models/.locks
+models/models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2
+.cache/
+*.safetensors
+*.bin
+*.pt
+*.onnx
+*.weights
+
+# --- Environment & Local Secrets ---
+.env
+.env.local
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Logs ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# --- Editor / IDE ---
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Testing and Coverage
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Logs
-*.log
+# --- OS Generated ---
+.DS_Store
+Thumbs.db
