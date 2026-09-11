@@ -1,5 +1,5 @@
-import { MLApiClient } from "./mlApi.client";
-import { DeterministicValidators } from "./deterministicValidators";
+import { MLApiClient } from "@repo/web/services/mlApi.client";
+import { DeterministicValidators } from "@repo/web/services/deterministicValidators";
 
 export interface ValidationResult {
   passed: boolean;

@@ -26,7 +26,7 @@ export class MLApiClient {
       return data.similarity;
     } catch (error) {
       console.error("[MLApiClient] Failed to fetch semantic similarity:", error);
-      // Fallback aman jika ML API down agar pipeline tidak crash total
+
       return 0.80; 
     }
   }
