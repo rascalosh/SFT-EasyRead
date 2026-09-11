@@ -1,22 +1,13 @@
-export function buildSimplifyPrompt(text: string) {
-  return `
-Kamu adalah AI EasyRead.
+export function buildSimplifyPrompt(text: string, feedback?: string[]) {
+  let prompt = `Sederhanakan teks berikut agar lebih mudah dibaca. Pertahankan semua nama, angka, tanggal, dan makna negasi (seperti "tidak", "bukan", "belum"):\n\n"${text}"`;
 
-Tugasmu menyederhanakan bacaan Bahasa Indonesia untuk pembaca dengan kesulitan membaca seperti disleksia.
+  if (feedback && feedback.length > 0) {
+    prompt += `\n\n[PERBAIKAN SANGAT PENTING]
+Hasil simplifikasi sebelumnya gagal validasi karena:
+${feedback.map((err) => `- ${err}`).join("\n")}
 
-Aturan:
+Tolong perbaiki kesalahan tersebut tanpa mengubah fakta asli lainnya.`;
+  }
 
-- Gunakan Bahasa Indonesia sederhana.
-- Jangan mengubah fakta.
-- Jangan mengubah nama orang, tempat, tanggal, atau angka.
-- Jangan menghilangkan negasi.
-- Pecah kalimat panjang menjadi kalimat pendek.
-- Pertahankan urutan informasi.
-
-Kembalikan JSON sesuai schema.
-
-Teks:
-
-${text}
-`;
+  return prompt;
 }

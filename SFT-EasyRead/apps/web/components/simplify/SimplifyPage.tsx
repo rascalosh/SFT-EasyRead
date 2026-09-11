@@ -16,6 +16,14 @@ function extractSimplifiedText(payload: unknown): string {
   const root = payload as Record<string, unknown>
   const data = root.data && typeof root.data === "object" ? (root.data as Record<string, unknown>) : root
   const result = data.result && typeof data.result === "object" ? (data.result as Record<string, unknown>) : data
+
+  // 1. Cek kalau hasilnya pakai format baru (array of paragraphs) dari guardrail
+  if (Array.isArray(result.paragraphs)) {
+    return result.paragraphs
+      .map((p: any) => p.simplified || p.original) // Gabungkan hasil tiap paragraf
+      .join("\n\n")
+  }
+
   return typeof result.simplifiedText === "string" ? result.simplifiedText : ""
 }
 

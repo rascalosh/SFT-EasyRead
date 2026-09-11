@@ -26,7 +26,10 @@
     "./services/progress.service": "./services/progress.service.ts",
     "./services/syllable.service": "./services/syllable.service.ts",
     "./services/ocr.service": "./services/ocr.service.ts",
-    "./services/speech.service": "./services/speech.service.ts"
+    "./services/speech.service": "./services/speech.service.ts",
+    "./services/semanticValidators.service": "./services/semanticValidators.service.ts",
+    "./services/mlApi.client": "./services/mlApi.client.ts",
+    "./services/deterministicValidators": "./services/deterministicValidators.ts"
   },
   "scripts": {
     "dev": "next dev --port 3000",

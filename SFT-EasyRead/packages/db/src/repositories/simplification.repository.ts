@@ -17,6 +17,8 @@ export type SimplificationInsert = {
     model: string;
     pipeline_version: string;
     confidence: number | null;
+    original_readability_score: number | null;
+    simplified_readability_score: number | null;
     processing_time_ms: number;
     validation_status: string;
     input_hash: string;
