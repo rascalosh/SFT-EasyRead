@@ -34,3 +34,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# evaluasi ringkasan: korpus berisi dokumen pengguna, hasilnya keluaran model atas dokumen itu
+/scripts/fixtures/eval-corpus.json
+/scripts/eval-results/

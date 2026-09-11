@@ -1,0 +1,44 @@
+[
+  {
+    "id": "anak-sd-awal",
+    "minLevel": 1,
+    "maxLevel": 3,
+    "text": "Budi punya kucing. Kucing itu kecil dan putih. Budi memberi kucing susu. Kucing itu suka tidur. Budi sayang kucingnya."
+  },
+  {
+    "id": "cerita-anak",
+    "minLevel": 1,
+    "maxLevel": 3,
+    "text": "Pada suatu hari, Kancil pergi ke hutan. Kancil sangat lapar. Ia melihat pohon mangga yang tinggi. Buahnya besar dan manis. Kancil tidak bisa memanjat. Lalu datang seekor monyet. Monyet itu mau membantu Kancil. Mereka makan mangga bersama."
+  },
+  {
+    "id": "berita-sederhana",
+    "minLevel": 3,
+    "maxLevel": 6,
+    "text": "Hujan deras mengguyur Kota Bandung sejak Senin sore. Air sungai meluap dan merendam ratusan rumah warga di tiga kecamatan. Ketinggian air mencapai satu meter di beberapa titik. Petugas pemadam kebakaran membantu warga mengungsi ke masjid dan sekolah terdekat. Belum ada laporan korban jiwa dalam banjir kali ini. Pemerintah kota meminta warga tetap waspada karena hujan diperkirakan turun hingga akhir pekan."
+  },
+  {
+    "id": "artikel-populer",
+    "minLevel": 4,
+    "maxLevel": 7,
+    "text": "Banyak orang ingin lebih produktif, tetapi sering bingung harus mulai dari mana. Salah satu cara yang sederhana adalah membuat daftar tugas setiap pagi sebelum mulai bekerja. Dengan daftar itu, kita bisa melihat pekerjaan mana yang paling penting dan mengerjakannya lebih dulu. Selain itu, istirahat singkat setiap satu jam membantu otak tetap segar sehingga kita tidak cepat lelah. Kebiasaan kecil seperti ini memang terlihat sepele, tetapi hasilnya akan terasa jika dilakukan secara rutin."
+  },
+  {
+    "id": "proposal-formal",
+    "minLevel": 8,
+    "maxLevel": 10,
+    "text": "Penelitian ini bertujuan untuk mengembangkan sebuah sistem pendukung pembelajaran yang memanfaatkan kecerdasan buatan guna meningkatkan kemampuan pemahaman bacaan peserta didik penyandang disleksia melalui penyederhanaan teks, pemecahan suku kata, serta penyajian materi yang disesuaikan dengan kebutuhan masing-masing pengguna."
+  },
+  {
+    "id": "akademik-berat",
+    "minLevel": 8,
+    "maxLevel": 10,
+    "text": "Implementasi arsitektur transformer dalam pemrosesan bahasa alami memungkinkan representasi kontekstual yang memperhitungkan ketergantungan jarak jauh antartoken melalui mekanisme atensi multikepala, sehingga model mampu mengoptimalkan fungsi kerugian secara iteratif pada korpus berskala besar dan menghasilkan generalisasi yang lebih baik dibandingkan pendekatan berbasis jaringan saraf rekuren konvensional yang cenderung mengalami permasalahan gradien menghilang pada urutan panjang."
+  },
+  {
+    "id": "hukum",
+    "minLevel": 8,
+    "maxLevel": 10,
+    "text": "Setiap penyelenggara sistem elektronik wajib menjamin kerahasiaan, keutuhan, dan ketersediaan data pribadi yang dikelolanya sesuai dengan ketentuan peraturan perundang-undangan. Dalam hal terjadi kegagalan perlindungan data pribadi, penyelenggara sebagaimana dimaksud pada ayat (1) wajib menyampaikan pemberitahuan secara tertulis kepada pemilik data pribadi paling lambat tiga kali dua puluh empat jam terhitung sejak kegagalan tersebut diketahui."
+  }
+]
