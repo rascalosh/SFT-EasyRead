@@ -3,6 +3,7 @@ import { buildSimplifyPrompt } from "@repo/web/lib/prompts/simplify.prompt"
 import { simplifySchema, type SimplifyResult } from "@repo/schemas/simplify"
 import * as documentRepository from "@repo/db/repositories/document"
 import * as simplificationRepository from "@repo/db/repositories/simplification"
+import { createClient } from "@repo/db/server"
 import crypto from "crypto"
 import { SemanticValidatorService } from "@repo/web/services/semanticValidators.service"
 import { ReadabilityMetrics } from "@/lib/readability"
@@ -19,6 +20,64 @@ export async function simplifyText(originalText: string, feedback?: string[]): P
 
 function hashInput(text: string) {
     return crypto.createHash("sha256").update(text).digest("hex")
+}
+
+function errorCode(error: unknown): string {
+    if (!error || typeof error !== "object" || !("code" in error)) return ""
+    return String((error as { code: unknown }).code)
+}
+
+async function saveSimplification(payload: Parameters<typeof simplificationRepository.createSimplification>[0]) {
+    try {
+        return await simplificationRepository.createSimplification(payload)
+    } catch (error) {
+        if (errorCode(error) !== "23505") throw error
+
+        const supabase = await createClient()
+        const { data: existing, error: findError } = await supabase
+            .from("simplifications")
+            .select("id")
+            .eq("user_id", payload.user_id)
+            .eq("input_hash", payload.input_hash)
+            .eq("operation", payload.operation)
+            .eq("pipeline_version", payload.pipeline_version)
+            .maybeSingle()
+
+        if (findError || !existing?.id) throw error
+
+        const { data, error: updateError } = await supabase
+            .from("simplifications")
+            .update({
+                result: payload.result,
+                provider: payload.provider,
+                model: payload.model,
+                confidence: payload.confidence,
+                original_readability_score: payload.original_readability_score,
+                simplified_readability_score: payload.simplified_readability_score,
+                processing_time_ms: payload.processing_time_ms,
+                validation_status: payload.validation_status,
+            })
+            .eq("id", existing.id)
+            .select()
+            .single()
+
+        if (updateError) throw updateError
+        return data
+    }
+}
+
+function isCompleteSimplifyCache(row: {
+    original_readability_score?: unknown
+    simplified_readability_score?: unknown
+    result?: unknown
+} | null) {
+    if (!row) return false
+    if (typeof row.original_readability_score !== "number") return false
+    if (typeof row.simplified_readability_score !== "number") return false
+    const result = row.result
+    if (!result || typeof result !== "object") return false
+    const paragraphs = (result as { paragraphs?: unknown }).paragraphs
+    return Array.isArray(paragraphs) && paragraphs.length > 0
 }
 
 export async function getCachedSimplification(documentId: string, userId: string) {
@@ -67,7 +126,7 @@ export async function simplifyDocument(documentId: string, userId: string) {
         model,
     })
 
-    if (cached) {
+    if (cached && isCompleteSimplifyCache(cached)) {
         return { ...cached, cached: true }
     }
 
@@ -153,12 +212,12 @@ export async function simplifyDocument(documentId: string, userId: string) {
     }
 
     // 5. Save to Repository dengan Metadata Guardrail Lengkap
-    const created = await simplificationRepository.createSimplification({
+    const payload = {
         document_id: document.id,
         user_id: userId,
         operation: OPERATION,
         result: finalResult,
-        provider: "google",
+        provider: "google" as const,
         model,
         pipeline_version: PIPELINE_VERSION,
         confidence: avgConfidence ? Number(avgConfidence.toFixed(4)) : null,
@@ -167,7 +226,9 @@ export async function simplifyDocument(documentId: string, userId: string) {
         processing_time_ms: processingTime,
         validation_status: validationStatus,
         input_hash: inputHash,
-    })
+    }
+
+    const created = await saveSimplification(payload)
 
     return {
         ...created,

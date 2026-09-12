@@ -16,19 +16,37 @@ const FALLBACK_MEANING = "Lihat kamus untuk arti."
  * dokumen (`difficultWords` di hasil simplify), bukan dari request baru —
  * persis seperti yang diminta PLAN.md.
  */
+function collectDifficultWords(result: unknown): Array<{ word: string; explanation: string }> {
+    if (!result || typeof result !== "object") return []
+    const root = result as { difficultWords?: unknown; paragraphs?: unknown }
+    const nested = Array.isArray(root.paragraphs)
+        ? root.paragraphs.flatMap((paragraph) => {
+            const item = paragraph as { difficultWords?: unknown }
+            return Array.isArray(item.difficultWords) ? item.difficultWords : []
+        })
+        : []
+    const entries = [
+        ...(Array.isArray(root.difficultWords) ? root.difficultWords : []),
+        ...nested,
+    ]
+
+    const words: Array<{ word: string; explanation: string }> = []
+    for (const entry of entries) {
+        const item = entry as { word?: unknown; explanation?: unknown }
+        if (typeof item.word === "string" && typeof item.explanation === "string") {
+            words.push({ word: item.word, explanation: item.explanation })
+        }
+    }
+    return words
+}
+
 async function loadGlossary(documentId: string | null) {
     const glossary = new Map<string, string>()
     if (!documentId) return glossary
 
     const row = await simplificationRepository.findLatestSimplification(documentId, "simplify")
-    const result = (row?.result ?? null) as { difficultWords?: unknown } | null
-    const entries = Array.isArray(result?.difficultWords) ? result.difficultWords : []
-
-    for (const entry of entries) {
-        const item = entry as { word?: unknown; explanation?: unknown }
-        if (typeof item.word === "string" && typeof item.explanation === "string") {
-            glossary.set(item.word.toLowerCase(), item.explanation)
-        }
+    for (const entry of collectDifficultWords(row?.result)) {
+        glossary.set(entry.word.toLowerCase().replace(/[^a-z]/g, ""), entry.explanation)
     }
 
     return glossary

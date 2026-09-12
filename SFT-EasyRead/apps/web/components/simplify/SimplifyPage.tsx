@@ -7,35 +7,17 @@ import { IconSparkle } from "@/components/shared/icons"
 import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
 import { createUserDocument, fetchUserDocument } from "@/lib/documents"
 import { getActiveMaterial, setActiveMaterial, type ActiveMaterial } from "@/lib/session"
+import {
+  emptySimplifyView,
+  emptySummaryView,
+  parseSimplifyPayload,
+  parseSummaryPayload,
+  type SimplifyView,
+  type SummaryView,
+} from "@/lib/ai-result"
 import { OriginalTextPanel } from "./OriginalTextPanel"
 import { SimplifiedTextPanel } from "./SimplifiedTextPanel"
 import { SummaryCard } from "./SummaryCard"
-
-function extractSimplifiedText(payload: unknown): string {
-  if (!payload || typeof payload !== "object") return ""
-  const root = payload as Record<string, unknown>
-  const data = root.data && typeof root.data === "object" ? (root.data as Record<string, unknown>) : root
-  const result = data.result && typeof data.result === "object" ? (data.result as Record<string, unknown>) : data
-
-  // 1. Cek kalau hasilnya pakai format baru (array of paragraphs) dari guardrail
-  if (Array.isArray(result.paragraphs)) {
-    return result.paragraphs
-      .map((p: any) => p.simplified || p.original) // Gabungkan hasil tiap paragraf
-      .join("\n\n")
-  }
-
-  return typeof result.simplifiedText === "string" ? result.simplifiedText : ""
-}
-
-function extractSummaryPoints(payload: unknown): string[] {
-  if (!payload || typeof payload !== "object") return []
-  const root = payload as Record<string, unknown>
-  const data = root.data && typeof root.data === "object" ? (root.data as Record<string, unknown>) : root
-  const result = data.result && typeof data.result === "object" ? (data.result as Record<string, unknown>) : data
-  return Array.isArray(result.bulletPoints)
-    ? result.bulletPoints.filter((item): item is string => typeof item === "string")
-    : []
-}
 
 function toParagraphs(text: string) {
   const trimmed = text.trim()
@@ -58,6 +40,8 @@ export function SimplifyPageShell({
   onSimplify,
   onCopy,
   emptyMaterialHint = null,
+  simplifyView = null,
+  summaryView = null,
 }: {
   subtitle?: string
   sourceText?: string
@@ -71,6 +55,8 @@ export function SimplifyPageShell({
   onSimplify?: () => void
   onCopy?: () => void
   emptyMaterialHint?: string | null
+  simplifyView?: SimplifyView | null
+  summaryView?: SummaryView | null
 }) {
   return (
     <>
@@ -97,8 +83,8 @@ export function SimplifyPageShell({
         <p className="text-sm text-ink-mute">{emptyMaterialHint}</p>
       )}
       {error && <p className="text-sm text-error" role="alert">{error}</p>}
-      <SimplifiedTextPanel text={resultText} loading={loading} done={done} />
-      <SummaryCard title={title} points={points} done={done} onCopy={onCopy ?? (() => {})} />
+      <SimplifiedTextPanel text={resultText} loading={loading} done={done} view={simplifyView} />
+      <SummaryCard title={title} points={points} done={done} onCopy={onCopy ?? (() => {})} view={summaryView} />
       </div>
       <ScrollEdgeButton />
     </>
@@ -114,6 +100,8 @@ export default function SimplifyPage() {
   const [sourceText, setSourceText] = useState("")
   const [resultText, setResultText] = useState("")
   const [points, setPoints] = useState<string[]>([])
+  const [simplifyView, setSimplifyView] = useState<SimplifyView>(emptySimplifyView)
+  const [summaryView, setSummaryView] = useState<SummaryView>(emptySummaryView)
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [booting, setBooting] = useState(true)
@@ -126,6 +114,12 @@ export default function SimplifyPage() {
     async function load() {
       setBooting(true)
       setError(null)
+      setDone(false)
+      setFromCache(false)
+      setResultText("")
+      setPoints([])
+      setSimplifyView(emptySimplifyView())
+      setSummaryView(emptySummaryView())
 
       const session = getActiveMaterial()
       const documentId = queryId || session?.id || null
@@ -168,17 +162,19 @@ export default function SimplifyPage() {
           if (cancelled) return
 
           if (simplifyRes.ok) {
-            const nextText = extractSimplifiedText(await simplifyRes.json())
-            if (nextText) {
-              setResultText(nextText)
+            const nextSimplify = parseSimplifyPayload(await simplifyRes.json())
+            if (nextSimplify.text) {
+              setSimplifyView(nextSimplify)
+              setResultText(nextSimplify.text)
               setDone(true)
               setFromCache(true)
             }
           }
           if (summaryRes.ok) {
-            const nextPoints = extractSummaryPoints(await summaryRes.json())
-            if (nextPoints.length) {
-              setPoints(nextPoints)
+            const nextSummary = parseSummaryPayload(await summaryRes.json())
+            if (nextSummary.points.length || nextSummary.summary) {
+              setSummaryView(nextSummary)
+              setPoints(nextSummary.points)
               setFromCache(true)
             }
           }
@@ -269,17 +265,18 @@ export default function SimplifyPage() {
       }
       if (!simplifyResponse.ok) throw new Error("simplify-failed")
 
-      const simplifyPayload = await simplifyResponse.json() as { cached?: boolean }
+      const simplifyPayload = await simplifyResponse.json()
       const summaryPayload = summaryResponse.ok ? await summaryResponse.json() : null
+      const nextSimplify = parseSimplifyPayload(simplifyPayload)
+      const nextSummary = summaryPayload ? parseSummaryPayload(summaryPayload) : emptySummaryView()
 
-      const nextText = extractSimplifiedText(simplifyPayload)
-      const nextPoints = summaryPayload ? extractSummaryPoints(summaryPayload) : []
-
-      if (!nextText) throw new Error("invalid-simplification")
-      setResultText(nextText)
-      setPoints(nextPoints)
+      if (!nextSimplify.text) throw new Error("invalid-simplification")
+      setSimplifyView(nextSimplify)
+      setSummaryView(nextSummary)
+      setResultText(nextSimplify.text)
+      setPoints(nextSummary.points)
       setDone(true)
-      setFromCache(Boolean(simplifyPayload.cached))
+      setFromCache(Boolean((simplifyPayload as { cached?: boolean }).cached))
     } catch {
       setError("Teks gagal diproses oleh AI. Silakan coba lagi.")
     } finally {
@@ -288,19 +285,23 @@ export default function SimplifyPage() {
   }
 
   const copySummary = async () => {
-    if (!points.length) return
+    const chunks = [summaryView.summary, ...points].map((item) => item.trim()).filter(Boolean)
+    if (!chunks.length) return
     try {
-      await navigator.clipboard.writeText(points.join("\n"))
+      await navigator.clipboard.writeText(chunks.join("\n"))
     } catch {
       // ignore
     }
   }
 
+  const staleScores = fromCache && simplifyView.originalScore == null && simplifyView.simplifiedScore == null
   const subtitle = booting
     ? "Memuat teks materi…"
     : material
       ? fromCache
-        ? `Menyederhanakan: ${material.title} · hasil tersimpan`
+        ? staleScores
+          ? `Menyederhanakan: ${material.title} · hasil tersimpan · tekan Proses Ulang untuk cek apakah sudah lebih mudah`
+          : `Menyederhanakan: ${material.title} · hasil tersimpan`
         : `Menyederhanakan: ${material.title}`
       : "Belum ada materi dipilih. Tempel teks di bawah, atau buka materi dulu dari sidebar."
 
@@ -315,11 +316,15 @@ export default function SimplifyPage() {
           setDone(false)
           setResultText("")
           setPoints([])
+          setSimplifyView(emptySimplifyView())
+          setSummaryView(emptySummaryView())
           setFromCache(false)
         }
       }}
       resultText={resultText}
       points={points}
+      simplifyView={simplifyView}
+      summaryView={summaryView}
       title={title}
       done={done}
       loading={loading || booting}
