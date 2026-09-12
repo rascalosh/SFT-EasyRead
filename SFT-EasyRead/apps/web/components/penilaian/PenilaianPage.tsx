@@ -1,10 +1,13 @@
 "use client"
 
 import { useState, type ReactNode } from "react"
-import { Card, Tabs } from "@/components/shared/ui"
-import { IconMic, IconClipboard } from "@/components/shared/icons"
+import { useRouter } from "next/navigation"
+import { Card, Tabs, Button } from "@/components/shared/ui"
+import { IconMic, IconClipboard, IconBook } from "@/components/shared/icons"
 import ComprehensionCheck from "@/components/shared/ComprehensionCheck"
 import VoiceAssessment from "./VoiceAssessment"
+import { useActiveDocument } from "@/lib/use-active-document"
+import { hrefFor } from "@/lib/nav"
 
 type AssessType = "suara" | "kuis"
 
@@ -22,6 +25,8 @@ const typeInfo: Record<AssessType, { title: string; desc: string; icon: ReactNod
 }
 
 export default function PenilaianPage() {
+  const router = useRouter()
+  const { material, loading, error } = useActiveDocument()
   const [type, setType] = useState<AssessType>("suara")
   const info = typeInfo[type]
 
@@ -53,7 +58,39 @@ export default function PenilaianPage() {
         </div>
       </Card>
 
-      {type === "suara" ? <VoiceAssessment /> : <ComprehensionCheck embedded />}
+      {loading ? (
+        <Card>
+          <p className="py-8 text-center text-sm text-ink-mute">Memuat materi dari akun…</p>
+        </Card>
+      ) : !material ? (
+        <Card>
+          <div className="flex flex-col items-center py-10 text-center">
+            <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-soft text-brand">
+              <IconBook width={22} height={22} />
+            </span>
+            <h2 className="mt-4 font-semibold text-ink">Belum ada materi untuk dinilai</h2>
+            <p className="mt-1 max-w-md text-sm text-ink-soft">
+              {error ?? "Buka materi dulu, lalu mulai Penilaian Membaca dari pemilih aktivitas."}
+            </p>
+            <Button className="mt-5" onClick={() => router.push(hrefFor("home"))}>
+              Pilih Materi
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {error && (
+            <p className="text-sm text-ink-mute" role="status">
+              {error}
+            </p>
+          )}
+          {type === "suara" ? (
+            <VoiceAssessment material={material} />
+          ) : (
+            <ComprehensionCheck embedded material={material} />
+          )}
+        </>
+      )}
     </div>
   )
 }

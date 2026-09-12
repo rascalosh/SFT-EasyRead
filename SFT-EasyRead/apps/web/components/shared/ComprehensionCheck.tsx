@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { Card, Button, ProgressBar, StatusPill, cx } from "@/components/shared/ui"
-import { IconClipboard, IconSparkle, IconArrow, IconCheck, IconInfo } from "@/components/shared/icons"
-import { demoTitle, demoParagraphs, quizQuestions } from "@/lib/mock"
-import { getActiveMaterial, logActivity, type ActiveMaterial } from "@/lib/session"
+import { IconClipboard, IconSparkle, IconArrow, IconCheck, IconInfo, IconBook } from "@/components/shared/icons"
+import { logActivity, type ActiveMaterial } from "@/lib/session"
 import { fetchQuiz, submitQuizAnswer, isOk } from "@/lib/api"
+import { useActiveDocument } from "@/lib/use-active-document"
+import { hrefFor } from "@/lib/nav"
+import { useRouter } from "next/navigation"
 
 type Analysis = {
   ok: boolean
@@ -24,73 +26,49 @@ type Question = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/**
- * Analisis lokal berbasis kata kunci + panjang jawaban.
- * Dipakai hanya sebagai cadangan saat pengguna belum login atau API gagal.
- */
-function analyze(answer: string, keywords: string[]): Analysis {
-  const text = answer.toLowerCase()
-  const hits = keywords.filter((k) => text.includes(k)).length
-  const idea = Math.min(2, hits)
-  const eksplisit = text.trim().split(/\s+/).filter(Boolean).length >= 6 ? 2 : text.trim() ? 1 : 0
-  const konteks = hits >= 2 ? 2 : hits === 1 ? 1 : 0
-  const total = idea + eksplisit + konteks
-  const ok = total >= 4
-  return {
-    ok,
-    ide: idea,
-    eksplisit,
-    konteks,
-    feedback: ok
-      ? "Jawabanmu sudah mencakup ide utama bacaan dengan baik. Pertahankan!"
-      : "Jawabanmu sudah dekat. Coba sebutkan kata kunci utama dari bacaan dan tambahkan sedikit detail konteks.",
-  }
-}
+export default function ComprehensionCheck({
+  embedded = false,
+  material: materialProp,
+}: {
+  embedded?: boolean
+  material?: ActiveMaterial | null
+}) {
+  const router = useRouter()
+  const own = useActiveDocument({ skip: materialProp !== undefined })
+  const material = materialProp !== undefined ? materialProp : own.material
+  const materialLoading = materialProp !== undefined ? false : own.loading
+  const materialError = materialProp !== undefined ? null : own.error
 
-/**
- * Buat pertanyaan sederhana dari teks aktif jika tersedia.
- * Ambil 3 kalimat pertama sebagai pertanyaan implisit.
- */
-function buildQuestions(paragraphs: string[]): Question[] {
-  const sentences = paragraphs
-    .join(" ")
-    .split(/[.!?]+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 20)
-    .slice(0, 3)
-
-  if (sentences.length < 2) return quizQuestions.map((q) => ({ id: null, ...q }))
-
-  return sentences.map((s) => ({
-    id: null,
-    prompt: `Apa yang dimaksud dengan: "${s.slice(0, 80)}…"?`,
-    // kata-kata konten (>4 huruf) jadi kunci
-    keywords: s.toLowerCase().match(/\b\w{5,}\b/g) ?? [],
-  }))
-}
-
-export default function ComprehensionCheck({ embedded = false }: { embedded?: boolean }) {
-  const [material, setMaterial] = useState<ActiveMaterial | null>(null)
   const [serverQuestions, setServerQuestions] = useState<Question[] | null>(null)
   const [quizLoading, setQuizLoading] = useState(false)
+  const [quizError, setQuizError] = useState<string | null>(null)
   const [idx, setIdx] = useState(0)
   const [answer, setAnswer] = useState("")
   const [result, setResult] = useState<Analysis | null>(null)
   const [loading, setLoading] = useState(false)
   const [finished, setFinished] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
+
+  const documentId = material?.id && UUID.test(material.id) ? material.id : null
 
   useEffect(() => {
-    const active = getActiveMaterial()
-    setMaterial(active)
-
-    // Materi mock (id bukan UUID) tidak punya baris di database, jadi kuisnya
-    // tetap dibuat lokal.
-    if (!active?.id || !UUID.test(active.id)) return
+    if (!documentId) {
+      setServerQuestions(null)
+      setQuizError(null)
+      setQuizLoading(false)
+      return
+    }
 
     let alive = true
     setQuizLoading(true)
+    setQuizError(null)
+    setServerQuestions(null)
+    setIdx(0)
+    setAnswer("")
+    setResult(null)
+    setFinished(false)
 
-    void fetchQuiz(active.id).then((quiz) => {
+    void fetchQuiz(documentId).then((quiz) => {
       if (!alive) return
 
       if (isOk(quiz) && quiz.data.questions.length > 0) {
@@ -101,7 +79,12 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
             keywords: q.keywords,
           })),
         )
-        setIdx(0)
+      } else {
+        setQuizError(
+          "error" in quiz && "message" in quiz && typeof quiz.message === "string"
+            ? quiz.message
+            : "Kuis belum bisa dibuat dari bacaan ini. Coba lagi nanti.",
+        )
       }
 
       setQuizLoading(false)
@@ -110,32 +93,33 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
     return () => {
       alive = false
     }
-  }, [])
+  }, [documentId, reloadToken])
 
-  const title = material?.title ?? demoTitle
+  const title = material?.title ?? "Materi"
   const paragraphs =
     material?.paragraphs?.length
       ? material.paragraphs
       : material?.originalText?.trim()
         ? [material.originalText]
-        : demoParagraphs
-  const questions = serverQuestions ?? buildQuestions(paragraphs)
-  const q = questions[idx]!
+        : []
+  const questions = serverQuestions ?? []
+  const q = questions[idx]
 
   const submit = async () => {
+    if (!q?.id) return
+
     setLoading(true)
     setResult(null)
 
-    let r: Analysis | null = null
-
-    if (q.id) {
-      const response = await submitQuizAnswer(q.id, answer)
-      if (isOk(response)) r = response.data
+    const response = await submitQuizAnswer(q.id, answer)
+    if (!isOk(response)) {
+      setResult(null)
+      setLoading(false)
+      setQuizError("Gagal menilai jawaban. Periksa koneksi lalu coba lagi.")
+      return
     }
 
-    // Belum login, materi mock, atau server gagal → nilai secara lokal.
-    if (!r) r = analyze(answer, q.keywords)
-
+    const r = response.data
     setResult(r)
     setLoading(false)
 
@@ -176,10 +160,33 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
+          {materialLoading ? (
+            <Card>
+              <p className="py-8 text-center text-sm text-ink-mute">Memuat materi dari akun…</p>
+            </Card>
+          ) : !material ? (
+            <Card>
+              <div className="flex flex-col items-center py-10 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-soft text-brand">
+                  <IconBook width={22} height={22} />
+                </span>
+                <h2 className="mt-4 font-semibold text-ink">Belum ada materi untuk dikuis</h2>
+                <p className="mt-1 max-w-md text-sm text-ink-soft">
+                  {materialError ?? "Buka materi dari beranda dulu. Kuis dibuat dari teks yang tersimpan di akun."}
+                </p>
+                <Button className="mt-5" onClick={() => router.push(hrefFor("home"))}>
+                  Pilih Materi
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <>
           <Card>
             <div className="text-xs font-semibold uppercase tracking-wide text-brand">Bacaan yang kamu baca</div>
             <div className="mt-1 font-semibold text-ink">{title}</div>
-            <div className="reading-area mt-3">{paragraphs.slice(0, 2).join(" ")}</div>
+            <div className="reading-area mt-3">
+              {paragraphs.slice(0, 2).join(" ") || "Teks bacaan belum tersedia untuk materi ini."}
+            </div>
           </Card>
 
           {finished ? (
@@ -200,6 +207,17 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
                 Ulangi Kuis
               </Button>
             </Card>
+          ) : quizLoading ? (
+            <Card>
+              <p className="py-8 text-center text-sm text-ink-mute">Menyiapkan pertanyaan dari bacaanmu…</p>
+            </Card>
+          ) : quizError || !q ? (
+            <Card>
+              <p className="text-sm text-ink-soft">{quizError ?? "Belum ada pertanyaan untuk materi ini."}</p>
+              <Button className="mt-4" variant="soft" onClick={() => setReloadToken((n) => n + 1)}>
+                Coba lagi
+              </Button>
+            </Card>
           ) : (
             <Card>
               <div className="mb-2 flex items-center justify-between text-sm">
@@ -209,16 +227,21 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
               <ProgressBar value={((idx + 1) / questions.length) * 100} />
 
               <h2 className="mt-5 text-lg font-semibold text-ink">
-                {quizLoading ? "Menyiapkan pertanyaan dari bacaanmu…" : `${idx + 1}. ${q.prompt}`}
+                {`${idx + 1}. ${q.prompt}`}
               </h2>
               <p className="mt-1 text-sm text-ink-mute">Jawab dengan kalimatmu sendiri.</p>
+
+              {quizError && (
+                <p className="mt-3 rounded-xl border border-[var(--color-warn)] bg-[var(--color-warn-soft)] px-3 py-2 text-xs text-ink-soft">
+                  {quizError}
+                </p>
+              )}
 
               <textarea
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 maxLength={500}
                 rows={5}
-                disabled={quizLoading}
                 placeholder="Ketik jawabanmu di sini…"
                 className="mt-3 w-full resize-none rounded-xl border border-line bg-canvas p-3 text-[15px] text-ink outline-none focus:border-brand"
               />
@@ -241,12 +264,14 @@ export default function ComprehensionCheck({ embedded = false }: { embedded?: bo
                     Selanjutnya <IconArrow width={15} height={15} />
                   </Button>
                 ) : (
-                  <Button onClick={submit} disabled={!answer.trim() || loading || quizLoading}>
+                  <Button onClick={() => void submit()} disabled={!answer.trim() || loading}>
                     {loading ? "Menganalisis…" : "Periksa Jawaban"}
                   </Button>
                 )}
               </div>
             </Card>
+          )}
+            </>
           )}
         </div>
 
