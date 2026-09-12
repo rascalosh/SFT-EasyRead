@@ -91,7 +91,8 @@ export type Difficulty = {
  * satu kalimat supaya dokumen berbentuk daftar tidak terbaca sebagai satu
  * kalimat raksasa dan levelnya melonjak palsu.
  */
-export function splitSentences(text: string): string[] {
+export function splitSentences(text: string, options?: { minWords?: number }): string[] {
+    const minWords = options?.minWords ?? 3
     const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
     const sentences: string[] = []
     let buffer = ""
@@ -129,7 +130,7 @@ export function splitSentences(text: string): string[] {
         }
     }
 
-    return exploded.filter((s) => countWords(s) >= 3)
+    return exploded.filter((s) => countWords(s) >= minWords)
 }
 
 function countWords(text: string): number {

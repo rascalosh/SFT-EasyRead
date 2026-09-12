@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { hrefFor } from "@/lib/nav"
-import { Card, Button, cx } from "@/components/shared/ui"
+import { Card, Button, SegmentedControl, cx } from "@/components/shared/ui"
 import { IconSparkle, IconSpeaker, IconTextSize, IconBook } from "@/components/shared/icons"
+import { FocusRulerSentences } from "@/components/shared/FocusRulerSentences"
 import { demoTitle, demoParagraphs } from "@/lib/mock"
 import {
   getActiveMaterial,
@@ -20,6 +21,7 @@ import {
   type ActiveMaterial,
   type ReadingContrastId,
   type ReadingSettings,
+  type FocusRulerMode,
 } from "@/lib/session"
 
 export default function ReadingInterface() {
@@ -33,7 +35,7 @@ export default function ReadingInterface() {
   const [spacing, setSpacing] = useState(defaultSettings.letterSpacing)
   const [contrastId, setContrastId] = useState<ReadingContrastId>(defaultSettings.contrastId)
   const [focusRuler, setFocusRuler] = useState(defaultSettings.focusRuler)
-  const [ruler, setRuler] = useState<number | null>(null)
+  const [focusRulerMode, setFocusRulerMode] = useState<FocusRulerMode>(defaultSettings.focusRulerMode)
   const [ttsActive, setTtsActive] = useState(false)
 
   // Setelah mount: baca localStorage & session (aman dari SSR)
@@ -46,7 +48,7 @@ export default function ReadingInterface() {
       setSpacing(s.letterSpacing)
       setContrastId(s.contrastId)
       setFocusRuler(s.focusRuler)
-      if (!s.focusRuler) setRuler(null)
+      setFocusRulerMode(s.focusRulerMode)
     }
     sync()
     setMaterial(getActiveMaterial())
@@ -108,8 +110,28 @@ export default function ReadingInterface() {
         <div>
           <h1 className="text-2xl font-bold text-ink">{title}</h1>
           <p className="text-sm text-ink-soft">
-            Tampilan ramah disleksia · ketuk baris untuk mengaktifkan penggaris fokus.
+            {focusRuler
+              ? focusRulerMode === "line"
+                ? "Ketuk satu baris untuk menyorot baris itu saja."
+                : "Ketuk kalimat (sampai titik) untuk menyorot."
+              : "Tampilan ramah disleksia."}
           </p>
+          {focusRuler && (
+            <div className="mt-3 max-w-md">
+              <SegmentedControl
+                fullWidth
+                value={focusRulerMode}
+                onChange={(mode) => {
+                  setFocusRulerMode(mode)
+                  persist({ focusRulerMode: mode })
+                }}
+                options={[
+                  { value: "sentence", label: "Per kalimat" },
+                  { value: "line", label: "Satu baris" },
+                ]}
+              />
+            </div>
+          )}
         </div>
         <Button onClick={() => router.push(hrefFor("simplify"))}>
           <IconSparkle width={17} height={17} /> Simplify Text
@@ -134,33 +156,12 @@ export default function ReadingInterface() {
                 }
           }
         >
-          {lines.map((line, i) => (
-            <p
-              key={i}
-              onPointerDown={(event) => {
-                if (!focusRuler) return
-                event.preventDefault()
-                setRuler(ruler === i ? null : i)
-              }}
-              onKeyDown={(event) => {
-                if (!focusRuler || (event.key !== "Enter" && event.key !== " ")) return
-                event.preventDefault()
-                setRuler(ruler === i ? null : i)
-              }}
-              tabIndex={focusRuler ? 0 : -1}
-              role="button"
-              className={cx(
-                "-mx-3 block w-[calc(100%+1.5rem)] rounded-lg px-3 py-1.5 transition-colors",
-                focusRuler && "cursor-pointer",
-                focusRuler && "select-none",
-                focusRuler && ruler === i
-                  ? "bg-[var(--color-brand-soft)] outline outline-1 outline-[var(--color-brand)] shadow-[inset_0_-3px_0_var(--color-brand)]"
-                  : focusRuler && "hover:bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)]",
-              )}
-            >
-              {line}
-            </p>
-          ))}
+          <FocusRulerSentences
+            blocks={lines}
+            enabled={focusRuler}
+            mode={focusRulerMode}
+            layoutKey={`${size}-${spacing}-${dyslexic}-${contrastId}`}
+          />
         </div>
       </div>
 

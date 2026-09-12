@@ -159,9 +159,13 @@ export type ReadingSettings = {
   autoTts: boolean
   ttsSpeed: number
   language: string
-  /** Sorot baris aktif saat teks bacaan diketuk. */
+  /** Sorot teks aktif saat bacaan diketuk. */
   focusRuler: boolean
+  /** Kalimat sampai titik, atau satu baris visual saja. */
+  focusRulerMode: FocusRulerMode
 }
+
+export type FocusRulerMode = "sentence" | "line"
 
 const SETTINGS_KEY = "easyread-settings"
 export const SETTINGS_EVENT = "easyread-settings"
@@ -183,6 +187,7 @@ export const defaultSettings: ReadingSettings = {
   ttsSpeed: 1.0,
   language: "id-ID",
   focusRuler: true,
+  focusRulerMode: "sentence",
 }
 
 function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
@@ -226,6 +231,7 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
     overlay: contrast.background,
     dyslexicFont: raw.dyslexicFont !== false,
     focusRuler: raw.focusRuler !== false,
+    focusRulerMode: raw.focusRulerMode === "line" ? "line" : "sentence",
   }
 }
 
