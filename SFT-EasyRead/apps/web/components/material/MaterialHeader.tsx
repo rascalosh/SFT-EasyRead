@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { IconBook } from "@/components/shared/icons"
-import { loadSettings, SETTINGS_EVENT, syncSettingsFromServer } from "@/lib/session"
+import { FocusRulerSentences } from "@/components/shared/FocusRulerSentences"
+import { loadSettings, SETTINGS_EVENT, syncSettingsFromServer, type FocusRulerMode } from "@/lib/session"
 
 export function MaterialHeader({
   title,
@@ -12,13 +13,17 @@ export function MaterialHeader({
   paragraphs: string[]
 }) {
   const [focusRuler, setFocusRuler] = useState(true)
-  const [ruler, setRuler] = useState<number | null>(null)
+  const [focusRulerMode, setFocusRulerMode] = useState<FocusRulerMode>("sentence")
+  const [layoutKey, setLayoutKey] = useState("")
 
   useEffect(() => {
     const sync = () => {
-      const enabled = loadSettings().focusRuler
-      setFocusRuler(enabled)
-      if (!enabled) setRuler(null)
+      const settings = loadSettings()
+      setFocusRuler(settings.focusRuler)
+      setFocusRulerMode(settings.focusRulerMode)
+      setLayoutKey(
+        `${settings.fontSize}-${settings.letterSpacing}-${settings.readingFont}-${settings.dyslexicFont}`,
+      )
     }
 
     sync()
@@ -40,34 +45,13 @@ export function MaterialHeader({
         </span>
         <div className="flex-1 min-w-0">
           <h1 className="text-heading-2 text-ink">{title}</h1>
-          <div className="reading-area mt-3 text-ink">
-            {paragraphs.map((p, i) => (
-              <p
-                key={i}
-                onPointerDown={(event) => {
-                  if (!focusRuler) return
-                  event.preventDefault()
-                  setRuler(ruler === i ? null : i)
-                }}
-                onKeyDown={(event) => {
-                  if (!focusRuler || (event.key !== "Enter" && event.key !== " ")) return
-                  event.preventDefault()
-                  setRuler(ruler === i ? null : i)
-                }}
-                tabIndex={focusRuler ? 0 : -1}
-                role="button"
-                className={[
-                  "-mx-3 block w-[calc(100%+1.5rem)] rounded-lg px-3 py-1.5 text-ink transition-colors",
-                  focusRuler && "cursor-pointer select-none",
-                  focusRuler && ruler === i
-                    ? "bg-[var(--color-brand-soft)] outline outline-1 outline-[var(--color-brand)] shadow-[inset_0_-3px_0_var(--color-brand)]"
-                    : focusRuler && "hover:bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)]",
-                ].filter(Boolean).join(" ")}
-              >
-                {p}
-              </p>
-            ))}
-          </div>
+          <FocusRulerSentences
+            blocks={paragraphs}
+            enabled={focusRuler}
+            mode={focusRulerMode}
+            layoutKey={layoutKey}
+            className="reading-area mt-3 text-ink"
+          />
         </div>
       </div>
     </div>

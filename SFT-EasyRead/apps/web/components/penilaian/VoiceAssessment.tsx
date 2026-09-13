@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, Button, ScoreMeter } from "@/components/shared/ui"
 import { IconMic, IconSpeaker, IconCheck, IconTarget, IconSparkle } from "@/components/shared/icons"
-import { demoTitle, demoParagraphs, readingScores } from "@/lib/mock"
-import { getActiveMaterial, loadSettings, defaultSettings, logActivity, type ActiveMaterial } from "@/lib/session"
+import { loadSettings, defaultSettings, logActivity, type ActiveMaterial } from "@/lib/session"
 import { assessSpeech, isOk, type ApiScore } from "@/lib/api"
 
 type Phase = "idle" | "recording" | "analyzing" | "done"
@@ -49,12 +48,11 @@ function getRecognitionCtor(): SpeechRecognitionCtor | null {
     return scope.SpeechRecognition ?? scope.webkitSpeechRecognition ?? null
 }
 
-export default function VoiceAssessment() {
+export default function VoiceAssessment({ material }: { material: ActiveMaterial }) {
     const settingsRef = useRef(defaultSettings)
-    const [material, setMaterial] = useState<ActiveMaterial | null>(null)
     const [phase, setPhase] = useState<Phase>("idle")
     const [seconds, setSeconds] = useState(0)
-    const [scores, setScores] = useState<ApiScore[]>(readingScores)
+    const [scores, setScores] = useState<ApiScore[]>([])
     const [levels, setLevels] = useState<number[]>(() => new Array(BAR_COUNT).fill(6))
     const [micError, setMicError] = useState<string | null>(null)
 
@@ -69,7 +67,6 @@ export default function VoiceAssessment() {
 
     useEffect(() => {
         settingsRef.current = loadSettings()
-        setMaterial(getActiveMaterial())
     }, [])
 
     useEffect(() => {
@@ -103,15 +100,15 @@ export default function VoiceAssessment() {
     // Pastikan mikrofon dilepas kalau pengguna berpindah halaman saat merekam.
     useEffect(() => teardown, [])
 
-    const title = material?.title ?? demoTitle
+    const title = material.title
     const paragraphs =
-        material?.paragraphs?.length
+        material.paragraphs?.length
             ? material.paragraphs
-            : material?.originalText?.trim()
+            : material.originalText?.trim()
                 ? [material.originalText]
-                : demoParagraphs
+                : []
 
-    const referenceText = paragraphs.join(" ")
+    const referenceText = paragraphs.join(" ").trim()
     const documentId = material?.id && UUID.test(material.id) ? material.id : null
 
     const speak = () => {
@@ -159,6 +156,16 @@ export default function VoiceAssessment() {
 
     const start = async () => {
         setMicError(null)
+
+        if (!referenceText) {
+            setMicError("Materi ini belum punya teks bacaan. Pilih materi lain.")
+            return
+        }
+
+        if (!documentId) {
+            setMicError("Materi ini belum tersimpan di akun, jadi hasil tidak bisa dinilai.")
+            return
+        }
 
         const Recognition = getRecognitionCtor()
 
@@ -277,15 +284,19 @@ export default function VoiceAssessment() {
     }
 
     const fmt = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
-    const avgScore = Math.round(scores.reduce((a, s) => a + s.score, 0) / scores.length)
+    const avgScore = scores.length
+        ? Math.round(scores.reduce((a, s) => a + s.score, 0) / scores.length)
+        : 0
 
     return (
         <div className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-3">
                 <Card>
                     <div className="mb-2 text-sm font-semibold text-ink-mute">Teks Bacaan · {title}</div>
-                    <p className="font-dyslexic leading-relaxed">{referenceText}</p>
-                    <Button variant="soft" size="sm" className="mt-4" onClick={speak}>
+                    <p className="font-dyslexic leading-relaxed">
+                        {referenceText || "Teks bacaan belum tersedia untuk materi ini."}
+                    </p>
+                    <Button variant="soft" size="sm" className="mt-4" onClick={speak} disabled={!referenceText}>
                         <IconSpeaker width={15} height={15} /> Dengarkan Contoh
                     </Button>
                 </Card>
@@ -294,7 +305,7 @@ export default function VoiceAssessment() {
                     <div className="text-sm font-semibold text-ink-mute">Rekam Suara</div>
                     <button
                         onClick={phase === "recording" ? () => void finish() : () => void start()}
-                        disabled={phase === "done" || phase === "analyzing"}
+                        disabled={phase === "done" || phase === "analyzing" || !referenceText}
                         className={[
                             "relative mt-5 grid h-28 w-28 place-items-center rounded-full text-white transition-all",
                             phase === "recording"
@@ -332,7 +343,7 @@ export default function VoiceAssessment() {
 
                     <div className="mt-4 flex gap-2">
                         {phase === "idle" && (
-                            <Button onClick={() => void start()}><IconMic width={15} height={15} /> Mulai Membaca</Button>
+                            <Button onClick={() => void start()} disabled={!referenceText}><IconMic width={15} height={15} /> Mulai Membaca</Button>
                         )}
                         {phase === "recording" && (
                             <Button variant="soft" onClick={() => void finish()}><IconCheck width={15} height={15} /> Selesai</Button>

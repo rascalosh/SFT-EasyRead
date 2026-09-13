@@ -13,6 +13,8 @@
     "./services/simplify.service": "./services/simplify.service.ts",
     "./services/summary.service": "./services/summary.service.ts",
     "./lib/syllabify": "./lib/syllabify.ts",
+    "./lib/readability": "./lib/readability.ts",
+    "./lib/summarize": "./lib/summarize.ts",
     "./lib/progress-rules": "./lib/progress-rules.ts",
     "./lib/speech-align": "./lib/speech-align.ts",
     "./lib/prompts/quiz.prompt": "./lib/prompts/quiz.prompt.ts",

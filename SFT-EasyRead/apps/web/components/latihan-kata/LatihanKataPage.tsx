@@ -11,6 +11,30 @@ import { fetchSyllables, isOk } from "@/lib/api"
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+function SyllableBreakdown({ breakdown }: { breakdown: string }) {
+  const parts = breakdown.split(/\s*-\s*/).filter(Boolean)
+  return (
+    <div
+      className="mt-1 font-dyslexic font-bold"
+      style={{
+        fontSize: "calc(var(--reading-font-size) * 1.1)",
+        wordSpacing: "normal",
+      }}
+    >
+      {parts.map((part, i) => (
+        <span key={`${i}-${part}`}>
+          {i > 0 && (
+            <span className="mx-0.5 inline-block" style={{ letterSpacing: 0 }} aria-hidden>
+              -
+            </span>
+          )}
+          {part}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 /**
  * Pemecahan lokal memakai mesin aturan yang sama dengan server, jadi hasilnya
  * identik dan bisa tampil seketika tanpa menunggu jaringan. Panggilan API
@@ -164,9 +188,7 @@ export default function SyllableBreaker() {
 
               <div className="mt-4">
                 <div className="text-xs font-medium opacity-70">Pemecahan Suku Kata</div>
-                <div className="mt-1 font-dyslexic font-bold" style={{ fontSize: "calc(var(--reading-font-size) * 1.1)" }}>
-                  {selected.breakdown}
-                </div>
+                <SyllableBreakdown breakdown={selected.breakdown} />
               </div>
 
               <div className="mt-4">

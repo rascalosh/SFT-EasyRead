@@ -1,8 +1,27 @@
+import type { ActiveMaterial } from "@/lib/session"
+
 export type ApiDocument = {
   id: string
   title?: string
   original_text?: string | null
   created_at?: string | null
+}
+
+export function paragraphsFromText(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed) return []
+  const parts = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+  return parts.length ? parts : [trimmed]
+}
+
+export function activeMaterialFromDocument(document: ApiDocument): ActiveMaterial {
+  const originalText = document.original_text?.trim() ?? ""
+  return {
+    id: document.id,
+    title: document.title?.trim() || "Tanpa judul",
+    originalText,
+    paragraphs: paragraphsFromText(originalText),
+  }
 }
 
 type DocumentResult =

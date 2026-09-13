@@ -40,7 +40,21 @@ export function hrefFor(id: ScreenId, materialId?: string) {
   if (id === "material") {
     return materialId ? `/material/${materialId}` : "/material"
   }
-  return screenHrefs[id]
+
+  const href = screenHrefs[id]
+  if (
+    materialId &&
+    (id === "simplify" ||
+      id === "tracking" ||
+      id === "syllable" ||
+      id === "assessment" ||
+      id === "comprehension" ||
+      id === "reading")
+  ) {
+    return `${href}?id=${encodeURIComponent(materialId)}`
+  }
+
+  return href
 }
 
 export function screenFromPath(pathname: string): ScreenId {

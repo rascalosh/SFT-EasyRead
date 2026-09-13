@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, SectionTitle, cx } from "@/components/shared/ui"
+import { Card, SectionTitle, SegmentedControl, cx } from "@/components/shared/ui"
 import { IconSettings, IconBook, IconSpeaker, IconTextSize } from "@/components/shared/icons"
 import SettingsToggle from "./SettingsToggle"
 import {
@@ -162,8 +162,27 @@ export default function Settings() {
               on={settings.focusRuler}
               onToggle={() => update("focusRuler", !settings.focusRuler)}
               label="Penggaris Fokus Digital"
-              desc="Ketuk baris teks saat membaca untuk menyorot baris aktif."
+              desc="Ketuk teks untuk menyorot. Pilih satu kalimat (sampai titik) atau satu baris saja."
             />
+            {settings.focusRuler && (
+              <div className="py-3">
+                <p className="mb-2 text-sm font-semibold text-ink">Cara menyorot</p>
+                <SegmentedControl
+                  fullWidth
+                  value={settings.focusRulerMode}
+                  onChange={(mode) => update("focusRulerMode", mode)}
+                  options={[
+                    { value: "sentence", label: "Per kalimat" },
+                    { value: "line", label: "Satu baris" },
+                  ]}
+                />
+                <p className="mt-1.5 text-xs text-ink-mute">
+                  {settings.focusRulerMode === "line"
+                    ? "Hanya baris yang diketuk yang disorot, meski kalimatnya panjang."
+                    : "Sorotan mengikuti kalimat sampai tanda titik."}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 border-t border-line pt-4">

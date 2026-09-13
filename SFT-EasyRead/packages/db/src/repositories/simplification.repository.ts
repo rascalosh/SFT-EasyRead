@@ -72,7 +72,9 @@ export async function createSimplification(payload: SimplificationInsert) {
 
     const { data, error } = await supabase
         .from("simplifications")
-        .insert(payload)
+        .upsert(payload, {
+            onConflict: "user_id,input_hash,operation,pipeline_version",
+        })
         .select()
         .single()
 
