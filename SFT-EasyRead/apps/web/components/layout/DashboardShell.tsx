@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import { cx } from "@/components/shared/ui"
 import Sidebar from "./Sidebar"
 import TopBar from "./TopBar"
 
@@ -12,13 +13,18 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   const showBack = pathname !== "/"
 
   return (
-    <div className="flex min-h-screen bg-canvas text-ink">
+    <div className="min-h-screen overflow-x-hidden bg-canvas text-ink">
+      <TopBar
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen((open) => !open)}
+      />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((open) => !open)}
-        />
+      <div
+        className={cx(
+          "min-h-screen min-w-0 pt-14 transition-[margin-left] duration-300 ease-out",
+          sidebarOpen ? "lg:ml-64" : "ml-0",
+        )}
+      >
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
           {showBack && (
             <button
