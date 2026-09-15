@@ -232,10 +232,6 @@ export default function ComprehensionCheck({
   }
 
   const questionKey = `question-${idx}`
-  const feedbackKey = `feedback-${idx}`
-  const resultSpeech = result
-    ? `${result.ok ? "Kamu paham." : "Belum sepenuhnya paham."} ${result.feedback}`
-    : ""
 
   return (
     <div className="space-y-6">
@@ -449,28 +445,11 @@ export default function ComprehensionCheck({
                         : "border-[var(--color-warn)]/40 bg-[var(--color-warn-soft)]",
                     )}
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <StatusPill ok={result.ok} />
-                        <span className="text-sm font-medium text-ink">
-                          {result.ok ? "Kamu menangkap inti bacaan." : "Hampir. Lihat catatan di bawah."}
-                        </span>
-                      </div>
-                      {speaker.supported && (
-                        <Button
-                          type="button"
-                          size="xs"
-                          variant="outline"
-                          onClick={() => speaker.toggle(resultSpeech, feedbackKey)}
-                          aria-pressed={speaker.speaking && speaker.speakingKey === feedbackKey}
-                        >
-                          {speaker.speaking && speaker.speakingKey === feedbackKey ? (
-                            <><IconSpeakerOff width={13} height={13} /> Berhenti</>
-                          ) : (
-                            <><IconSpeaker width={13} height={13} /> Dengarkan</>
-                          )}
-                        </Button>
-                      )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusPill ok={result.ok} />
+                      <span className="text-sm font-medium text-ink">
+                        {result.ok ? "Kamu menangkap inti bacaan." : "Hampir. Lihat catatan di bawah."}
+                      </span>
                     </div>
 
                     <p className="mt-3 font-dyslexic !text-base">{result.feedback}</p>

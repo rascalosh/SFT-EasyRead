@@ -105,7 +105,6 @@ export default function VoiceAssessment({
     const [phase, setPhase] = useState<Phase>("idle")
     const [seconds, setSeconds] = useState(0)
     const [result, setResult] = useState<ApiSpeechResult | null>(null)
-    const [levels, setLevels] = useState<number[]>(() => new Array(BAR_COUNT).fill(6))
     const [micError, setMicError] = useState<string | null>(null)
     const [heardSomething, setHeardSomething] = useState(false)
     const [durationUsed, setDurationUsed] = useState(0)
@@ -115,6 +114,7 @@ export default function VoiceAssessment({
     const stream = useRef<MediaStream | null>(null)
     const audioContext = useRef<AudioContext | null>(null)
     const frame = useRef<number | null>(null)
+    const meterRef = useRef<HTMLDivElement>(null)
     const transcript = useRef("")
     const longPauses = useRef(0)
     const lastResultAt = useRef(0)
@@ -192,39 +192,61 @@ export default function VoiceAssessment({
     // Pastikan mikrofon dilepas kalau pengguna berpindah halaman saat merekam.
     useEffect(() => teardown, [teardown])
 
-    /** Gambar batang dari amplitudo nyata, bukan gelombang sinus hiasan. */
-    const startMeter = (source: MediaStream) => {
-        const context = new AudioContext()
+    /**
+     * Meter suara dilukis ke DOM, bukan lewat React state, supaya kartu
+     * rekaman dan teks bacaan tidak ikut re-render (dan melonjak) tiap frame.
+     */
+    useEffect(() => {
+        if (phase !== "recording") return
+
+        const media = stream.current
+        const meter = meterRef.current
+        if (!media || !meter) return
+
+        const context = audioContext.current ?? new AudioContext()
         audioContext.current = context
+        void context.resume()
 
         const analyser = context.createAnalyser()
         analyser.fftSize = 256
-
-        context.createMediaStreamSource(source).connect(analyser)
+        const source = context.createMediaStreamSource(media)
+        source.connect(analyser)
 
         const buffer = new Uint8Array(analyser.frequencyBinCount)
         const step = Math.floor(buffer.length / BAR_COUNT) || 1
-        let lastPaint = 0
+        const smoothed = new Array<number>(BAR_COUNT).fill(8)
+        const bars = meter.querySelectorAll<HTMLElement>("[data-meter-bar]")
+        const maxH = 40
+        const minH = 8
 
-        const tick = (now: number) => {
+        const tick = () => {
             frame.current = requestAnimationFrame(tick)
-
-            // ~15 fps sudah cukup; lebih dari itu hanya membebani render.
-            if (now - lastPaint < 66) return
-            lastPaint = now
-
             analyser.getByteFrequencyData(buffer)
 
-            setLevels(
-                Array.from({ length: BAR_COUNT }, (_, i) => {
-                    const value = buffer[i * step] ?? 0
-                    return 6 + (value / 255) * 34
-                }),
-            )
+            for (let i = 0; i < BAR_COUNT; i++) {
+                const value = buffer[i * step] ?? 0
+                const target = minH + (value / 255) * (maxH - minH)
+                smoothed[i] += (target - smoothed[i]) * 0.28
+                const bar = bars[i]
+                if (bar) bar.style.height = `${smoothed[i].toFixed(1)}px`
+            }
         }
 
         frame.current = requestAnimationFrame(tick)
-    }
+
+        return () => {
+            if (frame.current) {
+                cancelAnimationFrame(frame.current)
+                frame.current = null
+            }
+            try {
+                source.disconnect()
+                analyser.disconnect()
+            } catch {
+                // graph sudah ditutup di teardown
+            }
+        }
+    }, [phase])
 
     const start = async () => {
         setMicError(null)
@@ -265,7 +287,7 @@ export default function VoiceAssessment({
         setHeardSomething(false)
 
         try {
-            startMeter(media)
+            audioContext.current = new AudioContext()
         } catch {
             // Visualisasi gagal bukan alasan membatalkan perekaman.
         }
@@ -298,7 +320,6 @@ export default function VoiceAssessment({
             if (!message) return
             setMicError(message)
             teardown()
-            setLevels(new Array(BAR_COUNT).fill(6))
             setPhase("idle")
             setSeconds(0)
         }
@@ -333,7 +354,6 @@ export default function VoiceAssessment({
 
         speaker.stop()
         teardown()
-        setLevels(new Array(BAR_COUNT).fill(6))
         setPhase("analyzing")
 
         // Beri jeda singkat agar hasil final terakhir sempat masuk.
@@ -386,7 +406,6 @@ export default function VoiceAssessment({
 
     const cancelRecording = () => {
         teardown()
-        setLevels(new Array(BAR_COUNT).fill(6))
         setPhase("idle")
         setSeconds(0)
     }
@@ -398,7 +417,6 @@ export default function VoiceAssessment({
         setSeconds(0)
         setMicError(null)
         setResult(null)
-        setLevels(new Array(BAR_COUNT).fill(6))
     }
 
     const stepIndex = phase === "idle" ? 0 : phase === "done" ? 2 : 1
@@ -480,37 +498,42 @@ export default function VoiceAssessment({
             {/* ── Langkah 2: merekam ───────────────────────────────────────── */}
             {phase === "recording" && (
                 <>
-                    <Card className="sticky top-16 z-[var(--z-raised)] animate-fade-in border-brand/40 shadow-[var(--shadow-md)]">
+                    <Card className="sticky top-16 z-[var(--z-raised)] overflow-hidden border-brand/40 shadow-[var(--shadow-md)]">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                            <div className="flex items-center gap-3">
-                                <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--color-error)] text-[var(--color-error-ink)]">
-                                    <span className="absolute inset-0 animate-ping rounded-full bg-[var(--color-error)] opacity-30" aria-hidden />
-                                    <IconMic width={22} height={22} />
+                            <div className="flex min-w-0 items-center gap-3">
+                                <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--color-error)] text-[var(--color-error-ink)]">
+                                    <span className="absolute inset-0 animate-pulse rounded-full bg-[var(--color-error)] opacity-40" aria-hidden />
+                                    <IconMic width={22} height={22} className="relative" />
                                 </span>
-                                <div>
+                                <div className="min-w-0">
                                     <p className="font-semibold text-ink">Sedang merekam</p>
-                                    <p className="text-xs text-ink-mute" role="status">
+                                    <p className="h-4 truncate text-xs text-ink-mute" role="status">
                                         {heardSomething ? "Suaramu terdengar. Lanjutkan membaca." : "Mulailah membaca kalimat pertama."}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="flex flex-1 flex-col gap-1.5 sm:px-2">
-                                <div className="flex items-end gap-[3px]" aria-hidden>
-                                    {levels.map((height, i) => (
+                            <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:px-2">
+                                <div
+                                    ref={meterRef}
+                                    className="flex h-10 items-end gap-[3px]"
+                                    aria-hidden
+                                >
+                                    {Array.from({ length: BAR_COUNT }, (_, i) => (
                                         <span
                                             key={i}
-                                            className="w-1.5 rounded-full bg-brand transition-[height] duration-75"
-                                            style={{ height: `${height}px` }}
+                                            data-meter-bar
+                                            className="w-1.5 shrink-0 rounded-full bg-brand"
+                                            style={{ height: 8 }}
                                         />
                                     ))}
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="font-mono text-lg font-semibold tabular-nums text-ink" aria-live="off">
+                                <div className="flex h-7 items-center gap-3">
+                                    <span className="w-[4.5rem] shrink-0 font-mono text-lg font-semibold tabular-nums text-ink" aria-live="off">
                                         {formatClock(seconds)}
                                     </span>
                                     <ProgressBar value={(seconds / MAX_SECONDS) * 100} size="xs" className="flex-1" />
-                                    <span className="text-xs text-ink-mute tabular-nums">{formatClock(MAX_SECONDS)}</span>
+                                    <span className="w-10 shrink-0 text-right text-xs text-ink-mute tabular-nums">{formatClock(MAX_SECONDS)}</span>
                                 </div>
                             </div>
 

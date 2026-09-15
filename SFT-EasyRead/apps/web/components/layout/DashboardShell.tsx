@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { cx } from "@/components/shared/ui"
+import { parentHref } from "@/lib/nav"
 import Sidebar from "./Sidebar"
 import TopBar from "./TopBar"
 
@@ -11,6 +12,15 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const showBack = pathname !== "/"
+
+  function goBack() {
+    const queryId =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("id")
+        : null
+    const pathId = pathname.match(/^\/material\/([^/]+)/)?.[1]
+    router.push(parentHref(pathname, pathId ?? queryId))
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-canvas text-ink">
@@ -28,10 +38,11 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
           {showBack && (
             <button
-              onClick={() => router.back()}
+              type="button"
+              onClick={goBack}
               className="mb-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-[var(--color-line-soft)] hover:text-ink transition-colors"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M19 12H5M12 5l-7 7 7 7" />
               </svg>
               Kembali

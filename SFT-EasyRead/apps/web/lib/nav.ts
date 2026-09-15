@@ -67,3 +67,21 @@ export function screenFromPath(pathname: string): ScreenId {
 
   return match?.[0] ?? "home"
 }
+
+const MATERIAL_CHILD: ScreenId[] = [
+  "reading",
+  "simplify",
+  "tracking",
+  "syllable",
+  "assessment",
+  "comprehension",
+]
+
+/** Halaman sebelumnya yang masuk akal — tidak mengandalkan history browser. */
+export function parentHref(pathname: string, materialId?: string | null): string {
+  const screen = screenFromPath(pathname)
+  if (MATERIAL_CHILD.includes(screen) && materialId) {
+    return hrefFor("material", materialId)
+  }
+  return hrefFor("home")
+}
