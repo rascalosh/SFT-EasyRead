@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { Card, Tabs, Button } from "@/components/shared/ui"
+import { Card, Button, Badge, Tabs } from "@/components/shared/ui"
 import { IconMic, IconClipboard, IconBook } from "@/components/shared/icons"
 import ComprehensionCheck from "@/components/shared/ComprehensionCheck"
 import VoiceAssessment from "./VoiceAssessment"
@@ -10,6 +10,11 @@ import { useActiveDocument } from "@/lib/use-active-document"
 import { hrefFor } from "@/lib/nav"
 
 type AssessType = "suara" | "kuis"
+
+const ASSESS_TABS: { id: AssessType; label: string }[] = [
+  { id: "suara", label: "Penilaian Suara" },
+  { id: "kuis", label: "Kuis Pemahaman" },
+]
 
 const typeInfo: Record<AssessType, { title: string; desc: string; icon: ReactNode }> = {
   suara: {
@@ -28,25 +33,49 @@ export default function PenilaianPage() {
   const router = useRouter()
   const { material, loading, error } = useActiveDocument()
   const [type, setType] = useState<AssessType>("suara")
+  const [voiceBusy, setVoiceBusy] = useState(false)
+
+  // Kembali ke atas saat berpindah mode supaya langkah pertama langsung terlihat.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [type])
+
+  const locked = voiceBusy
   const info = typeInfo[type]
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
-          <IconMic className="text-brand" /> Penilaian Membaca
-        </h1>
-        <p className="text-sm text-ink-soft">Pilih tipe penilaian untuk mengukur kemampuan dan pemahaman membacamu.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
+            <IconMic className="text-brand" /> Penilaian Membaca
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            Pilih satu cara, lalu ikuti langkahnya satu per satu. Tidak ada jawaban salah, ini untuk mengenal kemampuanmu.
+          </p>
+        </div>
+        {material && (
+          <Badge tone="brand" icon={<IconBook width={13} height={13} />} className="max-w-[16rem] truncate">
+            {material.title}
+          </Badge>
+        )}
       </div>
 
       <Tabs<AssessType>
         value={type}
-        onChange={setType}
-        tabs={[
-          { id: "suara", label: "Penilaian Suara" },
-          { id: "kuis", label: "Kuis Pemahaman" },
-        ]}
+        onChange={(next) => {
+          if (locked) return
+          setType(next)
+        }}
+        tabs={ASSESS_TABS}
       />
+
+      {locked && (
+        <p className="text-xs text-ink-mute" role="status">
+          Selesaikan atau batalkan rekaman dulu sebelum berpindah.
+        </p>
+      )}
 
       <Card className="flex items-start gap-3 bg-brand-soft">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand text-[var(--color-brand-ink)]">
@@ -60,7 +89,10 @@ export default function PenilaianPage() {
 
       {loading ? (
         <Card>
-          <p className="py-8 text-center text-sm text-ink-mute">Memuat materi dari akun…</p>
+          <div className="flex flex-col items-center gap-4 py-10 text-center">
+            <span className="inline-block h-10 w-10 animate-spin rounded-full border-[3px] border-brand border-t-transparent" aria-hidden />
+            <p className="text-sm text-ink-mute">Memuat materi dari akun…</p>
+          </div>
         </Card>
       ) : !material ? (
         <Card>
@@ -85,9 +117,13 @@ export default function PenilaianPage() {
             </p>
           )}
           {type === "suara" ? (
-            <VoiceAssessment material={material} />
+            <VoiceAssessment
+              material={material}
+              onBusyChange={setVoiceBusy}
+              onContinueToQuiz={() => setType("kuis")}
+            />
           ) : (
-            <ComprehensionCheck embedded material={material} />
+            <ComprehensionCheck embedded material={material} onSwitchToVoice={() => setType("suara")} />
           )}
         </>
       )}

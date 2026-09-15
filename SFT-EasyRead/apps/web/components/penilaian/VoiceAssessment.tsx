@@ -1,12 +1,29 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { Card, Button, ScoreMeter } from "@/components/shared/ui"
-import { IconMic, IconSpeaker, IconCheck, IconTarget, IconSparkle } from "@/components/shared/icons"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, Button, ScoreMeter, ProgressBar, ProgressRing, StepIndicator, Alert, cx, type Tone } from "@/components/shared/ui"
+import {
+    IconMic,
+    IconSpeaker,
+    IconSpeakerOff,
+    IconCheck,
+    IconTarget,
+    IconSparkle,
+    IconClipboard,
+    IconRefresh,
+    IconLetters,
+    IconClose,
+    IconInfo,
+} from "@/components/shared/icons"
 import { logActivity, type ActiveMaterial } from "@/lib/session"
 import { useReadingSettings } from "@/lib/use-reading-settings"
-import { speakWithSettings } from "@/lib/tts-sync"
-import { assessSpeech, isOk, type ApiScore } from "@/lib/api"
+import { useSpeaker } from "@/lib/use-speaker"
+import { getRecognitionCtor, type SpeechRecognitionLike } from "@/lib/speech-recognition"
+import { assessSpeech, isOk, type ApiSpeechResult } from "@/lib/api"
+import { hrefFor } from "@/lib/nav"
+import { selectReadingExcerpt } from "@/lib/reading-excerpt"
+import { ReadingPassage } from "./ReadingPassage"
 
 type Phase = "idle" | "recording" | "analyzing" | "done"
 
@@ -15,48 +32,83 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** Jeda antar ucapan yang dianggap "jeda panjang". */
 const LONG_PAUSE_MS = 1500
 
+/** Tabel speech_assessments membatasi durasi 0–120 detik. */
+const MAX_SECONDS = 120
+
 const BAR_COUNT = 22
 
-// Web Speech API belum ada di lib.dom bawaan TypeScript.
-type SpeechRecognitionAlternativeLike = { transcript: string }
-type SpeechRecognitionResultLike = {
-    isFinal: boolean
-    0: SpeechRecognitionAlternativeLike
-}
-type SpeechRecognitionEventLike = {
-    resultIndex: number
-    results: { length: number; [index: number]: SpeechRecognitionResultLike }
-}
-type SpeechRecognitionLike = {
-    lang: string
-    continuous: boolean
-    interimResults: boolean
-    start: () => void
-    stop: () => void
-    onresult: ((event: SpeechRecognitionEventLike) => void) | null
-    onerror: ((event: { error?: string }) => void) | null
-    onend: (() => void) | null
-}
-type SpeechRecognitionCtor = new () => SpeechRecognitionLike
+const STEPS = ["Siap-siap", "Baca Nyaring", "Hasil"]
 
-function getRecognitionCtor(): SpeechRecognitionCtor | null {
-    if (typeof window === "undefined") return null
+function formatClock(totalSeconds: number) {
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
+    const s = String(totalSeconds % 60).padStart(2, "0")
+    return `${m}:${s}`
+}
 
-    const scope = window as unknown as {
-        SpeechRecognition?: SpeechRecognitionCtor
-        webkitSpeechRecognition?: SpeechRecognitionCtor
+/** Bahasa sederhana untuk skor keseluruhan — tanpa istilah teknis. */
+function describeScore(score: number): { label: string; tone: Tone; message: string; practice: string } {
+    if (score >= 85) {
+        return {
+            label: "Sangat lancar",
+            tone: "good",
+            message: "Kamu membaca dengan lancar dan jelas. Pertahankan ritme seperti ini.",
+            practice: "Coba teks yang lebih panjang, atau baca sedikit lebih cepat sambil tetap jelas.",
+        }
     }
-
-    return scope.SpeechRecognition ?? scope.webkitSpeechRecognition ?? null
+    if (score >= 70) {
+        return {
+            label: "Lancar",
+            tone: "good",
+            message: "Bacaanmu sudah baik. Beberapa bagian bisa dibuat lebih rapi lagi.",
+            practice: "Ambil napas di tanda titik dan koma supaya jeda terasa alami.",
+        }
+    }
+    if (score >= 55) {
+        return {
+            label: "Cukup lancar",
+            tone: "brand",
+            message: "Kamu sudah berusaha dengan baik. Pelan-pelan saja, tidak perlu terburu-buru.",
+            practice: "Latih kata yang panjang di Latihan Kata, lalu baca ulang teks ini.",
+        }
+    }
+    return {
+        label: "Terus berlatih",
+        tone: "warn",
+        message: "Tidak apa-apa, setiap latihan membuatmu lebih baik. Coba lagi dengan tenang.",
+        practice: "Dengarkan contoh dulu, lalu baca satu kalimat demi satu kalimat.",
+    }
 }
 
-export default function VoiceAssessment({ material }: { material: ActiveMaterial }) {
+/** Nama sumbu dari server diterjemahkan ke kalimat pendek yang mudah dipahami. */
+const METRIC_HELP: Record<string, string> = {
+    "Kelancaran Membaca": "Seberapa mengalir bacaanmu tanpa tersendat.",
+    "Kecepatan Membaca": "Kecepatan yang nyaman: tidak terlalu cepat, tidak terlalu lambat.",
+    "Jeda": "Berhenti di tempat yang pas, misalnya di tanda titik.",
+    "Pengulangan Kata": "Semakin sedikit kata yang diulang, semakin baik.",
+    "Akurasi Pengucapan": "Berapa banyak kata yang terucap sama dengan teks.",
+}
+
+export default function VoiceAssessment({
+    material,
+    onBusyChange,
+    onContinueToQuiz,
+}: {
+    material: ActiveMaterial
+    /** Dipanggil saat rekaman berjalan/diproses agar induk mengunci navigasi. */
+    onBusyChange?: (busy: boolean) => void
+    onContinueToQuiz?: () => void
+}) {
+    const router = useRouter()
     const { settingsRef } = useReadingSettings()
+    const speaker = useSpeaker(settingsRef)
+
     const [phase, setPhase] = useState<Phase>("idle")
     const [seconds, setSeconds] = useState(0)
-    const [scores, setScores] = useState<ApiScore[]>([])
+    const [result, setResult] = useState<ApiSpeechResult | null>(null)
     const [levels, setLevels] = useState<number[]>(() => new Array(BAR_COUNT).fill(6))
     const [micError, setMicError] = useState<string | null>(null)
+    const [heardSomething, setHeardSomething] = useState(false)
+    const [durationUsed, setDurationUsed] = useState(0)
 
     const timer = useRef<number | null>(null)
     const recognition = useRef<SpeechRecognitionLike | null>(null)
@@ -66,53 +118,79 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
     const transcript = useRef("")
     const longPauses = useRef(0)
     const lastResultAt = useRef(0)
+    const secondsRef = useRef(0)
+    const finishRef = useRef<(auto?: boolean) => Promise<void>>(async () => {})
+
+    const title = material.title
+    const sourceParagraphs =
+        material.paragraphs?.length
+            ? material.paragraphs
+            : material.originalText?.trim()
+                ? [material.originalText]
+                : []
+    // Bagian yang dibaca dibatasi agar selesai dalam 2 menit; teks rujukan yang
+    // dikirim ke server harus persis bagian yang sama supaya skornya adil.
+    const excerpt = selectReadingExcerpt(sourceParagraphs)
+    const paragraphs = excerpt.paragraphs
+    const referenceText = paragraphs.join(" ").trim()
+    const documentId = material?.id && UUID.test(material.id) ? material.id : null
+    const wordCount = excerpt.words
+
+    const busy = phase === "recording" || phase === "analyzing"
+
+    useEffect(() => {
+        onBusyChange?.(busy)
+        return () => onBusyChange?.(false)
+    }, [busy, onBusyChange])
 
     useEffect(() => {
         if (phase === "recording") {
             timer.current = window.setInterval(() => setSeconds((s) => s + 1), 1000)
         }
-        return () => { if (timer.current) window.clearInterval(timer.current) }
+        return () => {
+            if (timer.current) window.clearInterval(timer.current)
+        }
     }, [phase])
 
+    useEffect(() => {
+        secondsRef.current = seconds
+    }, [seconds])
+
+    // Berhenti otomatis di batas 2 menit; server memang tidak menerima lebih.
+    useEffect(() => {
+        if (phase !== "recording" || seconds < MAX_SECONDS) return
+        void finishRef.current(true)
+    }, [phase, seconds])
+
     /** Lepaskan mikrofon, pengenal suara, dan audio graph. */
-    const teardown = () => {
+    const teardown = useCallback(() => {
         if (frame.current) {
             cancelAnimationFrame(frame.current)
             frame.current = null
         }
 
-        try {
-            recognition.current?.stop()
-        } catch {
-            // sudah berhenti
-        }
+        const engine = recognition.current
         recognition.current = null
+        if (engine) {
+            engine.onresult = null
+            engine.onerror = null
+            engine.onend = null
+            try {
+                engine.stop()
+            } catch {
+                // sudah berhenti
+            }
+        }
 
         stream.current?.getTracks().forEach((track) => track.stop())
         stream.current = null
 
         void audioContext.current?.close().catch(() => {})
         audioContext.current = null
-    }
+    }, [])
 
     // Pastikan mikrofon dilepas kalau pengguna berpindah halaman saat merekam.
-    useEffect(() => teardown, [])
-
-    const title = material.title
-    const paragraphs =
-        material.paragraphs?.length
-            ? material.paragraphs
-            : material.originalText?.trim()
-                ? [material.originalText]
-                : []
-
-    const referenceText = paragraphs.join(" ").trim()
-    const documentId = material?.id && UUID.test(material.id) ? material.id : null
-
-    const speak = () => {
-        if (!referenceText) return
-        speakWithSettings(referenceText, settingsRef.current)
-    }
+    useEffect(() => teardown, [teardown])
 
     /** Gambar batang dari amplitudo nyata, bukan gelombang sinus hiasan. */
     const startMeter = (source: MediaStream) => {
@@ -150,6 +228,7 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
 
     const start = async () => {
         setMicError(null)
+        speaker.stop()
 
         if (!referenceText) {
             setMicError("Materi ini belum punya teks bacaan. Pilih materi lain.")
@@ -175,9 +254,7 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
         try {
             media = await navigator.mediaDevices.getUserMedia({ audio: true })
         } catch {
-            setMicError(
-                "Izin mikrofon ditolak. Aktifkan mikrofon di pengaturan browser, lalu coba lagi.",
-            )
+            setMicError("Izin mikrofon ditolak. Aktifkan mikrofon di pengaturan browser, lalu coba lagi.")
             return
         }
 
@@ -185,6 +262,7 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
         transcript.current = ""
         longPauses.current = 0
         lastResultAt.current = Date.now()
+        setHeardSomething(false)
 
         try {
             startMeter(media)
@@ -201,18 +279,38 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
             const now = Date.now()
             if (now - lastResultAt.current > LONG_PAUSE_MS) longPauses.current += 1
             lastResultAt.current = now
+            setHeardSomething(true)
 
             for (let i = event.resultIndex; i < event.results.length; i++) {
-                const result = event.results[i]
-                if (result?.isFinal) transcript.current += `${result[0].transcript} `
+                const item = event.results[i]
+                if (item?.isFinal) transcript.current += `${item[0].transcript} `
             }
         }
 
         engine.onerror = (event) => {
-            if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-                setMicError("Izin mikrofon ditolak. Aktifkan mikrofon di pengaturan browser.")
-                teardown()
-                setPhase("idle")
+            const fatal: Record<string, string> = {
+                "not-allowed": "Izin mikrofon ditolak. Aktifkan mikrofon di pengaturan browser.",
+                "service-not-allowed": "Izin mikrofon ditolak. Aktifkan mikrofon di pengaturan browser.",
+                "audio-capture": "Mikrofon tidak ditemukan. Pasang atau pilih mikrofon, lalu coba lagi.",
+                network: "Pengenalan suara butuh koneksi internet. Periksa jaringan, lalu coba lagi.",
+            }
+            const message = event.error ? fatal[event.error] : undefined
+            if (!message) return
+            setMicError(message)
+            teardown()
+            setLevels(new Array(BAR_COUNT).fill(6))
+            setPhase("idle")
+            setSeconds(0)
+        }
+
+        // Chrome menghentikan pengenalan setelah hening lama; nyalakan lagi
+        // selama pengguna masih merekam supaya kata berikutnya tetap tertangkap.
+        engine.onend = () => {
+            if (recognition.current !== engine) return
+            try {
+                engine.start()
+            } catch {
+                // dibiarkan; tombol Selesai tetap berfungsi
             }
         }
 
@@ -230,11 +328,10 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
         setPhase("recording")
     }
 
-    const finish = async () => {
-        const elapsed = seconds
+    const finish = async (auto = false) => {
+        const elapsed = Math.min(MAX_SECONDS, secondsRef.current)
 
-        if ("speechSynthesis" in window) window.speechSynthesis.cancel()
-
+        speaker.stop()
         teardown()
         setLevels(new Array(BAR_COUNT).fill(6))
         setPhase("analyzing")
@@ -242,23 +339,37 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
         // Beri jeda singkat agar hasil final terakhir sempat masuk.
         await new Promise((resolve) => setTimeout(resolve, 350))
 
+        const spoken = transcript.current.trim()
+
+        // Tanpa suara yang tertangkap, skor 0 hanya akan membuat kecil hati —
+        // padahal penyebabnya biasanya mikrofon. Beri tahu dan biarkan coba lagi.
+        if (!spoken) {
+            setMicError(
+                "Kami belum mendengar suaramu. Dekatkan mikrofon, pastikan tidak dibisukan, lalu coba rekam lagi.",
+            )
+            setPhase("idle")
+            setSeconds(0)
+            return
+        }
+
         const response = await assessSpeech({
             documentId,
             referenceText,
-            transcript: transcript.current.trim(),
-            // Tabel membatasi durasi maksimal 2 menit.
-            durationSeconds: Math.min(120, elapsed),
+            transcript: spoken,
+            durationSeconds: elapsed,
             longPauses: longPauses.current,
         })
 
         if (!isOk(response)) {
-            setMicError("Gagal menganalisis bacaan. Periksa koneksi lalu coba rekam ulang.")
+            setMicError("Gagal menghitung hasil. Periksa koneksi internet, lalu coba rekam ulang.")
             setPhase("idle")
             return
         }
 
-        setScores(response.data.scores)
+        setResult(response.data)
+        setDurationUsed(elapsed)
         setPhase("done")
+        if (auto) setMicError(null)
 
         logActivity({
             date: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
@@ -269,138 +380,280 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
         })
     }
 
+    useEffect(() => {
+        finishRef.current = finish
+    })
+
+    const cancelRecording = () => {
+        teardown()
+        setLevels(new Array(BAR_COUNT).fill(6))
+        setPhase("idle")
+        setSeconds(0)
+    }
+
     const reset = () => {
         teardown()
+        speaker.stop()
         setPhase("idle")
         setSeconds(0)
         setMicError(null)
+        setResult(null)
         setLevels(new Array(BAR_COUNT).fill(6))
     }
 
-    const fmt = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
-    const avgScore = scores.length
-        ? Math.round(scores.reduce((a, s) => a + s.score, 0) / scores.length)
-        : 0
+    const stepIndex = phase === "idle" ? 0 : phase === "done" ? 2 : 1
+    const summary = result ? describeScore(result.averageScore) : null
+    const feedbackText = summary
+        ? `Skor kamu ${result?.averageScore} dari 100. ${summary.label}. ${summary.message} Saran latihan: ${summary.practice}`
+        : ""
 
     return (
         <div className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-3">
-                <Card variant="reading">
-                    <div className="mb-2 text-sm font-semibold text-ink-mute">Teks Bacaan · {title}</div>
-                    <p className="font-dyslexic leading-relaxed">
-                        {referenceText || "Teks bacaan belum tersedia untuk materi ini."}
-                    </p>
-                    <Button variant="soft" size="sm" className="mt-4" onClick={speak} disabled={!referenceText}>
-                        <IconSpeaker width={15} height={15} /> Dengarkan Contoh
-                    </Button>
-                </Card>
-
-                <Card className="flex flex-col items-center justify-center text-center">
-                    <div className="text-sm font-semibold text-ink-mute">Rekam Suara</div>
-                    <button
-                        onClick={phase === "recording" ? () => void finish() : () => void start()}
-                        disabled={phase === "done" || phase === "analyzing" || !referenceText}
-                        className={[
-                            "relative mt-5 grid h-28 w-28 place-items-center rounded-full text-white transition-all",
-                            phase === "recording"
-                                ? "bg-[var(--color-warn)]"
-                                : phase === "done"
-                                    ? "bg-[var(--color-good)]"
-                                    : "bg-brand hover:bg-brand-strong",
-                        ].join(" ")}
-                    >
-                        {phase === "recording" && (
-                            <span className="absolute inset-0 animate-ping rounded-full bg-[var(--color-warn)] opacity-40" />
-                        )}
-                        {phase === "done" ? <IconCheck width={34} height={34} /> : <IconMic width={34} height={34} />}
-                    </button>
-
-                    {phase === "recording" && (
-                        <div className="mt-5 flex h-8 items-end gap-1">
-                            {levels.map((height, i) => (
-                                <span
-                                    key={i}
-                                    className="w-1 rounded-full bg-brand transition-[height] duration-75"
-                                    style={{ height: `${height}px` }}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="mt-4 tabular-nums text-lg font-semibold text-ink">{fmt}</div>
-
-                    {micError && (
-                        <p className="mt-3 rounded-xl border border-[var(--color-warn)] bg-[var(--color-warn-soft)] px-3 py-2 text-xs text-ink-soft">
-                            {micError}
-                        </p>
-                    )}
-
-                    <div className="mt-4 flex gap-2">
-                        {phase === "idle" && (
-                            <Button onClick={() => void start()} disabled={!referenceText}><IconMic width={15} height={15} /> Mulai Membaca</Button>
-                        )}
-                        {phase === "recording" && (
-                            <Button variant="soft" onClick={() => void finish()}><IconCheck width={15} height={15} /> Selesai</Button>
-                        )}
-                        {phase === "analyzing" && (
-                            <Button variant="soft" disabled>Menganalisis…</Button>
-                        )}
-                        {phase === "done" && (
-                            <Button variant="outline" onClick={reset}>Rekam Ulang</Button>
-                        )}
-                    </div>
-                </Card>
-
-                <Card className={phase === "done" ? "border-brand" : ""}>
-                    <div className="flex items-center gap-2 font-semibold text-ink">
-                        <IconSparkle width={17} height={17} className="text-brand" /> Analisis Membaca
-                    </div>
-                    {phase === "done" ? (
-                        <div className="mt-4 space-y-4">
-                            <div className="text-center rounded-xl bg-canvas p-3 mb-2">
-                                <div className="text-2xl font-bold text-ink">{avgScore}%</div>
-                                <div className="text-xs text-ink-mute mt-0.5">Skor Rata-rata</div>
-                            </div>
-                            {scores.map((s) => (
-                                <ScoreMeter key={s.label} label={s.label} score={s.score} note={s.note} />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="mt-6 grid min-h-52 place-items-center text-center text-sm text-ink-mute">
-                            {phase === "analyzing"
-                                ? "Menganalisis bacaanmu…"
-                                : "Hasil analisis suara akan muncul di sini setelah kamu selesai membaca."}
-                        </div>
-                    )}
-                </Card>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <StepIndicator steps={STEPS} current={stepIndex} />
+                {phase === "idle" && (
+                    <span className="text-xs text-ink-mute">
+                        Suaramu diproses di perangkatmu sendiri, tidak diunggah.
+                    </span>
+                )}
             </div>
 
-            {phase === "done" && (
-                <div className="grid gap-4 md:grid-cols-2">
-                    <Card className="bg-brand-soft">
-                        <div className="mb-1 flex items-center gap-1.5 font-semibold text-brand-strong">
-                            <IconSparkle width={16} height={16} /> Feedback Personal
-                        </div>
-                        <p className="text-sm text-ink-soft">
-                            {avgScore >= 80
-                                ? "Bagus! Kamu membaca dengan lancar dan akurat. Pertahankan ritme membacamu."
-                                : avgScore >= 60
-                                    ? "Cukup baik! Perhatikan jeda pada tanda baca agar lebih jelas dan tidak terburu-buru."
-                                    : "Terus berlatih! Coba baca lebih perlahan dan ucapkan setiap suku kata dengan jelas."}
-                        </p>
-                    </Card>
-                    <Card className="bg-[var(--color-good-soft)]">
-                        <div className="mb-1 flex items-center gap-1.5 font-semibold text-[var(--color-good)]">
-                            <IconTarget width={16} height={16} /> Fokus Latihan Disarankan
-                        </div>
-                        <p className="text-sm text-ink-soft">
-                            {avgScore >= 80
-                                ? "Latih kecepatan membaca dengan teks yang lebih panjang dan kompleks."
-                                : "Latih pengendalian jeda dengan mengambil napas pada tanda titik dan koma."}
-                        </p>
-                    </Card>
-                </div>
+            {micError && (
+                <Alert tone="warn" title="Belum bisa mulai" onClose={() => setMicError(null)}>
+                    {micError}
+                </Alert>
             )}
+
+            {/* ── Langkah 1: siap-siap ─────────────────────────────────────── */}
+            {phase === "idle" && (
+                <>
+                    <Card className="animate-fade-in">
+                        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                            <div className="min-w-0">
+                                <h2 className="text-heading-3 text-ink">Baca teks di bawah dengan suara nyaring</h2>
+                                <ol className="mt-3 space-y-2 text-sm text-ink-soft">
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-strong">1</span>
+                                        <span>Kalau mau, tekan <strong>Dengarkan contoh</strong> untuk tahu cara membacanya.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-strong">2</span>
+                                        <span>Tekan <strong>Mulai Membaca</strong>, lalu baca pelan dan jelas. Tidak perlu terburu-buru.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-strong">3</span>
+                                        <span>Selesai membaca? Tekan <strong>Selesai</strong>. Hasilnya langsung muncul.</span>
+                                    </li>
+                                </ol>
+                            </div>
+                            <div className="flex shrink-0 flex-col items-stretch gap-2 md:w-60">
+                                <Button
+                                    size="lg"
+                                    onClick={() => void start()}
+                                    disabled={!referenceText}
+                                    className="w-full"
+                                >
+                                    <IconMic width={18} height={18} /> Mulai Membaca
+                                </Button>
+                                <p className="text-center text-xs text-ink-mute">
+                                    {wordCount} kata · maksimal {MAX_SECONDS / 60} menit
+                                </p>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <ReadingPassage
+                        title={title}
+                        paragraphs={paragraphs}
+                        label={excerpt.truncated ? "Bagian yang dibaca" : "Teks Bacaan"}
+                        note={
+                            excerpt.truncated
+                                ? "Cukup baca bagian ini saja. Teks dipendekkan supaya selesai dalam 2 menit."
+                                : undefined
+                        }
+                        speaking={speaker.speaking && speaker.speakingKey === "passage"}
+                        onToggleListen={speaker.supported ? () => speaker.toggle(referenceText, "passage") : undefined}
+                    />
+                </>
+            )}
+
+            {/* ── Langkah 2: merekam ───────────────────────────────────────── */}
+            {phase === "recording" && (
+                <>
+                    <Card className="sticky top-16 z-[var(--z-raised)] animate-fade-in border-brand/40 shadow-[var(--shadow-md)]">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                            <div className="flex items-center gap-3">
+                                <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--color-error)] text-[var(--color-error-ink)]">
+                                    <span className="absolute inset-0 animate-ping rounded-full bg-[var(--color-error)] opacity-30" aria-hidden />
+                                    <IconMic width={22} height={22} />
+                                </span>
+                                <div>
+                                    <p className="font-semibold text-ink">Sedang merekam</p>
+                                    <p className="text-xs text-ink-mute" role="status">
+                                        {heardSomething ? "Suaramu terdengar. Lanjutkan membaca." : "Mulailah membaca kalimat pertama."}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-1 flex-col gap-1.5 sm:px-2">
+                                <div className="flex items-end gap-[3px]" aria-hidden>
+                                    {levels.map((height, i) => (
+                                        <span
+                                            key={i}
+                                            className="w-1.5 rounded-full bg-brand transition-[height] duration-75"
+                                            style={{ height: `${height}px` }}
+                                        />
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="font-mono text-lg font-semibold tabular-nums text-ink" aria-live="off">
+                                        {formatClock(seconds)}
+                                    </span>
+                                    <ProgressBar value={(seconds / MAX_SECONDS) * 100} size="xs" className="flex-1" />
+                                    <span className="text-xs text-ink-mute tabular-nums">{formatClock(MAX_SECONDS)}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex shrink-0 gap-2">
+                                <Button variant="ghost" onClick={cancelRecording}>
+                                    <IconClose width={15} height={15} /> Batal
+                                </Button>
+                                <Button size="lg" onClick={() => void finish()} className="min-w-36">
+                                    <IconCheck width={18} height={18} /> Selesai
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <ReadingPassage
+                        title={title}
+                        paragraphs={paragraphs}
+                        label="Bacalah teks ini"
+                        note={excerpt.truncated ? "Berhenti di kalimat terakhir yang tampil, lalu tekan Selesai." : undefined}
+                    />
+                </>
+            )}
+
+            {/* ── Menghitung ───────────────────────────────────────────────── */}
+            {phase === "analyzing" && (
+                <Card className="animate-fade-in">
+                    <div className="flex flex-col items-center gap-4 py-10 text-center">
+                        <span className="inline-block h-10 w-10 animate-spin rounded-full border-[3px] border-brand border-t-transparent" aria-hidden />
+                        <div>
+                            <p className="font-semibold text-ink">Menghitung hasil bacaanmu…</p>
+                            <p className="mt-1 text-sm text-ink-mute">Sebentar saja, tidak lebih dari beberapa detik.</p>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
+            {/* ── Langkah 3: hasil ─────────────────────────────────────────── */}
+            {phase === "done" && result && summary && (
+                <>
+                    <Card className={cx("animate-fade-in", summary.tone === "good" ? "border-[var(--color-good)]/50" : "border-brand/40")}>
+                        <div className="flex flex-col items-center gap-6 md:flex-row md:items-center">
+                            <div className="relative shrink-0">
+                                <ProgressRing value={result.averageScore} size={136} tone={summary.tone} />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className="font-mono text-3xl font-bold tabular-nums text-ink">{result.averageScore}</span>
+                                    <span className="text-[11px] font-medium uppercase tracking-wide text-ink-mute">dari 100</span>
+                                </div>
+                            </div>
+
+                            <div className="min-w-0 flex-1 text-center md:text-left">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-ink-mute">Hasil membaca</p>
+                                <h2 className="mt-1 text-heading-2 text-ink">{summary.label}</h2>
+                                <p className="mt-2 font-dyslexic">{summary.message}</p>
+                                <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">
+                                    <Button
+                                        variant={speaker.speaking && speaker.speakingKey === "feedback" ? "primary" : "soft"}
+                                        size="sm"
+                                        onClick={() => speaker.toggle(feedbackText, "feedback")}
+                                        aria-pressed={speaker.speaking && speaker.speakingKey === "feedback"}
+                                    >
+                                        {speaker.speaking && speaker.speakingKey === "feedback" ? (
+                                            <><IconSpeakerOff width={15} height={15} /> Berhenti</>
+                                        ) : (
+                                            <><IconSpeaker width={15} height={15} /> Dengarkan hasil</>
+                                        )}
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={reset}>
+                                        <IconRefresh width={15} height={15} /> Rekam ulang
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-5 sm:grid-cols-4">
+                            <Stat label="Kata tepat" value={`${result.correctWords}`} hint={`dari ${wordCount} kata`} />
+                            <Stat label="Ketepatan" value={`${Math.round(result.wordAccuracy * 100)}%`} hint="kata sama dengan teks" />
+                            <Stat label="Kecepatan" value={`${result.wordsPerMinute}`} hint="kata per menit" />
+                            <Stat label="Waktu baca" value={formatClock(durationUsed)} hint={`${result.longPauses} jeda panjang`} />
+                        </dl>
+                    </Card>
+
+                    <div className="grid gap-6 lg:grid-cols-5">
+                        <Card className="animate-fade-in lg:col-span-3">
+                            <div className="flex items-center gap-2 font-semibold text-ink">
+                                <IconSparkle width={17} height={17} className="text-brand" /> Rincian penilaian
+                            </div>
+                            <p className="mt-1 text-xs text-ink-mute">Semakin panjang batangnya, semakin baik.</p>
+                            <div className="mt-5 space-y-5">
+                                {result.scores.map((s) => (
+                                    <ScoreMeter
+                                        key={s.label}
+                                        label={s.label}
+                                        score={s.score}
+                                        note={`${s.note} · ${METRIC_HELP[s.label] ?? ""}`.replace(/ · $/, "")}
+                                    />
+                                ))}
+                            </div>
+                        </Card>
+
+                        <div className="space-y-6 lg:col-span-2">
+                            <Card className="animate-fade-in bg-[var(--color-good-soft)] border-[var(--color-good)]/30">
+                                <div className="mb-1 flex items-center gap-1.5 font-semibold text-[var(--color-good-strong)]">
+                                    <IconTarget width={16} height={16} /> Latihan yang disarankan
+                                </div>
+                                <p className="font-dyslexic">{summary.practice}</p>
+                            </Card>
+
+                            <Card className="animate-fade-in">
+                                <div className="mb-3 flex items-center gap-1.5 font-semibold text-ink">
+                                    <IconInfo width={16} height={16} className="text-brand" /> Langkah berikutnya
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    {onContinueToQuiz && (
+                                        <Button onClick={onContinueToQuiz} className="justify-start">
+                                            <IconClipboard width={16} height={16} /> Lanjut ke Kuis Pemahaman
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        onClick={() => router.push(hrefFor("syllable", documentId ?? undefined))}
+                                    >
+                                        <IconLetters width={16} height={16} /> Latih kata yang sulit
+                                    </Button>
+                                    <Button variant="ghost" className="justify-start" onClick={reset}>
+                                        <IconRefresh width={16} height={16} /> Baca lagi teks ini
+                                    </Button>
+                                </div>
+                            </Card>
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    )
+}
+
+function Stat({ label, value, hint }: { label: string; value: string; hint: string }) {
+    return (
+        <div className="rounded-xl bg-canvas px-3 py-3 text-center">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-mute">{label}</dt>
+            <dd className="mt-1 font-mono text-xl font-semibold tabular-nums text-ink">{value}</dd>
+            <dd className="text-xs text-ink-mute">{hint}</dd>
         </div>
     )
 }
