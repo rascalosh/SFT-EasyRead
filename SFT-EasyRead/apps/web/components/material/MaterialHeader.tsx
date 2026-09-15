@@ -22,7 +22,7 @@ export function MaterialHeader({
       setFocusRuler(settings.focusRuler)
       setFocusRulerMode(settings.focusRulerMode)
       setLayoutKey(
-        `${settings.fontSize}-${settings.letterSpacing}-${settings.readingFont}-${settings.dyslexicFont}`,
+        `${settings.fontSize}-${settings.letterSpacing}-${settings.readingFont}-${settings.contrastId}-${settings.dyslexicFont}`,
       )
     }
 
@@ -38,7 +38,7 @@ export function MaterialHeader({
   }, [])
 
   return (
-    <div className="rounded-[var(--radius-card)] border border-line bg-surface p-6 shadow-[var(--shadow-sm)]">
+    <div className="reading-surface rounded-[var(--radius-card)] border border-line p-6 shadow-[var(--shadow-sm)]">
       <div className="flex items-start gap-4">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand">
           <IconBook width={22} height={22} />
@@ -50,7 +50,7 @@ export function MaterialHeader({
             enabled={focusRuler}
             mode={focusRulerMode}
             layoutKey={layoutKey}
-            className="reading-area mt-3 text-ink"
+            className="reading-area mt-3 !max-w-none"
           />
         </div>
       </div>

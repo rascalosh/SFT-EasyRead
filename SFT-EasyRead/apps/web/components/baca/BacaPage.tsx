@@ -11,7 +11,7 @@ import {
   getActiveMaterial,
   loadSettings,
   syncSettingsFromServer,
-  saveSettings,
+  saveSettingsEverywhere,
   applyFontPreferences,
   defaultSettings,
   wordSpacingFromLetter,
@@ -23,6 +23,7 @@ import {
   type ReadingSettings,
   type FocusRulerMode,
 } from "@/lib/session"
+import { speakWithSettings } from "@/lib/tts-sync"
 
 export default function ReadingInterface() {
   const router = useRouter()
@@ -36,6 +37,7 @@ export default function ReadingInterface() {
   const [contrastId, setContrastId] = useState<ReadingContrastId>(defaultSettings.contrastId)
   const [focusRuler, setFocusRuler] = useState(defaultSettings.focusRuler)
   const [focusRulerMode, setFocusRulerMode] = useState<FocusRulerMode>(defaultSettings.focusRulerMode)
+  const [autoTts, setAutoTts] = useState(defaultSettings.autoTts)
   const [ttsActive, setTtsActive] = useState(false)
 
   // Setelah mount: baca localStorage & session (aman dari SSR)
@@ -49,6 +51,7 @@ export default function ReadingInterface() {
       setContrastId(s.contrastId)
       setFocusRuler(s.focusRuler)
       setFocusRulerMode(s.focusRulerMode)
+      setAutoTts(s.autoTts)
     }
     sync()
     setMaterial(getActiveMaterial())
@@ -63,12 +66,35 @@ export default function ReadingInterface() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!material) return
+    if (!autoTts) return
+    const text = (
+      material.paragraphs?.length
+        ? material.paragraphs
+        : material.originalText?.trim()
+          ? [material.originalText]
+          : []
+    )
+      .join(" ")
+      .trim()
+    if (!text) return
+    speakWithSettings(text, settingsRef.current, {
+      onend: () => setTtsActive(false),
+    })
+    setTtsActive(true)
+    return () => {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel()
+      setTtsActive(false)
+    }
+  }, [material?.id, autoTts])
+
   const contrast = getContrastOption(contrastId)
 
   function persist(partial: Partial<ReadingSettings>) {
     const next = { ...settingsRef.current, ...partial }
     settingsRef.current = next
-    saveSettings(next)
+    saveSettingsEverywhere(next)
     applyFontPreferences(next)
   }
 
@@ -82,12 +108,9 @@ export default function ReadingInterface() {
 
   const speak = (text: string) => {
     if (!("speechSynthesis" in window)) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = settingsRef.current.language
-    u.rate = settingsRef.current.ttsSpeed
-    u.onend = () => setTtsActive(false)
-    window.speechSynthesis.speak(u)
+    speakWithSettings(text, settingsRef.current, {
+      onend: () => setTtsActive(false),
+    })
     setTtsActive(true)
   }
 
@@ -143,18 +166,8 @@ export default function ReadingInterface() {
         style={{ backgroundColor: contrast.background, color: contrast.text }}
       >
         <div
-          className={cx("mx-auto max-w-2xl text-left", dyslexic && "font-dyslexic")}
-          style={
-            dyslexic
-              ? { color: contrast.text }
-              : {
-                  fontSize: size,
-                  lineHeight: 1.5,
-                  letterSpacing: `${spacing}em`,
-                  wordSpacing: `${wordSpacingFromLetter(spacing)}em`,
-                  color: contrast.text,
-                }
-          }
+          className={cx("reading-area mx-auto !max-w-2xl !bg-transparent !p-0 text-left", dyslexic && "font-dyslexic")}
+          style={{ color: contrast.text }}
         >
           <FocusRulerSentences
             blocks={lines}

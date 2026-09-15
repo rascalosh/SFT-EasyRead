@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, Button, SectionTitle } from "@/components/shared/ui"
 import { IconLetters, IconSpeaker, IconClose, IconPlay, IconTap } from "@/components/shared/icons"
 import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
 import { demoTitle, syllableWords, type Syllable } from "@/lib/mock"
-import { getActiveMaterial, loadSettings, defaultSettings, type ActiveMaterial } from "@/lib/session"
+import { getActiveMaterial, type ActiveMaterial } from "@/lib/session"
+import { useReadingSettings } from "@/lib/use-reading-settings"
+import { speakWithSettings } from "@/lib/tts-sync"
 import { breakdownOf } from "@/lib/syllabify"
 import { fetchSyllables, isOk } from "@/lib/api"
 
@@ -54,15 +56,13 @@ function tokenize(text: string) {
 }
 
 export default function SyllableBreaker() {
-  const settingsRef = useRef(defaultSettings)
+  const { settingsRef } = useReadingSettings()
   const [material, setMaterial] = useState<ActiveMaterial | null>(null)
   const [ready, setReady] = useState(false)
   const [selected, setSelected] = useState<Syllable | null>(null)
   const [history, setHistory] = useState<Syllable[]>([])
 
   useEffect(() => {
-    settingsRef.current = loadSettings()
-
     const active = getActiveMaterial()
     setMaterial(active)
 
@@ -87,12 +87,7 @@ export default function SyllableBreaker() {
   const checked = new Set(history.map((s) => s.word))
 
   const speak = (text: string) => {
-    if (!("speechSynthesis" in window)) return
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = settingsRef.current.language
-    u.rate = 0.7
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(u)
+    speakWithSettings(text, settingsRef.current)
   }
 
   const remember = (entry: Syllable) => {

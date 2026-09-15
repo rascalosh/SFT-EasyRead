@@ -15,6 +15,7 @@ import {
   UI_FONT_OPTIONS,
   READING_FONT_OPTIONS,
   READING_CONTRAST_OPTIONS,
+  TTS_SPEED_OPTIONS,
   type ReadingSettings,
   type UiFontId,
   type ReadingFontId,
@@ -248,9 +249,11 @@ export default function Settings() {
               onChange={(e) => update("ttsSpeed", +e.target.value)}
               className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink"
             >
-              <option value={0.7}>Lambat (0.7x)</option>
-              <option value={1.0}>Normal (1.0x)</option>
-              <option value={1.3}>Cepat (1.3x)</option>
+              {TTS_SPEED_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="mt-4 border-t border-line pt-4">
@@ -266,7 +269,7 @@ export default function Settings() {
             </select>
           </div>
           <p className="mt-4 text-xs text-ink-mute">
-            Pengaturan disimpan otomatis ke perangkat ini dan ke akunmu.
+            Pengaturan ini dipakai di semua halaman bacaan, simplify, latihan kata, penilaian, dan tracking. Disimpan otomatis ke perangkat ini dan ke akunmu.
           </p>
         </Card>
       </div>

@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, Button, ScoreMeter } from "@/components/shared/ui"
 import { IconMic, IconSpeaker, IconCheck, IconTarget, IconSparkle } from "@/components/shared/icons"
-import { loadSettings, defaultSettings, logActivity, type ActiveMaterial } from "@/lib/session"
+import { logActivity, type ActiveMaterial } from "@/lib/session"
+import { useReadingSettings } from "@/lib/use-reading-settings"
+import { speakWithSettings } from "@/lib/tts-sync"
 import { assessSpeech, isOk, type ApiScore } from "@/lib/api"
 
 type Phase = "idle" | "recording" | "analyzing" | "done"
@@ -49,7 +51,7 @@ function getRecognitionCtor(): SpeechRecognitionCtor | null {
 }
 
 export default function VoiceAssessment({ material }: { material: ActiveMaterial }) {
-    const settingsRef = useRef(defaultSettings)
+    const { settingsRef } = useReadingSettings()
     const [phase, setPhase] = useState<Phase>("idle")
     const [seconds, setSeconds] = useState(0)
     const [scores, setScores] = useState<ApiScore[]>([])
@@ -64,10 +66,6 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
     const transcript = useRef("")
     const longPauses = useRef(0)
     const lastResultAt = useRef(0)
-
-    useEffect(() => {
-        settingsRef.current = loadSettings()
-    }, [])
 
     useEffect(() => {
         if (phase === "recording") {
@@ -112,12 +110,8 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
     const documentId = material?.id && UUID.test(material.id) ? material.id : null
 
     const speak = () => {
-        if (!("speechSynthesis" in window)) return
-        window.speechSynthesis.cancel()
-        const u = new SpeechSynthesisUtterance(referenceText)
-        u.lang = settingsRef.current.language
-        u.rate = 0.85
-        window.speechSynthesis.speak(u)
+        if (!referenceText) return
+        speakWithSettings(referenceText, settingsRef.current)
     }
 
     /** Gambar batang dari amplitudo nyata, bukan gelombang sinus hiasan. */
@@ -291,7 +285,7 @@ export default function VoiceAssessment({ material }: { material: ActiveMaterial
     return (
         <div className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-3">
-                <Card>
+                <Card variant="reading">
                     <div className="mb-2 text-sm font-semibold text-ink-mute">Teks Bacaan · {title}</div>
                     <p className="font-dyslexic leading-relaxed">
                         {referenceText || "Teks bacaan belum tersedia untuk materi ini."}

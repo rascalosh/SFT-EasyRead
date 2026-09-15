@@ -181,10 +181,10 @@ export default function ComprehensionCheck({
             </Card>
           ) : (
             <>
-          <Card>
+          <Card variant="reading">
             <div className="text-xs font-semibold uppercase tracking-wide text-brand">Bacaan yang kamu baca</div>
             <div className="mt-1 font-semibold text-ink">{title}</div>
-            <div className="reading-area mt-3">
+            <div className="reading-area mt-3 !max-w-none">
               {paragraphs.slice(0, 2).join(" ") || "Teks bacaan belum tersedia untuk materi ini."}
             </div>
           </Card>

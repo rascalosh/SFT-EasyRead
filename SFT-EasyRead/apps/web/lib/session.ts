@@ -190,6 +190,27 @@ export const defaultSettings: ReadingSettings = {
   focusRulerMode: "sentence",
 }
 
+export const TTS_SPEED_OPTIONS = [
+  { label: "Lambat (0.5x)", value: 0.5 },
+  { label: "Normal (1.0x)", value: 1.0 },
+  { label: "Cepat (1.5x)", value: 1.5 },
+] as const
+
+export function nearestTtsSpeed(rate: number): number {
+  if (!Number.isFinite(rate)) return defaultSettings.ttsSpeed
+  return TTS_SPEED_OPTIONS.reduce(
+    (best, option) =>
+      Math.abs(option.value - rate) < Math.abs(best - rate) ? option.value : best,
+    defaultSettings.ttsSpeed,
+  )
+}
+
+export function ttsSpeedIndex(rate: number): number {
+  const snapped = nearestTtsSpeed(rate)
+  const idx = TTS_SPEED_OPTIONS.findIndex((option) => option.value === snapped)
+  return idx >= 0 ? idx : 1
+}
+
 function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
   const uiFont: UiFontId = UI_FONT_IDS.has(raw.uiFont ?? "")
     ? (raw.uiFont as UiFontId)
@@ -220,6 +241,10 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
 
   const contrast = getContrastOption(contrastId)
 
+  const ttsSpeed = nearestTtsSpeed(
+    typeof raw.ttsSpeed === "number" ? raw.ttsSpeed : defaultSettings.ttsSpeed,
+  )
+
   return {
     ...defaultSettings,
     ...raw,
@@ -229,6 +254,8 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
     letterSpacing,
     contrastId,
     overlay: contrast.background,
+    ttsSpeed,
+    language: raw.language?.trim() || defaultSettings.language,
     dyslexicFont: raw.dyslexicFont !== false,
     focusRuler: raw.focusRuler !== false,
     focusRulerMode: raw.focusRulerMode === "line" ? "line" : "sentence",
