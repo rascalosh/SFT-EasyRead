@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, Button, ScoreMeter, ProgressBar, ProgressRing, StepIndicator, Alert, cx, type Tone } from "@/components/shared/ui"
 import {
@@ -20,9 +20,10 @@ import { logActivity, type ActiveMaterial } from "@/lib/session"
 import { useReadingSettings } from "@/lib/use-reading-settings"
 import { useSpeaker } from "@/lib/use-speaker"
 import { getRecognitionCtor, type SpeechRecognitionLike } from "@/lib/speech-recognition"
-import { assessSpeech, isOk, type ApiSpeechResult } from "@/lib/api"
+import { assessSpeech, fetchCachedSummary, isOk, type ApiSpeechResult } from "@/lib/api"
 import { hrefFor } from "@/lib/nav"
-import { selectReadingExcerpt } from "@/lib/reading-excerpt"
+import { parseSummaryPayload } from "@/lib/ai-result"
+import { blocksFromSummary, selectReadingExcerpt, type ReadingExcerpt } from "@/lib/reading-excerpt"
 import { ReadingPassage } from "./ReadingPassage"
 
 type Phase = "idle" | "recording" | "analyzing" | "done"
@@ -122,18 +123,56 @@ export default function VoiceAssessment({
     const finishRef = useRef<(auto?: boolean) => Promise<void>>(async () => {})
 
     const title = material.title
-    const sourceParagraphs =
-        material.paragraphs?.length
-            ? material.paragraphs
-            : material.originalText?.trim()
-                ? [material.originalText]
-                : []
-    // Bagian yang dibaca dibatasi agar selesai dalam 2 menit; teks rujukan yang
-    // dikirim ke server harus persis bagian yang sama supaya skornya adil.
-    const excerpt = selectReadingExcerpt(sourceParagraphs)
+    const originalExcerpt = useMemo(() => {
+        const blocks =
+            material.paragraphs?.length
+                ? material.paragraphs
+                : material.originalText?.trim()
+                    ? [material.originalText]
+                    : []
+        return selectReadingExcerpt(blocks)
+    }, [material.paragraphs, material.originalText])
+    const documentId = material?.id && UUID.test(material.id) ? material.id : null
+    const [summaryExcerpt, setSummaryExcerpt] = useState<ReadingExcerpt | null>(null)
+    const [passageReady, setPassageReady] = useState(!documentId)
+
+    useEffect(() => {
+        if (!documentId) {
+            setSummaryExcerpt(null)
+            setPassageReady(true)
+            return
+        }
+
+        let alive = true
+        setPassageReady(false)
+        setSummaryExcerpt(null)
+
+        void fetchCachedSummary(documentId).then((cached) => {
+            if (!alive) return
+
+            if (isOk(cached)) {
+                const view = parseSummaryPayload(cached.data)
+                const blocks = blocksFromSummary(view.summary, view.points)
+                if (blocks.length) {
+                    setSummaryExcerpt(selectReadingExcerpt(blocks))
+                    setPassageReady(true)
+                    return
+                }
+            }
+
+            setSummaryExcerpt(null)
+            setPassageReady(true)
+        })
+
+        return () => {
+            alive = false
+        }
+    }, [documentId])
+
+    const excerpt = summaryExcerpt ?? originalExcerpt
+    const fromSummary = summaryExcerpt !== null
     const paragraphs = excerpt.paragraphs
     const referenceText = paragraphs.join(" ").trim()
-    const documentId = material?.id && UUID.test(material.id) ? material.id : null
     const wordCount = excerpt.words
 
     const busy = phase === "recording" || phase === "analyzing"
@@ -254,6 +293,11 @@ export default function VoiceAssessment({
 
         if (!referenceText) {
             setMicError("Materi ini belum punya teks bacaan. Pilih materi lain.")
+            return
+        }
+
+        if (!passageReady) {
+            setMicError("Teks bacaan masih disiapkan. Tunggu sebentar, lalu coba lagi.")
             return
         }
 
@@ -468,30 +512,40 @@ export default function VoiceAssessment({
                                 <Button
                                     size="lg"
                                     onClick={() => void start()}
-                                    disabled={!referenceText}
+                                    disabled={!referenceText || !passageReady}
                                     className="w-full"
                                 >
                                     <IconMic width={18} height={18} /> Mulai Membaca
                                 </Button>
                                 <p className="text-center text-xs text-ink-mute">
-                                    {wordCount} kata · maksimal {MAX_SECONDS / 60} menit
+                                    {passageReady
+                                        ? `${wordCount} kata · maksimal ${MAX_SECONDS / 60} menit`
+                                        : "Menyiapkan teks bacaan…"}
                                 </p>
                             </div>
                         </div>
                     </Card>
 
+                    {passageReady ? (
                     <ReadingPassage
                         title={title}
                         paragraphs={paragraphs}
-                        label={excerpt.truncated ? "Bagian yang dibaca" : "Teks Bacaan"}
+                        label={fromSummary ? "Ringkasan yang dibaca" : excerpt.truncated ? "Bagian yang dibaca" : "Teks Bacaan"}
                         note={
-                            excerpt.truncated
-                                ? "Cukup baca bagian ini saja. Teks dipendekkan supaya selesai dalam 2 menit."
-                                : undefined
+                            fromSummary
+                                ? "Ini ringkasan materi. Kalimatnya lebih pendek supaya lebih mudah dibaca nyaring."
+                                : excerpt.truncated
+                                    ? "Cukup baca bagian ini saja. Teks dipendekkan supaya selesai dalam 2 menit."
+                                    : undefined
                         }
                         speaking={speaker.speaking && speaker.speakingKey === "passage"}
                         onToggleListen={speaker.supported ? () => speaker.toggle(referenceText, "passage") : undefined}
                     />
+                    ) : (
+                    <Card>
+                        <p className="py-6 text-center text-sm text-ink-mute">Menyiapkan teks bacaan…</p>
+                    </Card>
+                    )}
                 </>
             )}
 
@@ -552,7 +606,13 @@ export default function VoiceAssessment({
                         title={title}
                         paragraphs={paragraphs}
                         label="Bacalah teks ini"
-                        note={excerpt.truncated ? "Berhenti di kalimat terakhir yang tampil, lalu tekan Selesai." : undefined}
+                        note={
+                            fromSummary
+                                ? "Baca ringkasan ini sampai selesai, lalu tekan Selesai."
+                                : excerpt.truncated
+                                    ? "Berhenti di kalimat terakhir yang tampil, lalu tekan Selesai."
+                                    : undefined
+                        }
                     />
                 </>
             )}

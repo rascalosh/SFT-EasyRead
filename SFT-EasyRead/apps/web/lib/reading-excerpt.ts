@@ -46,3 +46,8 @@ export function selectReadingExcerpt(blocks: string[], maxWords = EXCERPT_MAX_WO
 
   return { paragraphs: out, words, truncated }
 }
+
+/** Paragraf bacaan dari ringkasan: prosa dulu, lalu tiap butir. */
+export function blocksFromSummary(summary: string, bulletPoints: string[]) {
+  return [summary, ...bulletPoints].map((part) => part.trim()).filter(Boolean)
+}

@@ -226,3 +226,8 @@ export type ApiSpeechResult = {
 export function assessSpeech(payload: ApiSpeechRequest) {
     return request<ApiSpeechResult>("/api/speech/assess", jsonInit("POST", payload))
 }
+
+/** Ringkasan yang sudah tersimpan. 404 = belum pernah dibuat. */
+export function fetchCachedSummary(documentId: string) {
+    return request<unknown>(`/api/documents/${documentId}/summary`)
+}
