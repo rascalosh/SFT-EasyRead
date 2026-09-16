@@ -61,6 +61,8 @@ export type ApiPreferences = {
     autoTts: boolean
     focusRuler: boolean
     language: string
+    /** "plain" | "structured" — versi hasil Simplify. */
+    simplifyStyle: string
 }
 
 export function fetchPreferences() {

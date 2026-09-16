@@ -163,9 +163,37 @@ export type ReadingSettings = {
   focusRuler: boolean
   /** Kalimat sampai titik, atau satu baris visual saja. */
   focusRulerMode: FocusRulerMode
+  /** Versi hasil Simplify: paragraf sederhana, atau terstruktur ala asisten AI. */
+  simplifyStyle: SimplifyStyle
 }
 
 export type FocusRulerMode = "sentence" | "line"
+
+export type SimplifyStyle = "plain" | "structured"
+
+export const SIMPLIFY_STYLE_OPTIONS: {
+  id: SimplifyStyle
+  label: string
+  short: string
+  desc: string
+}[] = [
+  {
+    id: "plain",
+    label: "Versi 1 · Teks sederhana",
+    short: "Teks sederhana",
+    desc: "Paragraf asli ditulis ulang dengan kalimat pendek dan kata yang lebih mudah. Urutan dan bentuknya tetap seperti teks asli.",
+  },
+  {
+    id: "structured",
+    label: "Versi 2 · Terstruktur",
+    short: "Terstruktur",
+    desc: "Inti dulu, lalu judul bagian, poin-poin, kata kunci tebal, tabel untuk perbandingan, dan kotak Catatan — seperti jawaban asisten AI.",
+  },
+]
+
+export function isSimplifyStyle(value: unknown): value is SimplifyStyle {
+  return value === "plain" || value === "structured"
+}
 
 const SETTINGS_KEY = "easyread-settings"
 export const SETTINGS_EVENT = "easyread-settings"
@@ -188,6 +216,7 @@ export const defaultSettings: ReadingSettings = {
   language: "id-ID",
   focusRuler: true,
   focusRulerMode: "sentence",
+  simplifyStyle: "plain",
 }
 
 export const TTS_SPEED_OPTIONS = [
@@ -259,6 +288,7 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
     dyslexicFont: raw.dyslexicFont !== false,
     focusRuler: raw.focusRuler !== false,
     focusRulerMode: raw.focusRulerMode === "line" ? "line" : "sentence",
+    simplifyStyle: isSimplifyStyle(raw.simplifyStyle) ? raw.simplifyStyle : "plain",
   }
 }
 
@@ -394,6 +424,7 @@ export function saveSettingsEverywhere(settings: ReadingSettings) {
         autoTts: settings.autoTts,
         focusRuler: settings.focusRuler,
         language: settings.language,
+        simplifyStyle: settings.simplifyStyle,
       })
     } catch {
       // Gagal menyimpan ke akun tidak boleh mengganggu; nilai lokal sudah aman.

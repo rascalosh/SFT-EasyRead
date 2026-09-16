@@ -1,11 +1,17 @@
 /** Bentuk payload simplify/summary dari API — longgar supaya cache lama tetap kebaca. */
 
+import { markdownToPlainText } from "./markdown-text"
+
 export type ParagraphDifficulty = "easy" | "medium" | "hard"
 
 export type ValidationStatus = "valid" | "fallback" | "pending" | "rejected"
 
 export type SimplifyView = {
+  /** Teks polos: gabungan paragraf (versi 1) atau Markdown yang sudah dibersihkan (versi 2). */
   text: string
+  /** Terisi hanya untuk versi terstruktur; dirender dengan MarkdownAnswer. */
+  markdown: string | null
+  title: string | null
   difficulty: ParagraphDifficulty | null
   mixedDifficulty: boolean
   validationStatus: ValidationStatus | null
@@ -101,8 +107,12 @@ export function parseSimplifyPayload(payload: unknown): SimplifyView {
     return DIFFICULTY_RANK[next] > DIFFICULTY_RANK[current] ? next : current
   }, null)
 
+  const markdown = asString(result.markdown)
+
   return {
-    text: fromParagraphs || asString(result.simplifiedText) || "",
+    text: markdown ? markdownToPlainText(markdown) : fromParagraphs || asString(result.simplifiedText) || "",
+    markdown,
+    title: asString(result.title),
     difficulty: hardest,
     mixedDifficulty: unique.length > 1,
     validationStatus: asValidation(row.validation_status),
@@ -155,6 +165,8 @@ export function parseSummaryPayload(payload: unknown): SummaryView {
 export function emptySimplifyView(): SimplifyView {
   return {
     text: "",
+    markdown: null,
+    title: null,
     difficulty: null,
     mixedDifficulty: false,
     validationStatus: null,
@@ -215,6 +227,9 @@ export function simplifyReaderNotes(view: SimplifyView | null | undefined): Read
     notes.push({ text: "Sebagian tidak diubah, supaya artinya tetap sama", tone: "warn" })
   } else if (view.validationStatus === "rejected") {
     notes.push({ text: "Hasil AI tidak dipakai", tone: "error" })
+  } else if (view.validationStatus === "pending" && view.markdown) {
+    // Versi terstruktur: angka/negasi masih ada yang tidak cocok setelah retry.
+    notes.push({ text: "Cek angka dan fakta dengan teks asli", tone: "warn" })
   }
 
   return notes

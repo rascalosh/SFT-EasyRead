@@ -6,7 +6,13 @@ import { Button, Badge } from "@/components/shared/ui"
 import { IconSparkle } from "@/components/shared/icons"
 import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
 import { createUserDocument, fetchUserDocument } from "@/lib/documents"
-import { getActiveMaterial, setActiveMaterial, type ActiveMaterial } from "@/lib/session"
+import {
+  getActiveMaterial,
+  setActiveMaterial,
+  type ActiveMaterial,
+  type SimplifyStyle,
+} from "@/lib/session"
+import { useReadingSettings } from "@/lib/use-reading-settings"
 import {
   emptySimplifyView,
   emptySummaryView,
@@ -26,6 +32,11 @@ function toParagraphs(text: string) {
   return parts.length ? parts : [trimmed]
 }
 
+/** Endpoint simplify dengan versi hasil yang dipilih di Pengaturan. */
+function simplifyEndpoint(documentId: string, style: SimplifyStyle) {
+  return `/api/documents/${documentId}/simplify?style=${style}`
+}
+
 /** Shell stabil untuk SSR + Suspense — hindari early-return yang beda dengan client. */
 export function SimplifyPageShell({
   subtitle = "AI menyederhanakan teks yang sulit dan merangkum ide utama secara cepat.",
@@ -42,6 +53,7 @@ export function SimplifyPageShell({
   emptyMaterialHint = null,
   simplifyView = null,
   summaryView = null,
+  style = "plain",
 }: {
   subtitle?: string
   sourceText?: string
@@ -57,6 +69,7 @@ export function SimplifyPageShell({
   emptyMaterialHint?: string | null
   simplifyView?: SimplifyView | null
   summaryView?: SummaryView | null
+  style?: SimplifyStyle
 }) {
   return (
     <>
@@ -83,7 +96,7 @@ export function SimplifyPageShell({
         <p className="text-sm text-ink-mute">{emptyMaterialHint}</p>
       )}
       {error && <p className="text-sm text-error" role="alert">{error}</p>}
-      <SimplifiedTextPanel text={resultText} loading={loading} done={done} view={simplifyView} />
+      <SimplifiedTextPanel text={resultText} loading={loading} done={done} view={simplifyView} style={style} />
       <SummaryCard title={title} points={points} done={done} onCopy={onCopy ?? (() => {})} view={summaryView} />
       </div>
       <ScrollEdgeButton />
@@ -95,6 +108,10 @@ export default function SimplifyPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const queryId = searchParams.get("id")
+  // Versi hasil (Teks sederhana / Terstruktur) diatur di Pengaturan dan
+  // ikut berubah langsung kalau pengguna menggantinya di tab lain.
+  const { settings } = useReadingSettings()
+  const style = settings.simplifyStyle
 
   const [material, setMaterial] = useState<ActiveMaterial | null>(null)
   const [sourceText, setSourceText] = useState("")
@@ -155,7 +172,7 @@ export default function SimplifyPage() {
 
           // Muat hasil AI tersimpan (tanpa panggil Gemini lagi)
           const [simplifyRes, summaryRes] = await Promise.all([
-            fetch(`/api/documents/${result.document.id}/simplify`),
+            fetch(simplifyEndpoint(result.document.id, style)),
             fetch(`/api/documents/${result.document.id}/summary`),
           ])
 
@@ -205,7 +222,7 @@ export default function SimplifyPage() {
 
     void load()
     return () => { cancelled = true }
-  }, [queryId, router])
+  }, [queryId, router, style])
 
   const title = material?.title ?? "Teks baru"
 
@@ -255,7 +272,7 @@ export default function SimplifyPage() {
       }
 
       const [simplifyResponse, summaryResponse] = await Promise.all([
-        fetch(`/api/documents/${documentId}/simplify`, { method: "POST" }),
+        fetch(simplifyEndpoint(documentId, style), { method: "POST" }),
         fetch(`/api/documents/${documentId}/summary`, { method: "POST" }),
       ])
 
@@ -325,6 +342,7 @@ export default function SimplifyPage() {
       points={points}
       simplifyView={simplifyView}
       summaryView={summaryView}
+      style={style}
       title={title}
       done={done}
       loading={loading || booting}

@@ -34,6 +34,9 @@ export const preferencesSchema = z.object({
     focusRuler: z.boolean(),
 
     language: z.string().min(2).max(10),
+
+    /** Versi hasil Simplify. CHECK reading_preferences.simplify_style. */
+    simplifyStyle: z.enum(["plain", "structured"]),
 })
 
 export type PreferencesPayload = z.infer<typeof preferencesSchema>

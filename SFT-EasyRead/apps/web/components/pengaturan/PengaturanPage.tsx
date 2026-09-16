@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, SectionTitle, SegmentedControl, cx } from "@/components/shared/ui"
-import { IconSettings, IconBook, IconSpeaker, IconTextSize } from "@/components/shared/icons"
+import { IconSettings, IconBook, IconSpeaker, IconTextSize, IconSparkle } from "@/components/shared/icons"
 import SettingsToggle from "./SettingsToggle"
 import {
   loadSettings,
@@ -16,6 +16,7 @@ import {
   READING_FONT_OPTIONS,
   READING_CONTRAST_OPTIONS,
   TTS_SPEED_OPTIONS,
+  SIMPLIFY_STYLE_OPTIONS,
   type ReadingSettings,
   type UiFontId,
   type ReadingFontId,
@@ -272,7 +273,93 @@ export default function Settings() {
             Pengaturan ini dipakai di semua halaman bacaan, simplify, latihan kata, penilaian, dan tracking. Disimpan otomatis ke perangkat ini dan ke akunmu.
           </p>
         </Card>
+
+        <Card className="lg:col-span-2">
+          <SectionTitle icon={<IconSparkle width={18} height={18} />} title="AI Smart Simplifier" />
+          <p className="mb-3 text-xs text-ink-mute">
+            Pilih bentuk hasil di tab Simplify. Hasil tiap versi disimpan terpisah, jadi berganti versi
+            tidak menghapus hasil yang sudah ada.
+          </p>
+          <div
+            className="grid gap-2 sm:grid-cols-2"
+            role="radiogroup"
+            aria-label="Versi hasil Simplify"
+          >
+            {SIMPLIFY_STYLE_OPTIONS.map((option) => {
+              const selected = settings.simplifyStyle === option.id
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => update("simplifyStyle", option.id)}
+                  className={cx(
+                    "flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all",
+                    selected
+                      ? "border-brand bg-brand-soft/60 outline outline-2 outline-brand -outline-offset-2"
+                      : "border-line hover:border-brand/40",
+                  )}
+                >
+                  <span
+                    className={cx(
+                      "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2",
+                      selected ? "border-brand" : "border-line",
+                    )}
+                    aria-hidden
+                  >
+                    {selected && <span className="h-2.5 w-2.5 rounded-full bg-brand" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-ink">{option.label}</span>
+                    <span className="mt-0.5 block text-xs text-ink-soft">{option.desc}</span>
+                    <span className="mt-2 block" aria-hidden>
+                      {option.id === "plain" ? <PlainPreview /> : <StructuredPreview />}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </Card>
       </div>
     </div>
+  )
+}
+
+/** Sketsa kecil bentuk hasil versi 1: beberapa paragraf pendek. */
+function PlainPreview() {
+  return (
+    <span className="flex flex-col gap-1.5 rounded-lg border border-line bg-canvas p-2.5">
+      <span className="h-1.5 w-11/12 rounded bg-ink/25" />
+      <span className="h-1.5 w-4/5 rounded bg-ink/25" />
+      <span className="mt-1 h-1.5 w-10/12 rounded bg-ink/25" />
+      <span className="h-1.5 w-3/5 rounded bg-ink/25" />
+    </span>
+  )
+}
+
+/** Sketsa kecil bentuk hasil versi 2: inti, judul, poin, tabel, catatan. */
+function StructuredPreview() {
+  return (
+    <span className="flex flex-col gap-1.5 rounded-lg border border-line bg-canvas p-2.5">
+      <span className="h-1.5 w-11/12 rounded bg-ink/40" />
+      <span className="mt-1 h-2 w-2/5 rounded bg-ink/60" />
+      <span className="flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-ink/40" />
+        <span className="h-1.5 w-3/5 rounded bg-ink/25" />
+        <span className="h-1.5 w-1/6 rounded bg-brand/60" />
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-ink/40" />
+        <span className="h-1.5 w-1/2 rounded bg-ink/25" />
+      </span>
+      <span className="mt-1 grid grid-cols-3 gap-px overflow-hidden rounded border border-line">
+        {Array.from({ length: 6 }, (_, i) => (
+          <span key={i} className={cx("h-2.5", i < 3 ? "bg-ink/15" : "bg-canvas")} />
+        ))}
+      </span>
+      <span className="mt-1 h-3 w-full rounded border-l-2 border-brand bg-brand-soft/70" />
+    </span>
   )
 }
