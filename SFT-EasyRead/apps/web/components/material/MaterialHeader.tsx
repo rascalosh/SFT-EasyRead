@@ -39,21 +39,19 @@ export function MaterialHeader({
 
   return (
     <div className="reading-surface rounded-[var(--radius-card)] border border-line p-6 shadow-[var(--shadow-sm)]">
-      <div className="flex items-start gap-4">
+      <div className="flex items-center gap-4">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand">
           <IconBook width={22} height={22} />
         </span>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-heading-2 text-ink">{title}</h1>
-          <FocusRulerSentences
-            blocks={paragraphs}
-            enabled={focusRuler}
-            mode={focusRulerMode}
-            layoutKey={layoutKey}
-            className="reading-area mt-3 !max-w-none"
-          />
-        </div>
+        <h1 className="min-w-0 flex-1 text-heading-2 text-ink">{title}</h1>
       </div>
+      <FocusRulerSentences
+        blocks={paragraphs}
+        enabled={focusRuler}
+        mode={focusRulerMode}
+        layoutKey={layoutKey}
+        className="reading-area mt-4 !max-w-none"
+      />
     </div>
   )
 }
