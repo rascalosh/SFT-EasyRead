@@ -117,6 +117,82 @@ export function lineSpanFromPoint(
   return { paragraphIndex, start, end }
 }
 
+function lineSpanFromParagraphOffset(
+  container: HTMLElement,
+  paragraphIndex: number,
+  offset: number,
+): LineSpan | null {
+  const paragraphs = [...container.querySelectorAll(":scope > p")]
+  const paragraph = paragraphs[paragraphIndex]
+  if (!(paragraph instanceof HTMLParagraphElement)) return null
+
+  const length = paragraph.textContent?.length ?? 0
+  if (!length) return null
+
+  let start = Math.min(Math.max(0, offset), length - 1)
+  let end = start
+  const targetY = yAtOffset(paragraph, start)
+
+  while (start > 0 && Math.abs(yAtOffset(paragraph, start - 1) - targetY) < 3) start -= 1
+  while (end < length && Math.abs(yAtOffset(paragraph, end) - targetY) < 3) end += 1
+
+  if (end <= start) end = Math.min(length, start + 1)
+  return { paragraphIndex, start, end }
+}
+
+/** Baris visual pertama di paragraf awal — untuk pratinjau penggaris. */
+export function firstLineSpan(container: HTMLElement): LineSpan | null {
+  return lineSpanFromParagraphOffset(container, 0, 0) ?? fallbackFirstLine(container)
+}
+
+function fallbackFirstLine(container: HTMLElement): LineSpan | null {
+  const paragraph = container.querySelector(":scope > p")
+  if (!(paragraph instanceof HTMLParagraphElement)) return null
+
+  const length = paragraph.textContent?.length ?? 0
+  if (!length) return null
+
+  const rect = paragraph.getBoundingClientRect()
+  return lineSpanFromPoint(
+    rect.left + Math.min(12, Math.max(2, rect.width / 4)),
+    rect.top + Math.min(8, Math.max(2, rect.height / 4)),
+    container,
+  )
+}
+
+/** Baris visual berikutnya atau sebelumnya, untuk panah atas/bawah. */
+export function adjacentLineSpan(
+  container: HTMLElement,
+  current: LineSpan | null,
+  direction: 1 | -1,
+): LineSpan | null {
+  const paragraphs = [...container.querySelectorAll(":scope > p")]
+  if (!paragraphs.length) return null
+
+  if (!current) {
+    if (direction > 0) return firstLineSpan(container)
+    const last = paragraphs.length - 1
+    const length = paragraphs[last]?.textContent?.length ?? 0
+    return lineSpanFromParagraphOffset(container, last, Math.max(0, length - 1))
+  }
+
+  if (direction > 0) {
+    const length = paragraphs[current.paragraphIndex]?.textContent?.length ?? 0
+    if (current.end < length) {
+      return lineSpanFromParagraphOffset(container, current.paragraphIndex, current.end)
+    }
+    if (current.paragraphIndex + 1 >= paragraphs.length) return current
+    return lineSpanFromParagraphOffset(container, current.paragraphIndex + 1, 0)
+  }
+
+  if (current.start > 0) {
+    return lineSpanFromParagraphOffset(container, current.paragraphIndex, current.start - 1)
+  }
+  if (current.paragraphIndex <= 0) return current
+  const prevLength = paragraphs[current.paragraphIndex - 1]?.textContent?.length ?? 0
+  return lineSpanFromParagraphOffset(container, current.paragraphIndex - 1, Math.max(0, prevLength - 1))
+}
+
 export function sameLine(a: LineSpan, b: LineSpan): boolean {
   return a.paragraphIndex === b.paragraphIndex && a.start === b.start && a.end === b.end
 }

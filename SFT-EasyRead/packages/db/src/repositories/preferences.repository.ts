@@ -13,6 +13,8 @@ export type PreferencesRow = {
     language: string;
     simplify_style: string;
     assessment_view: string;
+    focus_ruler_color: string;
+    focus_ruler_opacity: number;
 };
 
 export type PreferencesUpsert = Partial<Omit<PreferencesRow, "user_id">> & {

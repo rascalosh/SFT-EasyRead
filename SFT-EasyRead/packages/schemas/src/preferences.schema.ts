@@ -40,6 +40,12 @@ export const preferencesSchema = z.object({
 
     /** Bagian Reading Assessment yang tampil. CHECK reading_preferences.assessment_view. */
     assessmentView: z.enum(["voice", "quiz", "both"]),
+
+    /** Warna penggaris fokus. CHECK reading_preferences.focus_ruler_color. */
+    focusRulerColor: z.string().min(1),
+
+    /** Kekentalan sorotan. CHECK reading_preferences.focus_ruler_opacity: 0.20–1.00. */
+    focusRulerOpacity: z.number().min(0.2).max(1),
 })
 
 export type PreferencesPayload = z.infer<typeof preferencesSchema>

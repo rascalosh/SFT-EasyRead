@@ -24,7 +24,7 @@ export default function TopBar({ sidebarOpen, onToggleSidebar }: Props) {
         <IconSidebar width={18} height={18} />
       </button>
 
-      <span className="hidden min-w-0 truncate text-sm font-medium text-ink-soft lg:inline">
+      <span className="min-w-0 truncate font-semibold text-ink" aria-current="page">
         {title}
       </span>
     </header>

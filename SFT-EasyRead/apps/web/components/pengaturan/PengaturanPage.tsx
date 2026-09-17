@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, SectionTitle, SegmentedControl, cx } from "@/components/shared/ui"
 import { IconSettings, IconBook, IconSpeaker, IconTextSize, IconSparkle, IconMic } from "@/components/shared/icons"
 import SettingsToggle from "./SettingsToggle"
+import { FocusRulerSentences } from "@/components/shared/FocusRulerSentences"
 import {
   loadSettings,
   saveSettingsEverywhere,
@@ -18,10 +19,12 @@ import {
   TTS_SPEED_OPTIONS,
   SIMPLIFY_STYLE_OPTIONS,
   ASSESSMENT_VIEW_OPTIONS,
+  FOCUS_RULER_COLOR_OPTIONS,
   type ReadingSettings,
   type UiFontId,
   type ReadingFontId,
   type ReadingContrastId,
+  type FocusRulerColorId,
 } from "@/lib/session"
 
 export default function Settings() {
@@ -76,7 +79,7 @@ export default function Settings() {
                 Kontras teks & latar bacaan
               </label>
               <p className="mb-2 text-xs text-ink-mute">
-                Pilih kombinasi warna dengan kontras luminansi tinggi. Latar pastel + teks gelap.
+                Pilih kombinasi warna dengan kontras luminansi tinggi. Ada juga warna halaman web biasa: abu terang dan teks hitam.
               </p>
               <div
                 className="grid grid-cols-1 gap-2 sm:grid-cols-2"
@@ -165,7 +168,7 @@ export default function Settings() {
               on={settings.focusRuler}
               onToggle={() => update("focusRuler", !settings.focusRuler)}
               label="Penggaris Fokus Digital"
-              desc="Ketuk teks untuk menyorot. Pilih satu kalimat (sampai titik) atau satu baris saja."
+              desc="Ketuk teks, atau panah atas/bawah, untuk menyorot. Pilih satu kalimat (sampai titik) atau satu baris saja."
             />
             {settings.focusRuler && (
               <div className="py-3">
@@ -181,8 +184,81 @@ export default function Settings() {
                 />
                 <p className="mt-1.5 text-xs text-ink-mute">
                   {settings.focusRulerMode === "line"
-                    ? "Hanya baris yang diketuk yang disorot, meski kalimatnya panjang."
-                    : "Sorotan mengikuti kalimat sampai tanda titik."}
+                    ? "Hanya baris yang diketuk atau dipilih panah yang disorot, meski kalimatnya panjang."
+                    : "Sorotan mengikuti kalimat sampai tanda titik. Geser dengan panah atas/bawah."}
+                </p>
+
+                <p className="mb-2 mt-4 text-sm font-semibold text-ink">Warna penggaris</p>
+                <div
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+                  role="radiogroup"
+                  aria-label="Warna penggaris fokus"
+                >
+                  {FOCUS_RULER_COLOR_OPTIONS.map((option) => {
+                    const selected = settings.focusRulerColor === option.id
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => update("focusRulerColor", option.id as FocusRulerColorId)}
+                        className={cx(
+                          "flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all",
+                          selected
+                            ? "border-brand outline outline-2 outline-brand -outline-offset-2"
+                            : "border-line hover:border-brand/40",
+                        )}
+                      >
+                        <span
+                          className="mt-0.5 h-8 w-8 shrink-0 rounded-lg border border-line"
+                          style={{ backgroundColor: option.color }}
+                          aria-hidden
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-ink">{option.label}</span>
+                          <span className="mt-0.5 block text-[11px] leading-snug text-ink-mute">
+                            {option.desc}
+                          </span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <label className="mb-2 mt-4 block text-sm font-semibold text-ink">
+                  Kekentalan warna · {Math.round(settings.focusRulerOpacity * 100)}%
+                </label>
+                <input
+                  type="range"
+                  min={0.2}
+                  max={1}
+                  step={0.05}
+                  value={settings.focusRulerOpacity}
+                  onChange={(e) => update("focusRulerOpacity", +e.target.value)}
+                  className="w-full accent-[var(--color-brand)]"
+                />
+                <p className="mt-1.5 text-xs text-ink-mute">
+                  Semakin kental, semakin jelas sorotannya. Turunkan jika teks terasa tertutup warna.
+                </p>
+
+                <p className="mt-3 text-xs font-medium text-ink-mute">Pratinjau penggaris</p>
+                <div className="reading-area !mt-1 !max-w-none rounded-lg border border-line px-3 py-2">
+                  <FocusRulerSentences
+                    enabled
+                    preview
+                    mode={settings.focusRulerMode}
+                    layoutKey={`${settings.focusRulerMode}-${settings.fontSize}-${settings.letterSpacing}-${settings.readingFont}-${settings.contrastId}-${settings.focusRulerColor}-${settings.focusRulerOpacity}`}
+                    blocks={[
+                      "Kalimat pertama disorot sampai titik, termasuk jika teksnya panjang dan turun ke baris berikutnya. Kalimat kedua tetap biasa dan tidak ikut disorot.",
+                    ]}
+                    className="!max-w-none"
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-ink-mute">
+                  {settings.focusRulerMode === "line"
+                    ? "Hanya satu baris yang disorot. Ketuk baris lain, atau panah atas/bawah."
+                    : "Seluruh kalimat sampai titik disorot. Ketuk kalimat lain, atau panah atas/bawah."}
                 </p>
               </div>
             )}

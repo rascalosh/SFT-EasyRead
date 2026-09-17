@@ -183,7 +183,7 @@ export function ReadingPassage({
           )}
           {focusRuler && !markdown && paragraphs.length > 0 && (
             <p className="mt-3 text-xs opacity-60">
-              Ketuk kalimat untuk menyorotnya agar mata tidak kehilangan baris.
+              Ketuk atau panah atas/bawah untuk memindah sorotan agar mata tidak kehilangan baris.
             </p>
           )}
         </div>

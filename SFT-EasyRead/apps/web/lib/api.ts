@@ -65,6 +65,10 @@ export type ApiPreferences = {
     simplifyStyle: string
     /** "voice" | "quiz" | "both" — bagian Reading Assessment yang tampil. */
     assessmentView: string
+    /** Warna penggaris fokus, misalnya "yellow". */
+    focusRulerColor?: string
+    /** Kekentalan sorotan 0.2–1. */
+    focusRulerOpacity?: number
 }
 
 export function fetchPreferences() {

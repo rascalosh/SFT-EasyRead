@@ -135,8 +135,8 @@ export default function ReadingInterface() {
           <p className="text-sm text-ink-soft">
             {focusRuler
               ? focusRulerMode === "line"
-                ? "Ketuk satu baris untuk menyorot baris itu saja."
-                : "Ketuk kalimat (sampai titik) untuk menyorot."
+                ? "Ketuk satu baris, atau panah atas/bawah, untuk memindah sorotan."
+                : "Ketuk kalimat, atau panah atas/bawah, untuk memindah sorotan."
               : "Tampilan ramah disleksia."}
           </p>
           {focusRuler && (

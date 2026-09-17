@@ -55,6 +55,8 @@ export default function RootLayout({
           "--reading-font-size": "20px",
           "--reading-letter-spacing": "0.12em",
           "--reading-word-spacing": "0.42em",
+          "--focus-ruler-color": "#FFF2A8",
+          "--focus-ruler-opacity": "0.7",
         } as CSSProperties
       }
     >

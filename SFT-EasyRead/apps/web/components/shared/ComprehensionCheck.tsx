@@ -441,7 +441,9 @@ export default function ComprehensionCheck({
                       </span>
                     </div>
 
-                    <p className="mt-3 font-dyslexic !text-base">{result.feedback}</p>
+                    {!result.ok && result.feedback.trim() && result.feedback.trim() !== "-" && (
+                      <p className="mt-3 font-dyslexic !text-base">{result.feedback}</p>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-2">
