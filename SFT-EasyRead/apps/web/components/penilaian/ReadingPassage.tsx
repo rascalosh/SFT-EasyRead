@@ -4,8 +4,11 @@ import { useState, type ReactNode } from "react"
 import { Card, Button, cx } from "@/components/shared/ui"
 import { IconBook, IconChevronDown, IconChevronUp, IconInfo, IconSpeaker, IconSpeakerOff } from "@/components/shared/icons"
 import { FocusRulerSentences } from "@/components/shared/FocusRulerSentences"
+import { MarkdownAnswer } from "@/components/shared/MarkdownAnswer"
 import { useReadingSettings } from "@/lib/use-reading-settings"
 import { tokenizeWords } from "@/lib/tts-sync"
+import { markdownToPlainText } from "@/lib/markdown-text"
+import type { MaterialSource } from "@/lib/use-material-passage"
 
 /** Perkiraan kecepatan baca nyaring yang nyaman (kata per menit). */
 const READ_ALOUD_WPM = 100
@@ -23,6 +26,7 @@ export function passageStats(paragraphs: string[]) {
 export function ReadingPassage({
   title,
   paragraphs,
+  markdown = null,
   label = "Teks Bacaan",
   speaking = false,
   onToggleListen,
@@ -33,9 +37,14 @@ export function ReadingPassage({
   note,
   action,
   className,
+  source,
+  onSourceChange,
+  sourceOptions,
+  sourceLocked = false,
 }: {
   title: string
   paragraphs: string[]
+  markdown?: string | null
   label?: string
   speaking?: boolean
   onToggleListen?: () => void
@@ -48,12 +57,19 @@ export function ReadingPassage({
   note?: string
   action?: ReactNode
   className?: string
+  source?: MaterialSource
+  onSourceChange?: (source: MaterialSource) => void
+  sourceOptions?: { value: MaterialSource; label: string; disabled?: boolean }[]
+  /** Kunci pemilih saat merekam supaya teks acuan tidak berganti. */
+  sourceLocked?: boolean
 }) {
   const { settings } = useReadingSettings()
   const [open, setOpen] = useState(defaultOpen)
-  const { words, minutes } = passageStats(paragraphs)
+  const plain = markdown ? markdownToPlainText(markdown) : paragraphs.join(" ")
+  const { words, minutes } = passageStats([plain])
   const focusRuler = focusRulerProp ?? settings.focusRuler
   const visible = !collapsible || open
+  const showPicker = Boolean(source && onSourceChange && sourceOptions?.length)
 
   return (
     <Card variant="reading" className={cx("animate-fade-in", className)}>
@@ -102,6 +118,48 @@ export function ReadingPassage({
         </div>
       </div>
 
+      {showPicker && (
+        <div
+          className="mt-3 flex flex-wrap gap-1.5"
+          role="radiogroup"
+          aria-label="Sumber bacaan"
+        >
+          {sourceOptions!.map((option) => {
+            const selected = source === option.value
+            const disabled = sourceLocked || Boolean(option.disabled)
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                disabled={disabled}
+                title={
+                  option.disabled
+                    ? "Belum ada. Buat dulu di Simplify."
+                    : sourceLocked
+                      ? "Selesaikan rekaman dulu sebelum ganti bacaan."
+                      : undefined
+                }
+                onClick={() => {
+                  if (disabled) return
+                  onSourceChange!(option.value)
+                }}
+                className={cx(
+                  "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                  selected
+                    ? "border-current bg-[color-mix(in_srgb,var(--reading-fg)_12%,transparent)]"
+                    : "border-current/25 opacity-80 hover:opacity-100",
+                  disabled && !selected && "cursor-not-allowed opacity-40 hover:opacity-40",
+                )}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {visible && (
         <div className="mt-4 border-t border-[color-mix(in_srgb,var(--reading-fg)_15%,transparent)] pt-4">
           {note && (
@@ -110,7 +168,9 @@ export function ReadingPassage({
               <span>{note}</span>
             </p>
           )}
-          {paragraphs.length === 0 ? (
+          {markdown ? (
+            <MarkdownAnswer markdown={markdown} />
+          ) : paragraphs.length === 0 ? (
             <p className="font-dyslexic opacity-70">Teks bacaan belum tersedia untuk materi ini.</p>
           ) : (
             <FocusRulerSentences
@@ -121,7 +181,7 @@ export function ReadingPassage({
               className="reading-area !max-w-none !bg-transparent !p-0"
             />
           )}
-          {focusRuler && paragraphs.length > 0 && (
+          {focusRuler && !markdown && paragraphs.length > 0 && (
             <p className="mt-3 text-xs opacity-60">
               Ketuk kalimat untuk menyorotnya agar mata tidak kehilangan baris.
             </p>

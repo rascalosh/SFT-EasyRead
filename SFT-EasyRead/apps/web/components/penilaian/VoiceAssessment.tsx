@@ -20,10 +20,10 @@ import { logActivity, type ActiveMaterial } from "@/lib/session"
 import { useReadingSettings } from "@/lib/use-reading-settings"
 import { useSpeaker } from "@/lib/use-speaker"
 import { getRecognitionCtor, type SpeechRecognitionLike } from "@/lib/speech-recognition"
-import { assessSpeech, fetchCachedSummary, isOk, type ApiSpeechResult } from "@/lib/api"
+import { assessSpeech, isOk, type ApiSpeechResult } from "@/lib/api"
 import { hrefFor } from "@/lib/nav"
-import { parseSummaryPayload } from "@/lib/ai-result"
-import { blocksFromSummary, selectReadingExcerpt, type ReadingExcerpt } from "@/lib/reading-excerpt"
+import { selectReadingExcerpt } from "@/lib/reading-excerpt"
+import { useMaterialPassage } from "@/lib/use-material-passage"
 import { ReadingPassage } from "./ReadingPassage"
 
 type Phase = "idle" | "recording" | "analyzing" | "done"
@@ -121,57 +121,16 @@ export default function VoiceAssessment({
     const finishRef = useRef<(auto?: boolean) => Promise<void>>(async () => {})
 
     const title = material.title
-    const originalExcerpt = useMemo(() => {
-        const blocks =
-            material.paragraphs?.length
-                ? material.paragraphs
-                : material.originalText?.trim()
-                    ? [material.originalText]
-                    : []
-        return selectReadingExcerpt(blocks)
-    }, [material.paragraphs, material.originalText])
     const documentId = material?.id && UUID.test(material.id) ? material.id : null
-    const [summaryExcerpt, setSummaryExcerpt] = useState<ReadingExcerpt | null>(null)
-    const [passageReady, setPassageReady] = useState(!documentId)
-
-    useEffect(() => {
-        if (!documentId) {
-            setSummaryExcerpt(null)
-            setPassageReady(true)
-            return
-        }
-
-        let alive = true
-        setPassageReady(false)
-        setSummaryExcerpt(null)
-
-        void fetchCachedSummary(documentId).then((cached) => {
-            if (!alive) return
-
-            if (isOk(cached)) {
-                const view = parseSummaryPayload(cached.data)
-                const blocks = blocksFromSummary(view.summary, view.points)
-                if (blocks.length) {
-                    setSummaryExcerpt(selectReadingExcerpt(blocks))
-                    setPassageReady(true)
-                    return
-                }
-            }
-
-            setSummaryExcerpt(null)
-            setPassageReady(true)
-        })
-
-        return () => {
-            alive = false
-        }
-    }, [documentId])
-
-    const excerpt = summaryExcerpt ?? originalExcerpt
-    const fromSummary = summaryExcerpt !== null
+    const passage = useMaterialPassage(material)
+    const excerpt = useMemo(
+        () => selectReadingExcerpt(passage.paragraphs),
+        [passage.paragraphs],
+    )
     const paragraphs = excerpt.paragraphs
     const referenceText = paragraphs.join(" ").trim()
     const wordCount = excerpt.words
+    const passageReady = passage.ready
 
     const busy = phase === "recording" || phase === "analyzing"
 
@@ -504,9 +463,15 @@ export default function VoiceAssessment({
                     <ReadingPassage
                         title={title}
                         paragraphs={paragraphs}
-                        label={fromSummary ? "Ringkasan yang dibaca" : excerpt.truncated ? "Bagian yang dibaca" : "Teks Bacaan"}
+                        label={excerpt.truncated ? `${passage.label} · cuplikan` : passage.label}
                         speaking={speaker.speaking && speaker.speakingKey === "passage"}
                         onToggleListen={speaker.supported ? () => speaker.toggle(referenceText, "passage") : undefined}
+                        source={passage.source}
+                        onSourceChange={(next) => {
+                            speaker.stop()
+                            passage.setSource(next)
+                        }}
+                        sourceOptions={passage.options}
                     />
                     ) : (
                     <Card>
@@ -572,7 +537,14 @@ export default function VoiceAssessment({
                     <ReadingPassage
                         title={title}
                         paragraphs={paragraphs}
-                        label="Bacalah teks ini"
+                        label={excerpt.truncated ? `${passage.label} · cuplikan` : passage.label}
+                        source={passage.source}
+                        onSourceChange={(next) => {
+                            speaker.stop()
+                            passage.setSource(next)
+                        }}
+                        sourceLocked
+                        sourceOptions={passage.options}
                     />
                 </>
             )}

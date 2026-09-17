@@ -25,6 +25,7 @@ import { useSpeaker } from "@/lib/use-speaker"
 import { useDictation } from "@/lib/use-dictation"
 import { hrefFor } from "@/lib/nav"
 import { ReadingPassage } from "@/components/penilaian/ReadingPassage"
+import { useMaterialPassage } from "@/lib/use-material-passage"
 
 type Analysis = {
   ok: boolean
@@ -136,13 +137,7 @@ export default function ComprehensionCheck({
   }, [documentId, reloadToken])
 
   const title = material?.title ?? "Materi"
-  const paragraphs =
-    material?.paragraphs?.length
-      ? material.paragraphs
-      : material?.originalText?.trim()
-        ? [material.originalText]
-        : []
-  const passageText = paragraphs.join(" ").trim()
+  const passage = useMaterialPassage(material)
   const questions = serverQuestions ?? []
   const total = questions.length
   // Sebelum effect pertama berjalan, soal masih null; jangan sempat menampilkan
@@ -254,13 +249,20 @@ export default function ComprehensionCheck({
         <div className="mx-auto w-full max-w-3xl space-y-6">
           <ReadingPassage
             title={title}
-            paragraphs={paragraphs}
-            label="Bacaan"
+            paragraphs={passage.paragraphs}
+            markdown={passage.markdown}
+            label={passage.label}
             collapsible
             defaultOpen={false}
             speaking={speaker.speaking && speaker.speakingKey === "passage"}
-            onToggleListen={speaker.supported ? () => speaker.toggle(passageText, "passage") : undefined}
+            onToggleListen={speaker.supported ? () => speaker.toggle(passage.listenText, "passage") : undefined}
             listenLabel="Dengarkan"
+            source={passage.source}
+            onSourceChange={(next) => {
+              speaker.stop()
+              passage.setSource(next)
+            }}
+            sourceOptions={passage.options}
           />
 
           {finished ? (

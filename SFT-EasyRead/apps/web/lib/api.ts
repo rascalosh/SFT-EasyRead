@@ -235,3 +235,8 @@ export function assessSpeech(payload: ApiSpeechRequest) {
 export function fetchCachedSummary(documentId: string) {
     return request<unknown>(`/api/documents/${documentId}/summary`)
 }
+
+/** Hasil Simplify yang sudah tersimpan. 404 = belum pernah dibuat. */
+export function fetchCachedSimplify(documentId: string, style: "plain" | "structured" = "plain") {
+    return request<unknown>(`/api/documents/${documentId}/simplify?style=${style}`)
+}

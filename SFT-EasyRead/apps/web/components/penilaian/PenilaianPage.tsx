@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { Card, Button, Badge, Tabs } from "@/components/shared/ui"
+import { Card, Button, Tabs } from "@/components/shared/ui"
 import { IconMic, IconClipboard, IconBook } from "@/components/shared/icons"
 import ComprehensionCheck from "@/components/shared/ComprehensionCheck"
 import VoiceAssessment from "./VoiceAssessment"
@@ -50,7 +50,6 @@ export default function PenilaianPage() {
 
   // Kembali ke atas saat berpindah mode supaya langkah pertama langsung terlihat.
   useEffect(() => {
-    if (typeof window === "undefined") return
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [type])
 
@@ -60,16 +59,9 @@ export default function PenilaianPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
-          <IconMic className="text-brand" /> Reading Assessment
-        </h1>
-        {material && (
-          <Badge tone="brand" icon={<IconBook width={13} height={13} />} className="max-w-[16rem] truncate">
-            {material.title}
-          </Badge>
-        )}
-      </div>
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
+        <IconMic className="text-brand" /> Reading Assessment
+      </h1>
 
       {showBoth && (
         <Tabs<AssessType>
