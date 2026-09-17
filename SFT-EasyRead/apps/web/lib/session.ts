@@ -86,7 +86,7 @@ export const READING_CONTRAST_OPTIONS = [
     id: "web-gray",
     label: "Halaman web · abu terang",
     background: "#eeeeee",
-    text: "#111111",
+    text: "#1B3C53",
   },
   {
     id: "paper-black",
@@ -503,6 +503,7 @@ export async function syncSettingsFromServer(): Promise<ReadingSettings | null> 
   const incoming = { ...result.data } as Partial<ReadingSettings>
   if (incoming.focusRulerColor == null) delete incoming.focusRulerColor
   if (incoming.focusRulerOpacity == null) delete incoming.focusRulerOpacity
+  if (incoming.simplifyStyle == null) delete incoming.simplifyStyle
 
   const merged = normalizeSettings({
     ...loadSettings(),

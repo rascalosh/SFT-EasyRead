@@ -162,7 +162,7 @@ export default function ReadingInterface() {
       </div>
 
       <div
-        className="rounded-[var(--radius-card)] border border-line p-6 sm:p-10 transition-colors"
+        className="rounded-[var(--radius-card)] border border-line p-6 sm:p-10"
         style={{ backgroundColor: contrast.background, color: contrast.text }}
       >
         <div

@@ -79,7 +79,7 @@ export default function Settings() {
                 Kontras teks & latar bacaan
               </label>
               <p className="mb-2 text-xs text-ink-mute">
-                Pilih kombinasi warna dengan kontras luminansi tinggi. Ada juga warna halaman web biasa: abu terang dan teks hitam.
+                Pilih kombinasi warna dengan kontras luminansi tinggi. Ada juga warna latar situs ini: abu terang dan teks tinta.
               </p>
               <div
                 className="grid grid-cols-1 gap-2 sm:grid-cols-2"
