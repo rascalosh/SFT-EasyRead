@@ -218,7 +218,7 @@ export function simplifyReaderNotes(view: SimplifyView | null | undefined): Read
   } else if (view.difficulty === "hard") {
     notes.push({ text: "Masih sulit dibaca", tone: "warn" })
   } else {
-    notes.push({ text: "Tekan Proses Ulang untuk cek", tone: "neutral" })
+    notes.push({ text: "Tekan Proses ulang untuk cek", tone: "neutral" })
   }
 
   if (view.validationStatus === "valid") {
@@ -251,11 +251,11 @@ export function summaryReaderNotes(view: SummaryView | null | undefined): string
 
   if (view.level != null) {
     if (view.level <= 4) {
-      notes.push(likeSchool ? `Ringkasan ini mudah dibaca, ${likeSchool}.` : "Ringkasan ini mudah dibaca.")
+      notes.push(likeSchool ? `Inti singkat ini mudah dibaca, ${likeSchool}.` : "Inti singkat ini mudah dibaca.")
     } else if (view.level <= 6) {
-      notes.push(likeSchool ? `Ringkasan ini cukup mudah, ${likeSchool}.` : "Ringkasan ini cukup mudah.")
+      notes.push(likeSchool ? `Inti singkat ini cukup mudah, ${likeSchool}.` : "Inti singkat ini cukup mudah.")
     } else {
-      notes.push(likeSchool ? `Ringkasan ini masih cukup berat, ${likeSchool}.` : "Ringkasan ini masih cukup berat.")
+      notes.push(likeSchool ? `Inti singkat ini masih cukup berat, ${likeSchool}.` : "Inti singkat ini masih cukup berat.")
     }
   }
 

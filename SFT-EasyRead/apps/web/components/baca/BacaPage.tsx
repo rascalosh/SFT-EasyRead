@@ -157,7 +157,7 @@ export default function ReadingInterface() {
           )}
         </div>
         <Button onClick={() => router.push(hrefFor("simplify"))}>
-          <IconSparkle width={17} height={17} /> Simplify Text
+          <IconSparkle width={17} height={17} /> Simplify
         </Button>
       </div>
 
@@ -285,14 +285,14 @@ export default function ReadingInterface() {
             {ttsActive ? "Hentikan Narasi" : "Text-to-Speech"}
           </Button>
           <span className="text-sm text-ink-mute">
-            Dengarkan teks sambil kata disorot secara real-time.
+            Dengarkan teks sambil kata disorot saat dibacakan.
           </span>
           <Button
             variant="outline"
             className="ml-auto"
             onClick={() => router.push(hrefFor("tracking"))}
           >
-            Buka Multisensory Tracking
+            Multisensory Tracking
           </Button>
         </div>
       </Card>

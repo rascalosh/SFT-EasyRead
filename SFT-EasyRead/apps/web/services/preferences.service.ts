@@ -16,6 +16,7 @@ export type PreferencesView = {
     focusRuler: boolean
     language: string
     simplifyStyle: "plain" | "structured"
+    assessmentView: "voice" | "quiz" | "both"
 }
 
 /** Harus sama dengan `defaultSettings` di lib/session.ts. */
@@ -30,6 +31,7 @@ export const DEFAULT_PREFERENCES: PreferencesView = {
     focusRuler: true,
     language: "id-ID",
     simplifyStyle: "plain",
+    assessmentView: "both",
 }
 
 function toView(row: Record<string, unknown> | null): PreferencesView {
@@ -54,6 +56,10 @@ function toView(row: Record<string, unknown> | null): PreferencesView {
         focusRuler: row.focus_ruler_enabled === true,
         language: typeof row.language === "string" ? row.language : DEFAULT_PREFERENCES.language,
         simplifyStyle: row.simplify_style === "structured" ? "structured" : "plain",
+        assessmentView:
+            row.assessment_view === "voice" || row.assessment_view === "quiz"
+                ? row.assessment_view
+                : "both",
     }
 }
 
@@ -84,6 +90,7 @@ export async function savePreferences(userId: string, input: unknown): Promise<P
     if (patch.focusRuler !== undefined) payload.focus_ruler_enabled = patch.focusRuler
     if (patch.language !== undefined) payload.language = patch.language
     if (patch.simplifyStyle !== undefined) payload.simplify_style = patch.simplifyStyle
+    if (patch.assessmentView !== undefined) payload.assessment_view = patch.assessmentView
 
     let { data, error } = await preferencesRepository.upsertPreferences(
         payload as preferencesRepository.PreferencesUpsert,
@@ -91,8 +98,9 @@ export async function savePreferences(userId: string, input: unknown): Promise<P
 
     // Kolom baru belum ada di database ini: jangan sampai setelan lain ikut
     // gagal tersimpan. Simpan tanpa kolom itu; nilainya tetap aman di perangkat.
-    if (error && isUndefinedColumn(error) && "simplify_style" in payload) {
+    if (error && isUndefinedColumn(error)) {
         delete payload.simplify_style
+        delete payload.assessment_view
         ;({ data, error } = await preferencesRepository.upsertPreferences(
             payload as preferencesRepository.PreferencesUpsert,
         ))

@@ -165,11 +165,15 @@ export type ReadingSettings = {
   focusRulerMode: FocusRulerMode
   /** Versi hasil Simplify: paragraf sederhana, atau terstruktur ala asisten AI. */
   simplifyStyle: SimplifyStyle
+  /** Bagian Reading Assessment yang ditampilkan. */
+  assessmentView: AssessmentView
 }
 
 export type FocusRulerMode = "sentence" | "line"
 
 export type SimplifyStyle = "plain" | "structured"
+
+export type AssessmentView = "voice" | "quiz" | "both"
 
 export const SIMPLIFY_STYLE_OPTIONS: {
   id: SimplifyStyle
@@ -179,20 +183,46 @@ export const SIMPLIFY_STYLE_OPTIONS: {
 }[] = [
   {
     id: "plain",
-    label: "Versi 1 · Teks sederhana",
-    short: "Teks sederhana",
-    desc: "Paragraf asli ditulis ulang dengan kalimat pendek dan kata yang lebih mudah. Urutan dan bentuknya tetap seperti teks asli.",
+    label: "Versi 1 · Paragraf",
+    short: "Paragraf",
+    desc: "Seluruh teks ditulis ulang jadi paragraf pendek. Urutan isinya tetap seperti teks asli.",
   },
   {
     id: "structured",
     label: "Versi 2 · Terstruktur",
     short: "Terstruktur",
-    desc: "Inti dulu, lalu judul bagian, poin-poin, kata kunci tebal, tabel untuk perbandingan, dan kotak Catatan — seperti jawaban asisten AI.",
+    desc: "Seluruh teks disusun ulang: inti dulu, lalu judul bagian, poin, kata kunci tebal, dan tabel — tetap bacaan lengkap, bukan inti singkat.",
   },
 ]
 
 export function isSimplifyStyle(value: unknown): value is SimplifyStyle {
   return value === "plain" || value === "structured"
+}
+
+export const ASSESSMENT_VIEW_OPTIONS: {
+  id: AssessmentView
+  label: string
+  desc: string
+}[] = [
+  {
+    id: "both",
+    label: "Keduanya",
+    desc: "Penilaian Suara dan Kuis Pemahaman, dengan tab untuk berpindah.",
+  },
+  {
+    id: "voice",
+    label: "Penilaian Suara",
+    desc: "Hanya baca nyaring. Kuis tidak ditampilkan.",
+  },
+  {
+    id: "quiz",
+    label: "Kuis Pemahaman",
+    desc: "Hanya kuis. Penilaian suara tidak ditampilkan.",
+  },
+]
+
+export function isAssessmentView(value: unknown): value is AssessmentView {
+  return value === "voice" || value === "quiz" || value === "both"
 }
 
 const SETTINGS_KEY = "easyread-settings"
@@ -217,6 +247,7 @@ export const defaultSettings: ReadingSettings = {
   focusRuler: true,
   focusRulerMode: "sentence",
   simplifyStyle: "plain",
+  assessmentView: "both",
 }
 
 export const TTS_SPEED_OPTIONS = [
@@ -289,6 +320,7 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
     focusRuler: raw.focusRuler !== false,
     focusRulerMode: raw.focusRulerMode === "line" ? "line" : "sentence",
     simplifyStyle: isSimplifyStyle(raw.simplifyStyle) ? raw.simplifyStyle : "plain",
+    assessmentView: isAssessmentView(raw.assessmentView) ? raw.assessmentView : "both",
   }
 }
 
@@ -425,6 +457,7 @@ export function saveSettingsEverywhere(settings: ReadingSettings) {
         focusRuler: settings.focusRuler,
         language: settings.language,
         simplifyStyle: settings.simplifyStyle,
+        assessmentView: settings.assessmentView,
       })
     } catch {
       // Gagal menyimpan ke akun tidak boleh mengganggu; nilai lokal sudah aman.

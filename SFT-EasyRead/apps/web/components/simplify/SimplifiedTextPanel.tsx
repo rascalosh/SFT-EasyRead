@@ -25,15 +25,18 @@ export function SimplifiedTextPanel({
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
   const notes = done ? simplifyReaderNotes(view) : []
   const markdown = done ? view?.markdown ?? null : null
-  const styleLabel = SIMPLIFY_STYLE_OPTIONS.find((option) => option.id === style)?.short ?? "Teks sederhana"
+  const styleLabel = SIMPLIFY_STYLE_OPTIONS.find((option) => option.id === style)?.short ?? "Paragraf"
   const paragraphs = text.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)
 
   return (
     <Card className={done ? "border-brand" : ""} variant="reading">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <IconSparkle width={17} height={17} /> Teks yang Disederhanakan
-        </h2>
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <IconSparkle width={17} height={17} /> Bacaan lebih mudah
+          </h2>
+          <p className="mt-0.5 text-xs opacity-70">Seluruh teks, dengan kata yang lebih mudah.</p>
+        </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           <Link
             href={hrefFor("settings")}
@@ -64,9 +67,9 @@ export function SimplifiedTextPanel({
         <div className="grid h-full min-h-40 place-items-center text-center text-sm opacity-60">
           {loading
             ? style === "structured"
-              ? "AI sedang menyusun penjelasan terstruktur…"
-              : "AI sedang menyederhanakan teks…"
-            : "Tekan \"Sederhanakan Teks\" untuk melihat versi yang lebih mudah dibaca."}
+              ? "AI sedang menyusun bacaan terstruktur…"
+              : "AI sedang menulis ulang bacaan agar lebih mudah…"
+            : "Tekan \"Buat bacaan mudah\" untuk melihat seluruh teks dengan kata yang lebih mudah."}
         </div>
       )}
     </Card>

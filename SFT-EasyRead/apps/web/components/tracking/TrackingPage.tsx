@@ -277,10 +277,10 @@ export default function AudioVisualTracking() {
       <div className="space-y-6">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
-            <IconWave className="text-brand" /> Multisensory Audio-Visual Tracking
+            <IconWave className="text-brand" /> Multisensory Tracking
           </h1>
           <p className="text-sm text-ink-soft">
-            Dengarkan narasi dan ikuti sorotan kata secara real-time.
+            Dengarkan narasi dan ikuti sorotan kata saat teks dibacakan.
           </p>
         </div>
 
@@ -294,7 +294,7 @@ export default function AudioVisualTracking() {
               <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-soft text-brand">
                 <IconBook width={22} height={22} />
               </span>
-              <h2 className="mt-4 font-semibold text-ink">Belum ada materi untuk dilacak</h2>
+              <h2 className="mt-4 font-semibold text-ink">Belum ada materi untuk diikuti</h2>
               <p className="mt-1 max-w-md text-sm text-ink-soft">
                 {error ?? "Buka materi dulu, lalu mulai Multisensory Tracking dari pemilih aktivitas."}
               </p>

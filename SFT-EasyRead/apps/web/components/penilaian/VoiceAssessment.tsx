@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card, Button, ScoreMeter, ProgressBar, ProgressRing, StepIndicator, Alert, cx, type Tone } from "@/components/shared/ui"
+import { Card, Button, ScoreMeter, ProgressBar, ProgressRing, Alert, cx, type Tone } from "@/components/shared/ui"
 import {
     IconMic,
     IconSpeaker,
@@ -38,8 +38,6 @@ const MAX_SECONDS = 120
 
 const BAR_COUNT = 22
 
-const STEPS = ["Siap-siap", "Baca Nyaring", "Hasil"]
-
 function formatClock(totalSeconds: number) {
     const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0")
     const s = String(totalSeconds % 60).padStart(2, "0")
@@ -69,7 +67,7 @@ function describeScore(score: number): { label: string; tone: Tone; message: str
             label: "Cukup lancar",
             tone: "brand",
             message: "Kamu sudah berusaha dengan baik. Pelan-pelan saja, tidak perlu terburu-buru.",
-            practice: "Latih kata yang panjang di Latihan Kata, lalu baca ulang teks ini.",
+            practice: "Latih kata yang panjang di Syllable Breaker, lalu baca ulang teks ini.",
         }
     }
     return {
@@ -463,7 +461,6 @@ export default function VoiceAssessment({
         setResult(null)
     }
 
-    const stepIndex = phase === "idle" ? 0 : phase === "done" ? 2 : 1
     const summary = result ? describeScore(result.averageScore) : null
     const feedbackText = summary
         ? `Skor kamu ${result?.averageScore} dari 100. ${summary.label}. ${summary.message} Saran latihan: ${summary.practice}`
@@ -471,15 +468,6 @@ export default function VoiceAssessment({
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <StepIndicator steps={STEPS} current={stepIndex} />
-                {phase === "idle" && (
-                    <span className="text-xs text-ink-mute">
-                        Suaramu diproses di perangkatmu sendiri, tidak diunggah.
-                    </span>
-                )}
-            </div>
-
             {micError && (
                 <Alert tone="warn" title="Belum bisa mulai" onClose={() => setMicError(null)}>
                     {micError}
@@ -493,20 +481,6 @@ export default function VoiceAssessment({
                         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                             <div className="min-w-0">
                                 <h2 className="text-heading-3 text-ink">Baca teks di bawah dengan suara nyaring</h2>
-                                <ol className="mt-3 space-y-2 text-sm text-ink-soft">
-                                    <li className="flex items-start gap-2.5">
-                                        <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-strong">1</span>
-                                        <span>Kalau mau, tekan <strong>Dengarkan contoh</strong> untuk tahu cara membacanya.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2.5">
-                                        <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-strong">2</span>
-                                        <span>Tekan <strong>Mulai Membaca</strong>, lalu baca pelan dan jelas. Tidak perlu terburu-buru.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2.5">
-                                        <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-strong">3</span>
-                                        <span>Selesai membaca? Tekan <strong>Selesai</strong>. Hasilnya langsung muncul.</span>
-                                    </li>
-                                </ol>
                             </div>
                             <div className="flex shrink-0 flex-col items-stretch gap-2 md:w-60">
                                 <Button
@@ -531,13 +505,6 @@ export default function VoiceAssessment({
                         title={title}
                         paragraphs={paragraphs}
                         label={fromSummary ? "Ringkasan yang dibaca" : excerpt.truncated ? "Bagian yang dibaca" : "Teks Bacaan"}
-                        note={
-                            fromSummary
-                                ? "Ini ringkasan materi. Kalimatnya lebih pendek supaya lebih mudah dibaca nyaring."
-                                : excerpt.truncated
-                                    ? "Cukup baca bagian ini saja. Teks dipendekkan supaya selesai dalam 2 menit."
-                                    : undefined
-                        }
                         speaking={speaker.speaking && speaker.speakingKey === "passage"}
                         onToggleListen={speaker.supported ? () => speaker.toggle(referenceText, "passage") : undefined}
                     />
@@ -606,13 +573,6 @@ export default function VoiceAssessment({
                         title={title}
                         paragraphs={paragraphs}
                         label="Bacalah teks ini"
-                        note={
-                            fromSummary
-                                ? "Baca ringkasan ini sampai selesai, lalu tekan Selesai."
-                                : excerpt.truncated
-                                    ? "Berhenti di kalimat terakhir yang tampil, lalu tekan Selesai."
-                                    : undefined
-                        }
                     />
                 </>
             )}

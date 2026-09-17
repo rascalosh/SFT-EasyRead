@@ -20,7 +20,7 @@ export function OriginalTextPanel({
       <textarea
         value={text}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Tempel atau ketik teks yang ingin disederhanakan…"
+        placeholder="Tempel atau ketik teks yang ingin dibaca lebih mudah…"
         className="reading-area min-h-40 w-full flex-1 resize-y border border-[color-mix(in_srgb,var(--reading-fg)_18%,transparent)] !mt-0 !max-w-none !p-4 placeholder:opacity-50 outline-none transition-all duration-150 focus:border-brand focus:ring-2 focus:ring-brand/20"
       />
     </Card>

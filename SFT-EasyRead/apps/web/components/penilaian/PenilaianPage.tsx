@@ -7,7 +7,9 @@ import { IconMic, IconClipboard, IconBook } from "@/components/shared/icons"
 import ComprehensionCheck from "@/components/shared/ComprehensionCheck"
 import VoiceAssessment from "./VoiceAssessment"
 import { useActiveDocument } from "@/lib/use-active-document"
+import { useReadingSettings } from "@/lib/use-reading-settings"
 import { hrefFor } from "@/lib/nav"
+import type { AssessmentView } from "@/lib/session"
 
 type AssessType = "suara" | "kuis"
 
@@ -29,11 +31,22 @@ const typeInfo: Record<AssessType, { title: string; desc: string; icon: ReactNod
   },
 }
 
+function typeFromView(view: AssessmentView): AssessType {
+  return view === "quiz" ? "kuis" : "suara"
+}
+
 export default function PenilaianPage() {
   const router = useRouter()
   const { material, loading, error } = useActiveDocument()
-  const [type, setType] = useState<AssessType>("suara")
+  const { settings } = useReadingSettings()
+  const showBoth = settings.assessmentView === "both"
+  const [type, setType] = useState<AssessType>(() => typeFromView(settings.assessmentView))
   const [voiceBusy, setVoiceBusy] = useState(false)
+
+  useEffect(() => {
+    if (showBoth) return
+    setType(typeFromView(settings.assessmentView))
+  }, [settings.assessmentView, showBoth])
 
   // Kembali ke atas saat berpindah mode supaya langkah pertama langsung terlihat.
   useEffect(() => {
@@ -43,18 +56,14 @@ export default function PenilaianPage() {
 
   const locked = voiceBusy
   const info = typeInfo[type]
+  const active = showBoth ? type : typeFromView(settings.assessmentView)
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
-            <IconMic className="text-brand" /> Penilaian Membaca
-          </h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            Pilih satu cara, lalu ikuti langkahnya satu per satu. Tidak ada jawaban salah, ini untuk mengenal kemampuanmu.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
+          <IconMic className="text-brand" /> Reading Assessment
+        </h1>
         {material && (
           <Badge tone="brand" icon={<IconBook width={13} height={13} />} className="max-w-[16rem] truncate">
             {material.title}
@@ -62,16 +71,18 @@ export default function PenilaianPage() {
         )}
       </div>
 
-      <Tabs<AssessType>
-        value={type}
-        onChange={(next) => {
-          if (locked) return
-          setType(next)
-        }}
-        tabs={ASSESS_TABS}
-      />
+      {showBoth && (
+        <Tabs<AssessType>
+          value={type}
+          onChange={(next) => {
+            if (locked) return
+            setType(next)
+          }}
+          tabs={ASSESS_TABS}
+        />
+      )}
 
-      {locked && (
+      {locked && showBoth && (
         <p className="text-xs text-ink-mute" role="status">
           Selesaikan atau batalkan rekaman dulu sebelum berpindah.
         </p>
@@ -102,7 +113,7 @@ export default function PenilaianPage() {
             </span>
             <h2 className="mt-4 font-semibold text-ink">Belum ada materi untuk dinilai</h2>
             <p className="mt-1 max-w-md text-sm text-ink-soft">
-              {error ?? "Buka materi dulu, lalu mulai Penilaian Membaca dari pemilih aktivitas."}
+              {error ?? "Buka materi dulu, lalu mulai Reading Assessment dari pemilih aktivitas."}
             </p>
             <Button className="mt-5" onClick={() => router.push(hrefFor("home"))}>
               Pilih Materi
@@ -116,14 +127,18 @@ export default function PenilaianPage() {
               {error}
             </p>
           )}
-          {type === "suara" ? (
+          {active === "suara" ? (
             <VoiceAssessment
               material={material}
               onBusyChange={setVoiceBusy}
-              onContinueToQuiz={() => setType("kuis")}
+              onContinueToQuiz={showBoth ? () => setType("kuis") : undefined}
             />
           ) : (
-            <ComprehensionCheck embedded material={material} onSwitchToVoice={() => setType("suara")} />
+            <ComprehensionCheck
+              embedded
+              material={material}
+              onSwitchToVoice={showBoth ? () => setType("suara") : undefined}
+            />
           )}
         </>
       )}

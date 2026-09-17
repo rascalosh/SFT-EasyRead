@@ -37,6 +37,9 @@ export const preferencesSchema = z.object({
 
     /** Versi hasil Simplify. CHECK reading_preferences.simplify_style. */
     simplifyStyle: z.enum(["plain", "structured"]),
+
+    /** Bagian Reading Assessment yang tampil. CHECK reading_preferences.assessment_view. */
+    assessmentView: z.enum(["voice", "quiz", "both"]),
 })
 
 export type PreferencesPayload = z.infer<typeof preferencesSchema>

@@ -39,7 +39,7 @@ function simplifyEndpoint(documentId: string, style: SimplifyStyle) {
 
 /** Shell stabil untuk SSR + Suspense — hindari early-return yang beda dengan client. */
 export function SimplifyPageShell({
-  subtitle = "AI menyederhanakan teks yang sulit dan merangkum ide utama secara cepat.",
+  subtitle = "AI menulis ulang seluruh teks agar lebih mudah dibaca, lalu merangkum intinya.",
   sourceText = "",
   onSourceChange,
   resultText = "",
@@ -77,7 +77,7 @@ export function SimplifyPageShell({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
-            <IconSparkle className="text-brand" /> AI Smart Simplifier & Summary
+            <IconSparkle className="text-brand" /> Simplify
           </h1>
           <p className="text-sm text-ink-soft" suppressHydrationWarning>
             {subtitle}
@@ -86,7 +86,7 @@ export function SimplifyPageShell({
         <div className="flex items-center gap-2">
           <Badge tone="brand"><IconSparkle width={13} height={13} /> Dihasilkan oleh AI</Badge>
           <Button onClick={onSimplify} disabled={loading || !sourceText.trim()}>
-            {loading ? "Menyederhanakan…" : done ? "Proses Ulang" : "Sederhanakan Teks"}
+            {loading ? "Menyiapkan…" : done ? "Proses ulang" : "Buat bacaan mudah"}
           </Button>
         </div>
       </div>
@@ -317,9 +317,9 @@ export default function SimplifyPage() {
     : material
       ? fromCache
         ? staleScores
-          ? `Menyederhanakan: ${material.title} · hasil tersimpan · tekan Proses Ulang untuk cek apakah sudah lebih mudah`
-          : `Menyederhanakan: ${material.title} · hasil tersimpan`
-        : `Menyederhanakan: ${material.title}`
+          ? `Simplify: ${material.title} · hasil tersimpan · tekan Proses ulang untuk cek apakah sudah lebih mudah`
+          : `Simplify: ${material.title} · hasil tersimpan`
+        : `Simplify: ${material.title}`
       : "Belum ada materi dipilih. Tempel teks di bawah, atau buka materi dulu dari sidebar."
 
   return (
@@ -351,7 +351,7 @@ export default function SimplifyPage() {
       onCopy={copySummary}
       emptyMaterialHint={
         !booting && !sourceText.trim() && material
-          ? `Materi “${material.title}” belum punya teks tersimpan. Tempel teks di panel atas, lalu sederhanakan.`
+          ? `Materi “${material.title}” belum punya teks tersimpan. Tempel teks di panel atas, lalu tekan Buat bacaan mudah.`
           : null
       }
     />

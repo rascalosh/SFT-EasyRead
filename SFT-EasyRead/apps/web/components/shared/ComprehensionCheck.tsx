@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card, Button, ProgressBar, ProgressRing, StatusPill, Alert, cx, type Tone } from "@/components/shared/ui"
+import { Card, Button, ProgressBar, ProgressRing, StatusPill, Alert, cx } from "@/components/shared/ui"
 import {
   IconClipboard,
   IconSparkle,
@@ -44,19 +44,6 @@ type Question = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const MAX_ANSWER = 500
-
-/** Skor 0–2 dari server diubah ke kata yang langsung dimengerti. */
-function describeLevel(value: number): { word: string; tone: Tone } {
-  if (value >= 2) return { word: "Tepat", tone: "good" }
-  if (value === 1) return { word: "Sebagian", tone: "brand" }
-  return { word: "Belum", tone: "warn" }
-}
-
-const DETAIL_LABELS: { key: keyof Pick<Analysis, "ide" | "eksplisit" | "konteks">; label: string; help: string }[] = [
-  { key: "ide", label: "Ide utama", help: "Menangkap inti bacaan" },
-  { key: "eksplisit", label: "Informasi dari bacaan", help: "Memakai fakta yang ada di teks" },
-  { key: "konteks", label: "Sesuai konteks", help: "Nyambung dengan pertanyaannya" },
-]
 
 export default function ComprehensionCheck({
   embedded = false,
@@ -453,33 +440,6 @@ export default function ComprehensionCheck({
                     </div>
 
                     <p className="mt-3 font-dyslexic !text-base">{result.feedback}</p>
-
-                    <ul className="mt-4 grid gap-2 sm:grid-cols-3">
-                      {DETAIL_LABELS.map(({ key, label, help }) => {
-                        const level = describeLevel(result[key])
-                        return (
-                          <li key={key} className="rounded-lg bg-surface/80 px-3 py-2.5">
-                            <div className="flex items-center justify-between gap-2 text-sm">
-                              <span className="font-medium text-ink">{label}</span>
-                              <span
-                                className={cx(
-                                  "text-xs font-semibold",
-                                  level.tone === "good"
-                                    ? "text-[var(--color-good)]"
-                                    : level.tone === "brand"
-                                      ? "text-brand"
-                                      : "text-[var(--color-warn)]",
-                                )}
-                              >
-                                {level.word}
-                              </span>
-                            </div>
-                            <ProgressBar value={(result[key] / 2) * 100} tone={level.tone} size="xs" className="mt-1.5" />
-                            <p className="mt-1 text-[11px] text-ink-mute">{help}</p>
-                          </li>
-                        )
-                      })}
-                    </ul>
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-2">

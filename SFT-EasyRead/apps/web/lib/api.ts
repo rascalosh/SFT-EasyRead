@@ -63,6 +63,8 @@ export type ApiPreferences = {
     language: string
     /** "plain" | "structured" — versi hasil Simplify. */
     simplifyStyle: string
+    /** "voice" | "quiz" | "both" — bagian Reading Assessment yang tampil. */
+    assessmentView: string
 }
 
 export function fetchPreferences() {

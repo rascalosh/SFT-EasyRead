@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, SectionTitle, SegmentedControl, cx } from "@/components/shared/ui"
-import { IconSettings, IconBook, IconSpeaker, IconTextSize, IconSparkle } from "@/components/shared/icons"
+import { IconSettings, IconBook, IconSpeaker, IconTextSize, IconSparkle, IconMic } from "@/components/shared/icons"
 import SettingsToggle from "./SettingsToggle"
 import {
   loadSettings,
@@ -17,6 +17,7 @@ import {
   READING_CONTRAST_OPTIONS,
   TTS_SPEED_OPTIONS,
   SIMPLIFY_STYLE_OPTIONS,
+  ASSESSMENT_VIEW_OPTIONS,
   type ReadingSettings,
   type UiFontId,
   type ReadingFontId,
@@ -270,20 +271,20 @@ export default function Settings() {
             </select>
           </div>
           <p className="mt-4 text-xs text-ink-mute">
-            Pengaturan ini dipakai di semua halaman bacaan, simplify, latihan kata, penilaian, dan tracking. Disimpan otomatis ke perangkat ini dan ke akunmu.
+            Pengaturan ini dipakai di semua halaman bacaan, Simplify, Syllable Breaker, Reading Assessment, dan Multisensory Tracking. Disimpan otomatis ke perangkat ini dan ke akunmu.
           </p>
         </Card>
 
         <Card className="lg:col-span-2">
-          <SectionTitle icon={<IconSparkle width={18} height={18} />} title="AI Smart Simplifier" />
+          <SectionTitle icon={<IconSparkle width={18} height={18} />} title="Bentuk bacaan mudah" />
           <p className="mb-3 text-xs text-ink-mute">
-            Pilih bentuk hasil di tab Simplify. Hasil tiap versi disimpan terpisah, jadi berganti versi
-            tidak menghapus hasil yang sudah ada.
+            Pilih bentuk bacaan lengkap di halaman Simplify. Ini bukan inti singkat.
+            Hasil tiap versi disimpan terpisah, jadi berganti versi tidak menghapus hasil yang sudah ada.
           </p>
           <div
             className="grid gap-2 sm:grid-cols-2"
             role="radiogroup"
-            aria-label="Versi hasil Simplify"
+            aria-label="Bentuk bacaan mudah"
           >
             {SIMPLIFY_STYLE_OPTIONS.map((option) => {
               const selected = settings.simplifyStyle === option.id
@@ -316,6 +317,51 @@ export default function Settings() {
                     <span className="mt-2 block" aria-hidden>
                       {option.id === "plain" ? <PlainPreview /> : <StructuredPreview />}
                     </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <SectionTitle icon={<IconMic width={18} height={18} />} title="Reading Assessment" />
+          <p className="mb-3 text-xs text-ink-mute">
+            Pilih bagian yang tampil di halaman Reading Assessment.
+          </p>
+          <div
+            className="grid gap-2 sm:grid-cols-3"
+            role="radiogroup"
+            aria-label="Bagian Reading Assessment"
+          >
+            {ASSESSMENT_VIEW_OPTIONS.map((option) => {
+              const selected = settings.assessmentView === option.id
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => update("assessmentView", option.id)}
+                  className={cx(
+                    "flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all",
+                    selected
+                      ? "border-brand bg-brand-soft/60 outline outline-2 outline-brand -outline-offset-2"
+                      : "border-line hover:border-brand/40",
+                  )}
+                >
+                  <span
+                    className={cx(
+                      "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2",
+                      selected ? "border-brand" : "border-line",
+                    )}
+                    aria-hidden
+                  >
+                    {selected && <span className="h-2.5 w-2.5 rounded-full bg-brand" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-ink">{option.label}</span>
+                    <span className="mt-0.5 block text-xs text-ink-soft">{option.desc}</span>
                   </span>
                 </button>
               )
