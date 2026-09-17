@@ -15,7 +15,7 @@ export type PreferencesView = {
     autoTts: boolean
     focusRuler: boolean
     language: string
-    simplifyStyle: "plain" | "structured"
+    simplifyStyle?: "plain" | "structured"
     assessmentView: "voice" | "quiz" | "both"
     /** Hanya dikirim jika kolom sudah ada di database. */
     focusRulerColor?: string
@@ -44,6 +44,7 @@ function toView(row: Record<string, unknown> | null): PreferencesView {
         const rest: PreferencesView = { ...DEFAULT_PREFERENCES }
         delete rest.focusRulerColor
         delete rest.focusRulerOpacity
+        delete rest.simplifyStyle
         return rest
     }
 
@@ -65,11 +66,14 @@ function toView(row: Record<string, unknown> | null): PreferencesView {
         autoTts: row.auto_tts === true,
         focusRuler: row.focus_ruler_enabled === true,
         language: typeof row.language === "string" ? row.language : DEFAULT_PREFERENCES.language,
-        simplifyStyle: row.simplify_style === "structured" ? "structured" : "plain",
         assessmentView:
             row.assessment_view === "voice" || row.assessment_view === "quiz"
                 ? row.assessment_view
                 : "both",
+    }
+
+    if (Object.prototype.hasOwnProperty.call(row, "simplify_style")) {
+        view.simplifyStyle = row.simplify_style === "structured" ? "structured" : "plain"
     }
 
     // Jangan kirim default kalau kolom migrasi belum ada — nanti menimpa nilai di perangkat.

@@ -110,7 +110,7 @@ export default function SimplifyPage() {
   const queryId = searchParams.get("id")
   // Versi hasil (Teks sederhana / Terstruktur) diatur di Pengaturan dan
   // ikut berubah langsung kalau pengguna menggantinya di tab lain.
-  const { settings } = useReadingSettings()
+  const { settings, ready: settingsReady } = useReadingSettings()
   const style = settings.simplifyStyle
 
   const [material, setMaterial] = useState<ActiveMaterial | null>(null)
@@ -126,6 +126,8 @@ export default function SimplifyPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!settingsReady) return
+
     let cancelled = false
 
     async function load() {
@@ -180,7 +182,9 @@ export default function SimplifyPage() {
 
           if (simplifyRes.ok) {
             const nextSimplify = parseSimplifyPayload(await simplifyRes.json())
-            if (nextSimplify.text) {
+            const usable =
+              style === "structured" ? Boolean(nextSimplify.markdown) : Boolean(nextSimplify.text)
+            if (usable) {
               setSimplifyView(nextSimplify)
               setResultText(nextSimplify.text)
               setDone(true)
@@ -222,7 +226,7 @@ export default function SimplifyPage() {
 
     void load()
     return () => { cancelled = true }
-  }, [queryId, router, style])
+  }, [queryId, router, style, settingsReady])
 
   const title = material?.title ?? "Teks baru"
 
@@ -288,6 +292,7 @@ export default function SimplifyPage() {
       const nextSummary = summaryPayload ? parseSummaryPayload(summaryPayload) : emptySummaryView()
 
       if (!nextSimplify.text) throw new Error("invalid-simplification")
+      if (style === "structured" && !nextSimplify.markdown) throw new Error("invalid-simplification")
       setSimplifyView(nextSimplify)
       setSummaryView(nextSummary)
       setResultText(nextSimplify.text)

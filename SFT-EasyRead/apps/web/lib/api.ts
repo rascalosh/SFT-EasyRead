@@ -62,7 +62,7 @@ export type ApiPreferences = {
     focusRuler: boolean
     language: string
     /** "plain" | "structured" — versi hasil Simplify. */
-    simplifyStyle: string
+    simplifyStyle?: string
     /** "voice" | "quiz" | "both" — bagian Reading Assessment yang tampil. */
     assessmentView: string
     /** Warna penggaris fokus, misalnya "yellow". */

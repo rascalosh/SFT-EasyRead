@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { IconButton } from "@/components/shared/ui"
+import { IconButton, cx } from "@/components/shared/ui"
 import { IconChevronDown, IconChevronUp } from "@/components/shared/icons"
 
 const THRESHOLD = 16
@@ -10,7 +10,7 @@ function scrollingElement() {
   return document.scrollingElement ?? document.documentElement
 }
 
-export default function ScrollEdgeButton() {
+export default function ScrollEdgeButton({ className }: { className?: string }) {
   const [toBottom, setToBottom] = useState(true)
 
   const update = useCallback(() => {
@@ -54,7 +54,7 @@ export default function ScrollEdgeButton() {
       rounded="full"
       icon={toBottom ? <IconChevronDown aria-hidden /> : <IconChevronUp aria-hidden />}
       onClick={handleClick}
-      className="fixed bottom-6 right-6 z-40 shadow-[var(--shadow-lg)]"
+      className={cx("fixed bottom-6 right-6 z-40 shadow-[var(--shadow-lg)]", className)}
     />
   )
 }

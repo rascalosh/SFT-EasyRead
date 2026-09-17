@@ -23,7 +23,10 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-canvas text-ink">
+    <div
+      className="min-h-screen overflow-x-hidden bg-canvas text-ink"
+      style={{ ["--shell-sidebar" as string]: sidebarOpen ? "16rem" : "0px" }}
+    >
       <TopBar
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((open) => !open)}

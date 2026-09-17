@@ -24,7 +24,8 @@ export function SimplifiedTextPanel({
 }) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
   const notes = done ? simplifyReaderNotes(view) : []
-  const markdown = done ? view?.markdown ?? null : null
+  const markdown = style === "structured" ? view?.markdown?.trim() || null : null
+  const showResult = done && (style === "structured" ? Boolean(markdown) : Boolean(text.trim()))
   const styleLabel = SIMPLIFY_STYLE_OPTIONS.find((option) => option.id === style)?.short ?? "Paragraf"
   const paragraphs = text.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)
 
@@ -35,7 +36,11 @@ export function SimplifiedTextPanel({
           <h2 className="flex items-center gap-2 font-semibold">
             <IconSparkle width={17} height={17} /> Bacaan lebih mudah
           </h2>
-          <p className="mt-0.5 text-xs opacity-70">Seluruh teks, dengan kata yang lebih mudah.</p>
+          <p className="mt-0.5 text-xs opacity-70">
+            {style === "structured"
+              ? "Seluruh teks, disusun dengan judul, poin, dan kata kunci."
+              : "Seluruh teks, dengan kata yang lebih mudah."}
+          </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           <Link
@@ -52,7 +57,7 @@ export function SimplifiedTextPanel({
           ))}
         </div>
       </div>
-      {done ? (
+      {showResult ? (
         <>
           {markdown ? (
             <MarkdownAnswer markdown={markdown} />
@@ -69,7 +74,9 @@ export function SimplifiedTextPanel({
             ? style === "structured"
               ? "AI sedang menyusun bacaan terstruktur…"
               : "AI sedang menulis ulang bacaan agar lebih mudah…"
-            : "Tekan \"Buat bacaan mudah\" untuk melihat seluruh teks dengan kata yang lebih mudah."}
+            : style === "structured"
+              ? "Tekan \"Buat bacaan mudah\" untuk menyusun versi terstruktur (judul, poin, kata kunci)."
+              : "Tekan \"Buat bacaan mudah\" untuk melihat seluruh teks dengan kata yang lebih mudah."}
         </div>
       )}
     </Card>

@@ -13,6 +13,7 @@ import {
 /** Preferensi Pengaturan yang tetap hidup di semua halaman bacaan. */
 export function useReadingSettings() {
   const [settings, setSettings] = useState<ReadingSettings>(defaultSettings)
+  const [ready, setReady] = useState(false)
   const settingsRef = useRef<ReadingSettings>(defaultSettings)
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export function useReadingSettings() {
     }
 
     sync()
+    setReady(true)
     void syncSettingsFromServer()
     window.addEventListener(SETTINGS_EVENT, sync)
     window.addEventListener("storage", sync)
@@ -34,5 +36,5 @@ export function useReadingSettings() {
     }
   }, [])
 
-  return { settings, settingsRef }
+  return { settings, settingsRef, ready }
 }

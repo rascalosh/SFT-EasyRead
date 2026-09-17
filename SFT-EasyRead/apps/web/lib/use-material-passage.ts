@@ -72,6 +72,7 @@ export function useMaterialPassage(material: ActiveMaterial | null) {
 
     let alive = true
     setReady(false)
+    setSource("original")
     setEasy(null)
     setStructured(null)
     setSummary(null)

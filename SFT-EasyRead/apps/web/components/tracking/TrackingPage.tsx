@@ -13,6 +13,7 @@ import {
 import { useReadingSettings } from "@/lib/use-reading-settings"
 import { useActiveDocument } from "@/lib/use-active-document"
 import { hrefFor } from "@/lib/nav"
+import { useMaterialPassage } from "@/lib/use-material-passage"
 import {
   tokenizeWords,
   utteranceTextFrom,
@@ -28,6 +29,7 @@ export default function AudioVisualTracking() {
   const router = useRouter()
   const { material, loading, error } = useActiveDocument()
   const { settings, settingsRef } = useReadingSettings()
+  const passage = useMaterialPassage(material)
   const [playing, setPlaying] = useState(false)
   const [active, setActive] = useState(0)
   const [speedIdx, setSpeedIdx] = useState(() => ttsSpeedIndex(settings.ttsSpeed))
@@ -41,12 +43,7 @@ export default function AudioVisualTracking() {
   const fallbackTimerRef = useRef<number | null>(null)
   const activeWordRef = useRef<HTMLSpanElement | null>(null)
 
-  const words = useMemo(() => {
-    const text = material?.paragraphs?.length
-      ? material.paragraphs.join(" ")
-      : material?.originalText?.trim() ?? ""
-    return tokenizeWords(text)
-  }, [material])
+  const words = useMemo(() => tokenizeWords(passage.listenText), [passage.listenText])
 
   const speed = TTS_SPEED_OPTIONS[speedIdx] ?? TTS_SPEED_OPTIONS[1]
   const title = material?.title ?? "Materi"
@@ -69,6 +66,12 @@ export default function AudioVisualTracking() {
     setPlaying(false)
     autoStartedRef.current = null
   }, [material?.id])
+
+  useEffect(() => {
+    setActive(0)
+    stopSpeech()
+    setPlaying(false)
+  }, [passage.source])
 
   useEffect(() => {
     activeWordRef.current?.scrollIntoView({
@@ -272,9 +275,11 @@ export default function AudioVisualTracking() {
 
   const progress = words.length === 0 ? 0 : Math.round(((active + 1) / words.length) * 100)
 
+  const showPlayer = Boolean(material && words.length > 0)
+
   return (
     <>
-      <div className="space-y-6">
+      <div className={cx("space-y-6", showPlayer && "pb-40")}>
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
             <IconWave className="text-brand" /> Multisensory Tracking
@@ -288,7 +293,7 @@ export default function AudioVisualTracking() {
           <Card>
             <p className="py-8 text-center text-sm text-ink-mute">Memuat materi dari akun…</p>
           </Card>
-        ) : !material || words.length === 0 ? (
+        ) : !showPlayer ? (
           <Card>
             <div className="flex flex-col items-center py-10 text-center">
               <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-soft text-brand">
@@ -306,7 +311,41 @@ export default function AudioVisualTracking() {
         ) : (
           <>
             <Card variant="reading">
-              <div className="mb-3 text-sm font-semibold opacity-70">Teks Bacaan · {title}</div>
+              <div className="mb-3 text-sm font-semibold opacity-70">
+                {passage.label} · {title}
+              </div>
+              <div
+                className="mb-4 flex flex-wrap gap-1.5"
+                role="radiogroup"
+                aria-label="Sumber bacaan"
+              >
+                {passage.options.map((option) => {
+                  const selected = passage.source === option.value
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      disabled={option.disabled}
+                      title={option.disabled ? "Belum ada. Buat dulu di Simplify." : undefined}
+                      onClick={() => {
+                        if (option.disabled) return
+                        passage.setSource(option.value)
+                      }}
+                      className={cx(
+                        "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                        selected
+                          ? "border-current bg-[color-mix(in_srgb,var(--reading-fg)_12%,transparent)]"
+                          : "border-current/25 opacity-80 hover:opacity-100",
+                        option.disabled && !selected && "cursor-not-allowed opacity-40 hover:opacity-40",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
               <p className="font-dyslexic max-w-3xl">
                 {words.map((w, i) => (
                   <span
@@ -314,7 +353,7 @@ export default function AudioVisualTracking() {
                     ref={i === active ? activeWordRef : undefined}
                     onClick={() => seekTo(i)}
                     className={cx(
-                      "cursor-pointer rounded px-0.5 transition-colors",
+                      "scroll-mb-40 cursor-pointer rounded px-0.5 transition-colors",
                       i === active && "bg-brand font-bold text-[var(--color-brand-ink)]",
                       i < active && "opacity-45",
                     )}
@@ -325,19 +364,31 @@ export default function AudioVisualTracking() {
               </p>
             </Card>
 
-            <Card>
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <p className="text-center text-sm text-ink-mute">
+              Ketuk kata mana pun untuk memulai dari sana. Pilih Asli, Mudah, Terstruktur, atau Ringkasan bila sudah dibuat di Simplify.
+            </p>
+          </>
+        )}
+      </div>
+
+      {showPlayer && (
+        <div
+          className="fixed bottom-0 right-0 z-20 border-t border-line/70 bg-[color-mix(in_srgb,var(--color-canvas)_92%,transparent)] backdrop-blur-md left-0 lg:left-[var(--shell-sidebar)] lg:transition-[left] lg:duration-300 lg:ease-out"
+        >
+          <div className="mx-auto max-w-5xl px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 lg:px-8">
+            <Card className="border-brand/20 p-3 shadow-[var(--shadow-md)] sm:p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
                 <Button
                   variant={playing ? "soft" : "primary"}
                   onClick={speakToggle}
-                  className="w-32"
+                  className="w-full sm:w-32"
                 >
                   {playing
                     ? <><IconPause width={16} height={16} /> Jeda</>
                     : <><IconPlay width={16} height={16} /> Putar</>}
                 </Button>
 
-                <label className="flex items-center gap-2 text-sm text-ink-soft">
+                <label className="flex shrink-0 items-center gap-2 text-sm text-ink-soft">
                   <IconSpeaker width={16} height={16} className="text-brand" />
                   Kecepatan
                   <select
@@ -351,7 +402,7 @@ export default function AudioVisualTracking() {
                   </select>
                 </label>
 
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-center justify-between text-xs text-ink-mute">
                     <span>Progress Pembacaan</span>
                     <span className="tabular-nums">{progress}%</span>
@@ -368,14 +419,11 @@ export default function AudioVisualTracking() {
                 </div>
               </div>
             </Card>
+          </div>
+        </div>
+      )}
 
-            <p className="text-center text-sm text-ink-mute">
-              Ketuk kata mana pun untuk memulai dari sana. Sorotan mengikuti kata yang sedang diucapkan.
-            </p>
-          </>
-        )}
-      </div>
-      <ScrollEdgeButton />
+      <ScrollEdgeButton className={showPlayer ? "bottom-36" : undefined} />
     </>
   )
 }
