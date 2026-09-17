@@ -1,17 +1,30 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { cx } from "@/components/shared/ui"
 import { parentHref } from "@/lib/nav"
 import Sidebar from "./Sidebar"
 import TopBar from "./TopBar"
 
+const DESKTOP_SIDEBAR = "(min-width: 1024px)"
+
 export default function DashboardShell({ children }: { children: ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const showBack = pathname !== "/"
+
+  useEffect(() => {
+    if (window.matchMedia(DESKTOP_SIDEBAR).matches) {
+      setSidebarOpen(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (window.matchMedia(DESKTOP_SIDEBAR).matches) return
+    setSidebarOpen(false)
+  }, [pathname])
 
   function goBack() {
     const queryId =

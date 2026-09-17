@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { Card, Button, SectionTitle } from "@/components/shared/ui"
-import { IconLetters, IconSpeaker, IconClose, IconPlay, IconTap } from "@/components/shared/icons"
+import { IconLetters, IconSpeaker, IconClose, IconPlay, IconTap, IconBook } from "@/components/shared/icons"
 import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
-import { demoTitle, syllableWords, type Syllable } from "@/lib/mock"
-import { getActiveMaterial, type ActiveMaterial } from "@/lib/session"
+import { MaterialNotFound } from "@/components/material/MaterialNotFound"
+import { type Syllable } from "@/lib/mock"
+import { useActiveDocument } from "@/lib/use-active-document"
 import { useReadingSettings } from "@/lib/use-reading-settings"
 import { speakWithSettings } from "@/lib/tts-sync"
 import { breakdownOf } from "@/lib/syllabify"
@@ -57,30 +58,18 @@ function tokenize(text: string) {
 
 export default function SyllableBreaker() {
   const { settingsRef } = useReadingSettings()
-  const [material, setMaterial] = useState<ActiveMaterial | null>(null)
-  const [ready, setReady] = useState(false)
+  const { material, loading, error } = useActiveDocument()
   const [selected, setSelected] = useState<Syllable | null>(null)
   const [history, setHistory] = useState<Syllable[]>([])
 
   useEffect(() => {
-    const active = getActiveMaterial()
-    setMaterial(active)
+    setSelected(null)
+    setHistory([])
+  }, [material?.id])
 
-    // Tanpa materi aktif, halaman tetap bisa dicoba memakai contoh bawaan.
-    if (!active) {
-      setSelected(syllableWords[0] ?? null)
-      setHistory(syllableWords)
-    }
-
-    setReady(true)
-  }, [])
-
-  const title = material?.title ?? demoTitle
+  const title = material?.title ?? "Materi"
   const documentId = material?.id && UUID.test(material.id) ? material.id : null
-  const rawText =
-    material?.originalText?.trim() ||
-    material?.paragraphs?.join(" ") ||
-    syllableWords.map((s) => s.word).join(" ")
+  const rawText = material?.originalText?.trim() || material?.paragraphs?.join(" ") || ""
   const tokens = tokenize(rawText)
 
   // Kata yang sudah pernah diperiksa ditebalkan agar mudah ditemukan lagi.
@@ -134,7 +123,26 @@ export default function SyllableBreaker() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {loading ? (
+        <Card>
+          <p className="py-8 text-center text-sm text-ink-mute">Memuat materi dari akun…</p>
+        </Card>
+      ) : !material || !rawText ? (
+        error ? (
+          <Card>
+            <div className="flex flex-col items-center py-10 text-center">
+              <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-soft text-brand">
+                <IconBook width={22} height={22} />
+              </span>
+              <h2 className="mt-4 font-semibold text-ink">Belum ada materi untuk dilatih</h2>
+              <p className="mt-1 max-w-md text-sm text-ink-soft">{error}</p>
+            </div>
+          </Card>
+        ) : (
+          <MaterialNotFound />
+        )
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card variant="reading">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold opacity-70">
@@ -207,7 +215,7 @@ export default function SyllableBreaker() {
 
           <Card variant="reading">
             <SectionTitle title="Riwayat Kata yang Diperiksa" />
-            {ready && history.length === 0 && (
+            {history.length === 0 && (
               <p className="py-4 text-center text-sm opacity-60">
                 Belum ada kata diperiksa. Ketuk kata di bacaan untuk memulai.
               </p>
@@ -235,6 +243,7 @@ export default function SyllableBreaker() {
           </Card>
         </div>
       </div>
+      )}
     </div>
       <ScrollEdgeButton />
     </>

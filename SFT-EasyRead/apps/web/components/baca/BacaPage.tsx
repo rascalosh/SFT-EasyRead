@@ -6,9 +6,9 @@ import { hrefFor } from "@/lib/nav"
 import { Card, Button, SegmentedControl, cx } from "@/components/shared/ui"
 import { IconSparkle, IconSpeaker, IconTextSize, IconBook } from "@/components/shared/icons"
 import { FocusRulerSentences } from "@/components/shared/FocusRulerSentences"
-import { demoTitle, demoParagraphs } from "@/lib/mock"
+import { MaterialNotFound } from "@/components/material/MaterialNotFound"
+import { useActiveDocument } from "@/lib/use-active-document"
 import {
-  getActiveMaterial,
   loadSettings,
   syncSettingsFromServer,
   saveSettingsEverywhere,
@@ -18,7 +18,6 @@ import {
   getContrastOption,
   READING_CONTRAST_OPTIONS,
   SETTINGS_EVENT,
-  type ActiveMaterial,
   type ReadingContrastId,
   type ReadingSettings,
   type FocusRulerMode,
@@ -27,10 +26,10 @@ import { speakWithSettings } from "@/lib/tts-sync"
 
 export default function ReadingInterface() {
   const router = useRouter()
+  const { material, loading } = useActiveDocument()
   const settingsRef = useRef(defaultSettings)
 
   // Gunakan defaultSettings sebagai initial value agar SSR & client match
-  const [material, setMaterial] = useState<ActiveMaterial | null>(null)
   const [dyslexic, setDyslexic] = useState(defaultSettings.dyslexicFont)
   const [size, setSize] = useState(defaultSettings.fontSize)
   const [spacing, setSpacing] = useState(defaultSettings.letterSpacing)
@@ -54,7 +53,6 @@ export default function ReadingInterface() {
       setAutoTts(s.autoTts)
     }
     sync()
-    setMaterial(getActiveMaterial())
     // Preferensi milik akun menimpa setelan perangkat; hasilnya memicu
     // SETTINGS_EVENT sehingga `sync` di atas berjalan lagi dengan nilai baru.
     void syncSettingsFromServer()
@@ -98,13 +96,13 @@ export default function ReadingInterface() {
     applyFontPreferences(next)
   }
 
-  const title = material?.title ?? demoTitle
+  const title = material?.title ?? "Materi"
   const lines =
     material?.paragraphs?.length
       ? material.paragraphs
       : material?.originalText?.trim()
         ? [material.originalText]
-        : demoParagraphs
+        : []
 
   const speak = (text: string) => {
     if (!("speechSynthesis" in window)) return
@@ -125,6 +123,14 @@ export default function ReadingInterface() {
     } else {
       speak(lines.join(" "))
     }
+  }
+
+  if (loading) {
+    return <p className="text-sm text-ink-soft">Memuat materi…</p>
+  }
+
+  if (!material || lines.length === 0) {
+    return <MaterialNotFound />
   }
 
   return (
@@ -156,7 +162,7 @@ export default function ReadingInterface() {
             </div>
           )}
         </div>
-        <Button onClick={() => router.push(hrefFor("simplify"))}>
+        <Button onClick={() => router.push(hrefFor("simplify", material?.id))}>
           <IconSparkle width={17} height={17} /> Simplify
         </Button>
       </div>
@@ -290,7 +296,7 @@ export default function ReadingInterface() {
           <Button
             variant="outline"
             className="ml-auto"
-            onClick={() => router.push(hrefFor("tracking"))}
+            onClick={() => router.push(hrefFor("tracking", material?.id))}
           >
             Multisensory Tracking
           </Button>
