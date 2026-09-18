@@ -9,14 +9,8 @@ dependencies = [
     "uvicorn[standard]>=0.52.4",
     "pydantic-settings",
     "python-dotenv>=1.2.3",
-    "sentence-transformers",
-    "torch",
+    "onnxruntime",
+    "transformers",
+    "huggingface-hub",
+    "numpy",
 ]
-
-[tool.uv.sources]
-torch = { index = "pytorch-cpu" }
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
