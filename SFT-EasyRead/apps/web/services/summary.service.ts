@@ -1,24 +1,31 @@
 import crypto from "crypto"
 
-import { generateStructured, activeModel } from "@repo/web/lib/gemini"
-import { buildSummaryPrompt } from "@repo/web/lib/prompts/summary.prompt"
-import { summarySchema } from "@repo/schemas/summary"
+import { activeModel } from "@repo/web/lib/gemini"
+import { summarizeText, type SummaryOptions } from "@repo/web/lib/summarize"
+import type { StoredSummary } from "@repo/schemas/summary"
 
 import * as documentRepository from "@repo/db/repositories/document"
 import * as simplificationRepository from "@repo/db/repositories/simplification"
 
-const PIPELINE_VERSION = "v1"
+// Bagian dari kunci cache: tanpa dinaikkan, dokumen yang pernah diringkas
+// selamanya menyajikan hasil prompt lama.
+const PIPELINE_VERSION = "v2"
 const OPERATION = "summary"
 
 function hashInput(text: string) {
     return crypto.createHash("sha256").update(text).digest("hex")
 }
 
-export async function summaryText(originalText: string) {
-    // Batas 3–5 poin ringkasan kini ikut terkirim ke Gemini karena skemanya
-    // diturunkan dari Zod; sebelumnya batas itu hanya ada di sisi validasi
-    // sehingga jawaban 2 atau 6 poin lolos lalu gagal dan membakar retry.
-    return generateStructured(summarySchema, buildSummaryPrompt(originalText))
+export async function summaryText(originalText: string, options: SummaryOptions = {}) {
+    return summarizeText(originalText, options)
+}
+
+/** Porsi penurunan level yang tercapai. Kolom numeric(5,4), dibatasi 0..1. */
+function confidenceFor(result: StoredSummary) {
+    if (result.difficulty.level <= result.targetLevel) return 1
+    const needed = Math.max(1, result.sourceDifficulty.level - result.targetLevel)
+    const achieved = result.sourceDifficulty.level - result.difficulty.level
+    return Math.round(Math.max(0, Math.min(1, achieved / needed)) * 10000) / 10000
 }
 
 export async function getCachedSummary(documentId: string, userId: string) {
@@ -86,9 +93,10 @@ export async function summarizeDocument(documentId: string, userId: string) {
         provider: "google",
         model,
         pipeline_version: PIPELINE_VERSION,
-        confidence: null,
+        confidence: confidenceFor(result),
         processing_time_ms: processingTime,
-        validation_status: "pending",
+        // Kolomnya dibatasi CHECK ke pending|valid|rejected|fallback — JANGAN "passed".
+        validation_status: result.difficulty.level <= result.targetLevel ? "valid" : "pending",
         input_hash: inputHash,
     })
 

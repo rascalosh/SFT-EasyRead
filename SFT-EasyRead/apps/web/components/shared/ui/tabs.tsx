@@ -43,7 +43,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   fullWidth = false,
 }: {
-  options: { value: T; label: string }[]
+  options: { value: T; label: string; disabled?: boolean }[]
   value: T
   onChange: (v: T) => void
   fullWidth?: boolean
@@ -57,11 +57,17 @@ export function SegmentedControl<T extends string>({
         <button
           key={o.value}
           type="button"
-          onClick={() => onChange(o.value)}
+          onClick={() => {
+            if (o.disabled) return
+            onChange(o.value)
+          }}
+          disabled={o.disabled}
           aria-pressed={value === o.value}
+          title={o.disabled ? "Belum ada. Buat dulu di Simplify." : undefined}
           className={cx(
             "rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-150",
             fullWidth && "flex-1",
+            o.disabled && "cursor-not-allowed opacity-40",
             value === o.value
               ? "bg-surface text-ink shadow-[var(--shadow-xs)]"
               : "text-ink-mute hover:text-ink",

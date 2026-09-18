@@ -1,9 +1,22 @@
-export default function Logo({ compact = false, dark = false }: { compact?: boolean; dark?: boolean }) {
+export default function Logo({
+  compact = false,
+  dark = false,
+  markSize = 32,
+}: {
+  compact?: boolean
+  dark?: boolean
+  markSize?: number
+}) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-brand text-[var(--color-brand-ink)] shadow-sm">
-        <span className="text-[14px] font-bold leading-none">Aa</span>
-      </div>
+      <img
+        src="/brand/logo-mark.png"
+        alt={compact ? "EasyRead AI" : ""}
+        width={markSize}
+        height={markSize}
+        className="shrink-0 object-contain"
+        draggable={false}
+      />
       {!compact && (
         <div className="leading-tight">
           <div className={`text-[15px] font-bold ${dark ? "text-[#c8d5e0]" : "text-ink"}`}>

@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server"
+import { simplifyStyleSchema, type SimplifyStyle } from "@repo/schemas/simplify"
 import { getCachedSimplification, simplifyDocument } from "@repo/web/services/simplify.service"
 import { getCurrentUser } from "@repo/web/proxy"
 
+/** `?style=plain|structured` — versi hasil yang dipilih di Pengaturan. Default plain. */
+function styleFrom(req: Request): SimplifyStyle {
+	const raw = new URL(req.url).searchParams.get("style")
+	const parsed = simplifyStyleSchema.safeParse(raw)
+	return parsed.success ? parsed.data : "plain"
+}
+
 export async function GET(
-	_req: Request,
+	req: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	const user = await getCurrentUser()
@@ -14,7 +22,7 @@ export async function GET(
 
 	try {
 		const { id } = await params
-		const cached = await getCachedSimplification(id, user.id)
+		const cached = await getCachedSimplification(id, user.id, styleFrom(req))
 
 		if (!cached) {
 			return NextResponse.json({ message: "Not found" }, { status: 404 })
@@ -34,7 +42,7 @@ export async function GET(
 }
 
 export async function POST(
-	_req: Request,
+	req: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	const user = await getCurrentUser()
@@ -45,7 +53,7 @@ export async function POST(
 
 	try {
 		const { id } = await params
-		const simplification = await simplifyDocument(id, user.id)
+		const simplification = await simplifyDocument(id, user.id, styleFrom(req))
 		return NextResponse.json(simplification, {
 			status: simplification.cached ? 200 : 201,
 		})
