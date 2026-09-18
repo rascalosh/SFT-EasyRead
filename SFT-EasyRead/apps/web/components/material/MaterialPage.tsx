@@ -115,12 +115,18 @@ export default function MaterialDetail() {
   useEffect(() => {
     function onRenamed(event: Event) {
       const detail = (event as CustomEvent<{ id?: string; title?: string }>).detail
+  
       if (!detail?.id || typeof detail.title !== "string") return
       if (detail.id !== id) return
-      setMaterial((prev) => (prev ? { ...prev, title: detail.title } : prev))
+  
+      const title = detail.title // <- sekarang type: string
+  
+      setMaterial((prev) => (prev ? { ...prev, title } : prev))
     }
+  
     window.addEventListener("easyread:material-renamed", onRenamed)
-    return () => window.removeEventListener("easyread:material-renamed", onRenamed)
+    return () =>
+      window.removeEventListener("easyread:material-renamed", onRenamed)
   }, [id])
 
   if (loading) return <p className="text-sm text-ink-soft">Memuat materi…</p>
