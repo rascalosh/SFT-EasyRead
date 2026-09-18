@@ -17,7 +17,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export function useActiveDocument(options?: { skip?: boolean; documentId?: string | null }) {
   const router = useRouter()
   const pathname = usePathname()
-  const queryId = options?.documentId ?? null
+  const searchParams = useSearchParams()
+  const queryId = options?.documentId ?? searchParams.get("id")
   const skip = options?.skip === true
 
   const [material, setMaterial] = useState<ActiveMaterial | null>(null)
