@@ -14,11 +14,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
  * Muat materi aktif dari API (`?id=` atau sesi), bukan teks demo.
  * Kalau `skip`, pemanggil sudah punya materi (mis. dioper dari halaman induk).
  */
-export function useActiveDocument(options?: { skip?: boolean }) {
+export function useActiveDocument(options?: { skip?: boolean; documentId?: string | null }) {
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const queryId = searchParams.get("id")
+  const queryId = options?.documentId ?? null
   const skip = options?.skip === true
 
   const [material, setMaterial] = useState<ActiveMaterial | null>(null)

@@ -90,6 +90,10 @@ export async function summarizeDocument(documentId: string, userId: string) {
         user_id: userId,
         operation: OPERATION,
         result,
+
+        original_readability_score: result.sourceDifficulty.fkId,
+        simplified_readability_score: result.difficulty.fkId,
+
         provider: "google",
         model,
         pipeline_version: PIPELINE_VERSION,

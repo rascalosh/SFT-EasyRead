@@ -81,10 +81,10 @@ function toView(row: Record<string, unknown> | null): PreferencesView {
         view.focusRulerColor =
             typeof row.focus_ruler_color === "string" && row.focus_ruler_color
                 ? row.focus_ruler_color
-                : DEFAULT_PREFERENCES.focusRulerColor
+                : DEFAULT_PREFERENCES.focusRulerColor!
     }
     if (Object.prototype.hasOwnProperty.call(row, "focus_ruler_opacity")) {
-        view.focusRulerOpacity = number(row.focus_ruler_opacity, DEFAULT_PREFERENCES.focusRulerOpacity)
+        view.focusRulerOpacity = number(row.focus_ruler_opacity, DEFAULT_PREFERENCES.focusRulerOpacity!)
     }
 
     return view
