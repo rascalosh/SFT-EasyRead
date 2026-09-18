@@ -11,7 +11,18 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"]
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"],
+      "env": [
+        "ML_API_RUL",
+        "APP_NAME",
+        "APP_VERSION",
+        "API_PREFIX",
+        "MODEL_CACHE_DIR",
+        "EMBEDDING_MODEL",
+        "ML_DEVICE",
+        "ML_API_TOKEN",
+        "CORS_ORIGINS"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
