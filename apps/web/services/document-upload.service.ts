@@ -1,3 +1,4 @@
+import "../lib/dommatrix-polyfill"
 import mammoth from "mammoth"
 import { PDFParse } from "pdf-parse"
 import path from "node:path"
