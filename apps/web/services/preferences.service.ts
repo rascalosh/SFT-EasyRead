@@ -90,9 +90,15 @@ function toView(row: Record<string, unknown> | null): PreferencesView {
     return view
 }
 
-/** Postgres 42703 = kolom tidak ada (migrasi simplify_style belum dijalankan). */
+/**
+ * Kolom tidak ada (migrasi belum dijalankan). Postgres langsung mengirim
+ * 42703, tapi kita bicara ke Supabase lewat PostgREST, yang membungkusnya
+ * jadi PGRST204 ("Could not find the '<col>' column ... in the schema
+ * cache") — jadi keduanya harus dicek.
+ */
 function isUndefinedColumn(error: unknown) {
-    return Boolean(error && typeof error === "object" && (error as { code?: unknown }).code === "42703")
+    const code = error && typeof error === "object" ? (error as { code?: unknown }).code : undefined
+    return code === "42703" || code === "PGRST204"
 }
 
 export async function getPreferences(userId: string): Promise<PreferencesView> {
