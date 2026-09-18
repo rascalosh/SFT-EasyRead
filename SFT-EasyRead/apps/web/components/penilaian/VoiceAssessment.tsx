@@ -221,10 +221,15 @@ export default function VoiceAssessment({
 
             for (let i = 0; i < BAR_COUNT; i++) {
                 const value = buffer[i * step] ?? 0
+                const current = smoothed[i] ?? minH                
                 const target = minH + (value / 255) * (maxH - minH)
-                smoothed[i] += (target - smoothed[i]) * 0.28
+
+                smoothed[i] = current + (target - current) * 0.28
+
                 const bar = bars[i]
-                if (bar) bar.style.height = `${smoothed[i].toFixed(1)}px`
+                if (bar) {
+                    bar.style.height = `${smoothed[i]!.toFixed(1)}px`
+                }
             }
         }
 

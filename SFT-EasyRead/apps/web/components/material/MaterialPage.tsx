@@ -120,7 +120,7 @@ export default function MaterialDetail() {
       if (detail.id !== id) return
   
       const title = detail.title // <- sekarang type: string
-  
+
       setMaterial((prev) => (prev ? { ...prev, title } : prev))
     }
   

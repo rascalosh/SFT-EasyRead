@@ -24,9 +24,9 @@ import {
 } from "@/lib/session"
 import { speakWithSettings } from "@/lib/tts-sync"
 
-export default function ReadingInterface() {
+export default function ReadingInterface({ documentId, }: { documentId: string | null}) {
   const router = useRouter()
-  const { material, loading } = useActiveDocument()
+  const { material, loading } = useActiveDocument({ documentId })
   const settingsRef = useRef(defaultSettings)
 
   // Gunakan defaultSettings sebagai initial value agar SSR & client match
