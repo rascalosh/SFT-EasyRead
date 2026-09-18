@@ -1,3 +1,8 @@
+import os
+
+os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+os.environ.setdefault("HF_HOME", "/tmp/hf_home")
+
 import numpy as np
 import onnxruntime as ort
 from huggingface_hub import hf_hub_download
