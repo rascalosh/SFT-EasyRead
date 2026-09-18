@@ -95,7 +95,8 @@ export default function HomeDashboard() {
     if (!pasteText.trim()) return
     setPendingText(pasteText.trim())
     setPendingSource("text")
-    startLoading("paste")
+    setTitleValue("")
+    setStage("title")
   }
 
   async function handleTitleSubmit() {
