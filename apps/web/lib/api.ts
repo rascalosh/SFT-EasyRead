@@ -244,3 +244,13 @@ export function fetchCachedSummary(documentId: string) {
 export function fetchCachedSimplify(documentId: string, style: "plain" | "structured" = "plain") {
     return request<unknown>(`/api/documents/${documentId}/simplify?style=${style}`)
 }
+
+/** Minta AI membuat hasil Simplify gaya tertentu. Dipakai on-demand (mis. tab belum ada). */
+export function generateSimplify(documentId: string, style: "plain" | "structured" = "plain") {
+    return request<unknown>(`/api/documents/${documentId}/simplify?style=${style}`, { method: "POST" })
+}
+
+/** Minta AI membuat ringkasan. Dipakai on-demand (mis. tab Ringkasan belum ada). */
+export function generateSummary(documentId: string) {
+    return request<unknown>(`/api/documents/${documentId}/summary`, { method: "POST" })
+}

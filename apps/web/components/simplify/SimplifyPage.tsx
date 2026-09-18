@@ -275,13 +275,6 @@ export default function SimplifyPage() {
         })
       }
 
-      // Buat juga versi gaya lain (Terstruktur/Teks sederhana) di latar
-      // belakang, supaya tab itu langsung siap tanpa perlu ganti setelan di
-      // Pengaturan lalu Simplify ulang. Kegagalannya diabaikan — bukan
-      // bagian dari alur utama yang ditampilkan ke pengguna.
-      const otherStyle: SimplifyStyle = style === "structured" ? "plain" : "structured"
-      void fetch(simplifyEndpoint(documentId, otherStyle), { method: "POST" }).catch(() => {})
-
       const [simplifyResponse, summaryResponse] = await Promise.all([
         fetch(simplifyEndpoint(documentId, style), { method: "POST" }),
         fetch(`/api/documents/${documentId}/summary`, { method: "POST" }),

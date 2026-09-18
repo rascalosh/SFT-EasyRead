@@ -260,9 +260,11 @@ export default function ComprehensionCheck({
             source={passage.source}
             onSourceChange={(next) => {
               speaker.stop()
-              passage.setSource(next)
+              void passage.selectSource(next)
             }}
             sourceOptions={passage.options}
+            generating={passage.generating}
+            generateError={passage.generateError}
           />
 
           {finished ? (

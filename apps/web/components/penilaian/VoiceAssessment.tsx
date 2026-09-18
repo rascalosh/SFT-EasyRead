@@ -480,9 +480,11 @@ export default function VoiceAssessment({
                         source={passage.source}
                         onSourceChange={(next) => {
                             speaker.stop()
-                            passage.setSource(next)
+                            void passage.selectSource(next)
                         }}
                         sourceOptions={passage.options}
+                        generating={passage.generating}
+                        generateError={passage.generateError}
                     />
                     ) : (
                     <Card>
@@ -552,10 +554,12 @@ export default function VoiceAssessment({
                         source={passage.source}
                         onSourceChange={(next) => {
                             speaker.stop()
-                            passage.setSource(next)
+                            void passage.selectSource(next)
                         }}
                         sourceLocked
                         sourceOptions={passage.options}
+                        generating={passage.generating}
+                        generateError={passage.generateError}
                     />
                 </>
             )}

@@ -41,6 +41,8 @@ export function ReadingPassage({
   onSourceChange,
   sourceOptions,
   sourceLocked = false,
+  generating = null,
+  generateError = null,
 }: {
   title: string
   paragraphs: string[]
@@ -62,6 +64,9 @@ export function ReadingPassage({
   sourceOptions?: { value: MaterialSource; label: string; disabled?: boolean }[]
   /** Kunci pemilih saat merekam supaya teks acuan tidak berganti. */
   sourceLocked?: boolean
+  /** Tab yang sedang dibuat (AI dipanggil on-demand saat tab belum ada). */
+  generating?: MaterialSource | null
+  generateError?: string | null
 }) {
   const { settings } = useReadingSettings()
   const [open, setOpen] = useState(defaultOpen)
@@ -126,7 +131,9 @@ export function ReadingPassage({
         >
           {sourceOptions!.map((option) => {
             const selected = source === option.value
-            const disabled = sourceLocked || Boolean(option.disabled)
+            const isGenerating = generating === option.value
+            const busy = generating !== null
+            const disabled = sourceLocked || (busy && !isGenerating)
             return (
               <button
                 key={option.value}
@@ -135,10 +142,10 @@ export function ReadingPassage({
                 aria-checked={selected}
                 disabled={disabled}
                 title={
-                  option.disabled
-                    ? "Belum ada. Buat dulu di Simplify."
-                    : sourceLocked
-                      ? "Selesaikan rekaman dulu sebelum ganti bacaan."
+                  sourceLocked
+                    ? "Selesaikan rekaman dulu sebelum ganti bacaan."
+                    : option.disabled && !isGenerating
+                      ? "Klik untuk membuat versi ini"
                       : undefined
                 }
                 onClick={() => {
@@ -153,11 +160,16 @@ export function ReadingPassage({
                   disabled && !selected && "cursor-not-allowed opacity-40 hover:opacity-40",
                 )}
               >
-                {option.label}
+                {isGenerating ? `${option.label}…` : option.label}
               </button>
             )
           })}
         </div>
+      )}
+      {generateError && (
+        <p className="mt-2 text-sm text-error" role="alert">
+          {generateError}
+        </p>
       )}
 
       {visible && (

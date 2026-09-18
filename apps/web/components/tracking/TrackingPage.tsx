@@ -321,31 +321,42 @@ export default function AudioVisualTracking() {
               >
                 {passage.options.map((option) => {
                   const selected = passage.source === option.value
+                  const isGenerating = passage.generating === option.value
+                  const busy = passage.generating !== null
                   return (
                     <button
                       key={option.value}
                       type="button"
                       role="radio"
                       aria-checked={selected}
-                      disabled={option.disabled}
-                      title={option.disabled ? "Belum ada. Buat dulu di Simplify." : undefined}
+                      disabled={busy && !isGenerating}
+                      title={
+                        option.disabled && !isGenerating
+                          ? "Klik untuk membuat versi ini"
+                          : undefined
+                      }
                       onClick={() => {
-                        if (option.disabled) return
-                        passage.setSource(option.value)
+                        if (busy) return
+                        void passage.selectSource(option.value)
                       }}
                       className={cx(
                         "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
                         selected
                           ? "border-current bg-[color-mix(in_srgb,var(--reading-fg)_12%,transparent)]"
                           : "border-current/25 opacity-80 hover:opacity-100",
-                        option.disabled && !selected && "cursor-not-allowed opacity-40 hover:opacity-40",
+                        busy && !isGenerating && "cursor-not-allowed opacity-40 hover:opacity-40",
                       )}
                     >
-                      {option.label}
+                      {isGenerating ? `${option.label}…` : option.label}
                     </button>
                   )
                 })}
               </div>
+              {passage.generateError && (
+                <p className="mb-4 text-sm text-error" role="alert">
+                  {passage.generateError}
+                </p>
+              )}
               <p className="font-dyslexic max-w-3xl">
                 {words.map((w, i) => (
                   <span
