@@ -280,7 +280,13 @@ export default function VoiceAssessment({
         let media: MediaStream
 
         try {
-            media = await navigator.mediaDevices.getUserMedia({ audio: true })
+            media = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    autoGainControl: true,
+                    noiseSuppression: false,
+                    echoCancellation: true,
+                },
+            })
         } catch {
             setMicError("Izin mikrofon ditolak. Aktifkan mikrofon di pengaturan browser, lalu coba lagi.")
             return
