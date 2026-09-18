@@ -1,7 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "installCommand": "cd SFT-EasyRead && npm install",
-  "buildCommand": "cd SFT-EasyRead && npx turbo run build --filter=@repo/web",
-  "outputDirectory": "SFT-EasyRead/apps/web/.next"
-}
