@@ -6,6 +6,7 @@ export interface SemanticSimilarityResponse {
 
 export class MLApiClient {
   private static baseUrl = process.env.ML_API_URL || "http://localhost:8000/api/v1";
+  private static bypassSecret = process.env.ML_API_BYPASS_SECRET;
 
   static async checkSemanticSimilarity(
     original: string,
@@ -14,7 +15,12 @@ export class MLApiClient {
     try {
       const response = await fetch(`${this.baseUrl}/semantic/similarity`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(this.bypassSecret && {
+            "x-vercel-protection-bypass": this.bypassSecret,
+          }),
+        },
         body: JSON.stringify({ original, simplified }),
       });
 
