@@ -17,6 +17,8 @@ export type SimplificationInsert = {
     model: string;
     pipeline_version: string;
     confidence: number | null;
+    original_readability_score: number | null;
+    simplified_readability_score: number | null;
     processing_time_ms: number;
     validation_status: string;
     input_hash: string;
@@ -46,18 +48,27 @@ export async function findCachedSimplification({
     return data
 }
 
-/** Ambil hasil terakhir untuk dokumen + operasi (tanpa filter hash). */
+/**
+ * Ambil hasil terakhir untuk dokumen + operasi (tanpa filter hash).
+ * `pipelineVersion` opsional: operasi "simplify" punya dua versi hasil dengan
+ * bentuk `result` berbeda, jadi pemanggil yang butuh bentuk tertentu memfilter.
+ */
 export async function findLatestSimplification(
     documentId: string,
     operation: string,
+    pipelineVersion?: string,
 ) {
     const supabase = await createClient()
 
-    const { data } = await supabase
+    let query = supabase
         .from("simplifications")
         .select("*")
         .eq("document_id", documentId)
         .eq("operation", operation)
+
+    if (pipelineVersion) query = query.eq("pipeline_version", pipelineVersion)
+
+    const { data } = await query
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -70,7 +81,10 @@ export async function createSimplification(payload: SimplificationInsert) {
 
     const { data, error } = await supabase
         .from("simplifications")
-        .insert(payload)
+        .upsert(payload, {
+            // Harus sama persis dengan unique(user_id, input_hash, operation, pipeline_version, model).
+            onConflict: "user_id,input_hash,operation,pipeline_version,model",
+        })
         .select()
         .single()
 

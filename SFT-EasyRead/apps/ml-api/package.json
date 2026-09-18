@@ -1,0 +1,7 @@
+{
+  "name": "@repo/ml-api",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "uv run uvicorn main:app --reload --port 8000"
+  }
+}

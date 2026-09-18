@@ -15,6 +15,11 @@ export type PreferencesView = {
     autoTts: boolean
     focusRuler: boolean
     language: string
+    simplifyStyle?: "plain" | "structured"
+    assessmentView: "voice" | "quiz" | "both"
+    /** Hanya dikirim jika kolom sudah ada di database. */
+    focusRulerColor?: string
+    focusRulerOpacity?: number
 }
 
 /** Harus sama dengan `defaultSettings` di lib/session.ts. */
@@ -28,17 +33,27 @@ export const DEFAULT_PREFERENCES: PreferencesView = {
     autoTts: false,
     focusRuler: true,
     language: "id-ID",
+    simplifyStyle: "plain",
+    assessmentView: "both",
+    focusRulerColor: "yellow",
+    focusRulerOpacity: 0.7,
 }
 
 function toView(row: Record<string, unknown> | null): PreferencesView {
-    if (!row) return { ...DEFAULT_PREFERENCES }
+    if (!row) {
+        const rest: PreferencesView = { ...DEFAULT_PREFERENCES }
+        delete rest.focusRulerColor
+        delete rest.focusRulerOpacity
+        delete rest.simplifyStyle
+        return rest
+    }
 
     const number = (value: unknown, fallback: number) => {
         const parsed = typeof value === "string" ? Number(value) : value
         return typeof parsed === "number" && Number.isFinite(parsed) ? parsed : fallback
     }
 
-    return {
+    const view: PreferencesView = {
         uiFont: typeof row.ui_font === "string" ? row.ui_font : DEFAULT_PREFERENCES.uiFont,
         readingFont:
             typeof row.reading_font === "string" ? row.reading_font : DEFAULT_PREFERENCES.readingFont,
@@ -51,7 +66,33 @@ function toView(row: Record<string, unknown> | null): PreferencesView {
         autoTts: row.auto_tts === true,
         focusRuler: row.focus_ruler_enabled === true,
         language: typeof row.language === "string" ? row.language : DEFAULT_PREFERENCES.language,
+        assessmentView:
+            row.assessment_view === "voice" || row.assessment_view === "quiz"
+                ? row.assessment_view
+                : "both",
     }
+
+    if (Object.prototype.hasOwnProperty.call(row, "simplify_style")) {
+        view.simplifyStyle = row.simplify_style === "structured" ? "structured" : "plain"
+    }
+
+    // Jangan kirim default kalau kolom migrasi belum ada — nanti menimpa nilai di perangkat.
+    if (Object.prototype.hasOwnProperty.call(row, "focus_ruler_color")) {
+        view.focusRulerColor =
+            typeof row.focus_ruler_color === "string" && row.focus_ruler_color
+                ? row.focus_ruler_color
+                : DEFAULT_PREFERENCES.focusRulerColor
+    }
+    if (Object.prototype.hasOwnProperty.call(row, "focus_ruler_opacity")) {
+        view.focusRulerOpacity = number(row.focus_ruler_opacity, DEFAULT_PREFERENCES.focusRulerOpacity)
+    }
+
+    return view
+}
+
+/** Postgres 42703 = kolom tidak ada (migrasi simplify_style belum dijalankan). */
+function isUndefinedColumn(error: unknown) {
+    return Boolean(error && typeof error === "object" && (error as { code?: unknown }).code === "42703")
 }
 
 export async function getPreferences(userId: string): Promise<PreferencesView> {
@@ -75,10 +116,26 @@ export async function savePreferences(userId: string, input: unknown): Promise<P
     if (patch.autoTts !== undefined) payload.auto_tts = patch.autoTts
     if (patch.focusRuler !== undefined) payload.focus_ruler_enabled = patch.focusRuler
     if (patch.language !== undefined) payload.language = patch.language
+    if (patch.simplifyStyle !== undefined) payload.simplify_style = patch.simplifyStyle
+    if (patch.assessmentView !== undefined) payload.assessment_view = patch.assessmentView
+    if (patch.focusRulerColor !== undefined) payload.focus_ruler_color = patch.focusRulerColor
+    if (patch.focusRulerOpacity !== undefined) payload.focus_ruler_opacity = patch.focusRulerOpacity
 
-    const { data, error } = await preferencesRepository.upsertPreferences(
+    let { data, error } = await preferencesRepository.upsertPreferences(
         payload as preferencesRepository.PreferencesUpsert,
     )
+
+    // Kolom baru belum ada di database ini: jangan sampai setelan lain ikut
+    // gagal tersimpan. Simpan tanpa kolom itu; nilainya tetap aman di perangkat.
+    if (error && isUndefinedColumn(error)) {
+        delete payload.simplify_style
+        delete payload.assessment_view
+        delete payload.focus_ruler_color
+        delete payload.focus_ruler_opacity
+        ;({ data, error } = await preferencesRepository.upsertPreferences(
+            payload as preferencesRepository.PreferencesUpsert,
+        ))
+    }
 
     if (error) throw error
 

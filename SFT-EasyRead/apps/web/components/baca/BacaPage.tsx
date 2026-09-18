@@ -3,37 +3,40 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { hrefFor } from "@/lib/nav"
-import { Card, Button, cx } from "@/components/shared/ui"
+import { Card, Button, SegmentedControl, cx } from "@/components/shared/ui"
 import { IconSparkle, IconSpeaker, IconTextSize, IconBook } from "@/components/shared/icons"
-import { demoTitle, demoParagraphs } from "@/lib/mock"
+import { FocusRulerSentences } from "@/components/shared/FocusRulerSentences"
+import { MaterialNotFound } from "@/components/material/MaterialNotFound"
+import { useActiveDocument } from "@/lib/use-active-document"
 import {
-  getActiveMaterial,
   loadSettings,
   syncSettingsFromServer,
-  saveSettings,
+  saveSettingsEverywhere,
   applyFontPreferences,
   defaultSettings,
   wordSpacingFromLetter,
   getContrastOption,
   READING_CONTRAST_OPTIONS,
   SETTINGS_EVENT,
-  type ActiveMaterial,
   type ReadingContrastId,
   type ReadingSettings,
+  type FocusRulerMode,
 } from "@/lib/session"
+import { speakWithSettings } from "@/lib/tts-sync"
 
 export default function ReadingInterface() {
   const router = useRouter()
+  const { material, loading } = useActiveDocument()
   const settingsRef = useRef(defaultSettings)
 
   // Gunakan defaultSettings sebagai initial value agar SSR & client match
-  const [material, setMaterial] = useState<ActiveMaterial | null>(null)
   const [dyslexic, setDyslexic] = useState(defaultSettings.dyslexicFont)
   const [size, setSize] = useState(defaultSettings.fontSize)
   const [spacing, setSpacing] = useState(defaultSettings.letterSpacing)
   const [contrastId, setContrastId] = useState<ReadingContrastId>(defaultSettings.contrastId)
   const [focusRuler, setFocusRuler] = useState(defaultSettings.focusRuler)
-  const [ruler, setRuler] = useState<number | null>(null)
+  const [focusRulerMode, setFocusRulerMode] = useState<FocusRulerMode>(defaultSettings.focusRulerMode)
+  const [autoTts, setAutoTts] = useState(defaultSettings.autoTts)
   const [ttsActive, setTtsActive] = useState(false)
 
   // Setelah mount: baca localStorage & session (aman dari SSR)
@@ -46,10 +49,10 @@ export default function ReadingInterface() {
       setSpacing(s.letterSpacing)
       setContrastId(s.contrastId)
       setFocusRuler(s.focusRuler)
-      if (!s.focusRuler) setRuler(null)
+      setFocusRulerMode(s.focusRulerMode)
+      setAutoTts(s.autoTts)
     }
     sync()
-    setMaterial(getActiveMaterial())
     // Preferensi milik akun menimpa setelan perangkat; hasilnya memicu
     // SETTINGS_EVENT sehingga `sync` di atas berjalan lagi dengan nilai baru.
     void syncSettingsFromServer()
@@ -61,31 +64,51 @@ export default function ReadingInterface() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!material) return
+    if (!autoTts) return
+    const text = (
+      material.paragraphs?.length
+        ? material.paragraphs
+        : material.originalText?.trim()
+          ? [material.originalText]
+          : []
+    )
+      .join(" ")
+      .trim()
+    if (!text) return
+    speakWithSettings(text, settingsRef.current, {
+      onend: () => setTtsActive(false),
+    })
+    setTtsActive(true)
+    return () => {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel()
+      setTtsActive(false)
+    }
+  }, [material?.id, autoTts])
+
   const contrast = getContrastOption(contrastId)
 
   function persist(partial: Partial<ReadingSettings>) {
     const next = { ...settingsRef.current, ...partial }
     settingsRef.current = next
-    saveSettings(next)
+    saveSettingsEverywhere(next)
     applyFontPreferences(next)
   }
 
-  const title = material?.title ?? demoTitle
+  const title = material?.title ?? "Materi"
   const lines =
     material?.paragraphs?.length
       ? material.paragraphs
       : material?.originalText?.trim()
         ? [material.originalText]
-        : demoParagraphs
+        : []
 
   const speak = (text: string) => {
     if (!("speechSynthesis" in window)) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = settingsRef.current.language
-    u.rate = settingsRef.current.ttsSpeed
-    u.onend = () => setTtsActive(false)
-    window.speechSynthesis.speak(u)
+    speakWithSettings(text, settingsRef.current, {
+      onend: () => setTtsActive(false),
+    })
     setTtsActive(true)
   }
 
@@ -102,65 +125,62 @@ export default function ReadingInterface() {
     }
   }
 
+  if (loading) {
+    return <p className="text-sm text-ink-soft">Memuat materi…</p>
+  }
+
+  if (!material || lines.length === 0) {
+    return <MaterialNotFound />
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-ink">{title}</h1>
           <p className="text-sm text-ink-soft">
-            Tampilan ramah disleksia · ketuk baris untuk mengaktifkan penggaris fokus.
+            {focusRuler
+              ? focusRulerMode === "line"
+                ? "Ketuk satu baris, atau panah atas/bawah, untuk memindah sorotan."
+                : "Ketuk kalimat, atau panah atas/bawah, untuk memindah sorotan."
+              : "Tampilan ramah disleksia."}
           </p>
+          {focusRuler && (
+            <div className="mt-3 max-w-md">
+              <SegmentedControl
+                fullWidth
+                value={focusRulerMode}
+                onChange={(mode) => {
+                  setFocusRulerMode(mode)
+                  persist({ focusRulerMode: mode })
+                }}
+                options={[
+                  { value: "sentence", label: "Per kalimat" },
+                  { value: "line", label: "Satu baris" },
+                ]}
+              />
+            </div>
+          )}
         </div>
-        <Button onClick={() => router.push(hrefFor("simplify"))}>
-          <IconSparkle width={17} height={17} /> Simplify Text
+        <Button onClick={() => router.push(hrefFor("simplify", material?.id))}>
+          <IconSparkle width={17} height={17} /> Simplify
         </Button>
       </div>
 
       <div
-        className="rounded-[var(--radius-card)] border border-line p-6 sm:p-10 transition-colors"
+        className="rounded-[var(--radius-card)] border border-line p-6 sm:p-10"
         style={{ backgroundColor: contrast.background, color: contrast.text }}
       >
         <div
-          className={cx("mx-auto max-w-2xl text-left", dyslexic && "font-dyslexic")}
-          style={
-            dyslexic
-              ? { color: contrast.text }
-              : {
-                  fontSize: size,
-                  lineHeight: 1.5,
-                  letterSpacing: `${spacing}em`,
-                  wordSpacing: `${wordSpacingFromLetter(spacing)}em`,
-                  color: contrast.text,
-                }
-          }
+          className={cx("reading-area mx-auto !max-w-2xl !bg-transparent !p-0 text-left", dyslexic && "font-dyslexic")}
+          style={{ color: contrast.text }}
         >
-          {lines.map((line, i) => (
-            <p
-              key={i}
-              onPointerDown={(event) => {
-                if (!focusRuler) return
-                event.preventDefault()
-                setRuler(ruler === i ? null : i)
-              }}
-              onKeyDown={(event) => {
-                if (!focusRuler || (event.key !== "Enter" && event.key !== " ")) return
-                event.preventDefault()
-                setRuler(ruler === i ? null : i)
-              }}
-              tabIndex={focusRuler ? 0 : -1}
-              role="button"
-              className={cx(
-                "-mx-3 block w-[calc(100%+1.5rem)] rounded-lg px-3 py-1.5 transition-colors",
-                focusRuler && "cursor-pointer",
-                focusRuler && "select-none",
-                focusRuler && ruler === i
-                  ? "bg-[var(--color-brand-soft)] outline outline-1 outline-[var(--color-brand)] shadow-[inset_0_-3px_0_var(--color-brand)]"
-                  : focusRuler && "hover:bg-[color-mix(in_srgb,var(--color-ink)_5%,transparent)]",
-              )}
-            >
-              {line}
-            </p>
-          ))}
+          <FocusRulerSentences
+            blocks={lines}
+            enabled={focusRuler}
+            mode={focusRulerMode}
+            layoutKey={`${size}-${spacing}-${dyslexic}-${contrastId}`}
+          />
         </div>
       </div>
 
@@ -271,14 +291,14 @@ export default function ReadingInterface() {
             {ttsActive ? "Hentikan Narasi" : "Text-to-Speech"}
           </Button>
           <span className="text-sm text-ink-mute">
-            Dengarkan teks sambil kata disorot secara real-time.
+            Dengarkan teks sambil kata disorot saat dibacakan.
           </span>
           <Button
             variant="outline"
             className="ml-auto"
-            onClick={() => router.push(hrefFor("tracking"))}
+            onClick={() => router.push(hrefFor("tracking", material?.id))}
           >
-            Buka Multisensory Tracking
+            Multisensory Tracking
           </Button>
         </div>
       </Card>

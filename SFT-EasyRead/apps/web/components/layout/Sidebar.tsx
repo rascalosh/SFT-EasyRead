@@ -19,9 +19,7 @@ import { Button, cx } from "@/components/shared/ui"
 const GUEST_NAME = "Pengguna"
 import {
   IconPlus,
-  IconClose,
   IconBook,
-  IconSidebar,
   IconChevron,
   IconSettings,
   IconMoreVertical,
@@ -189,41 +187,26 @@ export default function Sidebar({ open, onClose }: Props) {
         <button
           aria-label="Tutup menu"
           onClick={onClose}
-          className="fixed inset-0 z-30 bg-[rgba(36,48,63,0.35)] lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-14 z-30 bg-[rgba(36,48,63,0.35)] lg:hidden"
         />
       )}
 
       <aside
         aria-label="Menu samping"
         className={cx(
-          "z-40 flex w-64 shrink-0 flex-col",
+          "fixed bottom-0 left-0 top-14 z-40 flex w-64 flex-col",
           "border-r border-line bg-surface",
-          "fixed inset-y-0 left-0 lg:sticky lg:top-0 lg:h-screen",
-          "transition-transform duration-300",
-          open ? "translate-x-0" : "-translate-x-full lg:hidden",
+          "transition-transform duration-300 ease-out",
+          open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between px-3 py-4">
+        <div className="px-3 pb-2 pt-3">
           <Link
             href={hrefFor("home")}
-            className="flex-1 rounded-lg px-2 py-1 text-left hover:bg-[var(--color-line-soft)] transition-colors"
+            className="flex rounded-lg px-2 py-1.5 hover:bg-[var(--color-line-soft)] transition-colors"
           >
             <Logo />
           </Link>
-          <button
-            onClick={onClose}
-            aria-label="Tutup sidebar"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-mute hover:bg-[var(--color-line-soft)] hover:text-ink transition-colors lg:hidden"
-          >
-            <IconClose width={16} height={16} />
-          </button>
-          <button
-            onClick={onClose}
-            aria-label="Ciutkan sidebar"
-            className="hidden lg:grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-mute hover:bg-[var(--color-line-soft)] hover:text-ink transition-colors"
-          >
-            <IconSidebar width={16} height={16} />
-          </button>
         </div>
 
         <div className="px-3 pb-3">
