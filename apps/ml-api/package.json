@@ -3,11 +3,5 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "uv run uvicorn main:app --reload --port 8000"
-  },
-  "devEngines": {
-    "packageManager": {
-      "name": "npm",
-      "version": "^11.11.0"
-    }
-  },
+  }
 }
