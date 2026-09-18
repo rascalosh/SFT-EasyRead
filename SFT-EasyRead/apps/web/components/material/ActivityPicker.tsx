@@ -6,9 +6,9 @@ const tools: Omit<ActivityTool, "href">[] = [
   {
     id: "simplify",
     icon: <IconSparkle width={26} height={26} />,
-    title: "Simplify & Ringkasan",
-    subtitle: "AI menyederhanakan teks",
-    body: "Teks dipecah jadi kalimat pendek dan ringkas agar lebih mudah dipahami. Tersedia juga ringkasan poin utama.",
+    title: "Simplify",
+    subtitle: "Teks utuh, kata lebih mudah",
+    body: "Seluruh teks ditulis ulang dengan kata yang lebih mudah. Di bawahnya ada inti singkat, terpisah dari bacaan lengkap.",
     color: {
       bg: "bg-brand-soft",
       text: "text-brand-strong",
@@ -30,7 +30,7 @@ const tools: Omit<ActivityTool, "href">[] = [
   {
     id: "syllable",
     icon: <IconLetters width={26} height={26} />,
-    title: "Latihan Kata (Syllable)",
+    title: "Syllable Breaker",
     subtitle: "Pecah suku kata",
     body: "Kata panjang dipecah jadi suku kata kecil. Latih pengucapan satu suku kata per ketukan.",
     color: {
@@ -42,7 +42,7 @@ const tools: Omit<ActivityTool, "href">[] = [
   {
     id: "assessment",
     icon: <IconMic width={26} height={26} />,
-    title: "Penilaian Membaca",
+    title: "Reading Assessment",
     subtitle: "Rekam suara & kuis",
     body: "Baca nyaring untuk dinilai kelancarannya, atau jawab kuis pemahaman dari bacaan materi ini.",
     color: {

@@ -25,7 +25,8 @@ export function SummaryCard({
     <Card variant="reading">
       <SectionTitle
         icon={<IconClipboard width={18} height={18} />}
-        title="Ringkasan Otomatis"
+        title="Inti singkat"
+        subtitle="Hanya ide utama, bukan seluruh teks."
         action={<span className="text-sm opacity-70">Bacaan: {title}</span>}
       />
       {done && hasContent ? (
@@ -47,7 +48,7 @@ export function SummaryCard({
         </div>
       ) : (
         <p className="font-dyslexic text-sm opacity-70">
-          Ringkasan ide utama akan muncul di sini setelah teks disederhanakan.
+          Inti singkat akan muncul di sini setelah bacaan mudah dibuat.
         </p>
       )}
       {notes.length > 0 && (
@@ -63,7 +64,7 @@ export function SummaryCard({
           onClick={onCopy}
           className="mt-4 inline-flex items-center gap-1 text-sm font-bold hover:opacity-80"
         >
-          Salin Ringkasan <IconArrow width={15} height={15} />
+          Salin inti singkat <IconArrow width={15} height={15} />
         </button>
       )}
     </Card>

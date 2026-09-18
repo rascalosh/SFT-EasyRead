@@ -44,7 +44,9 @@ async function loadGlossary(documentId: string | null) {
     const glossary = new Map<string, string>()
     if (!documentId) return glossary
 
-    const row = await simplificationRepository.findLatestSimplification(documentId, "simplify")
+    // Hanya versi paragraf ("v1") yang membawa difficultWords; versi
+    // terstruktur berisi Markdown utuh tanpa glosarium.
+    const row = await simplificationRepository.findLatestSimplification(documentId, "simplify", "v1")
     for (const entry of collectDifficultWords(row?.result)) {
         glossary.set(entry.word.toLowerCase().replace(/[^a-z]/g, ""), entry.explanation)
     }

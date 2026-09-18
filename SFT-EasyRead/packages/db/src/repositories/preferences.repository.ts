@@ -11,6 +11,10 @@ export type PreferencesRow = {
     auto_tts: boolean;
     focus_ruler_enabled: boolean;
     language: string;
+    simplify_style: string;
+    assessment_view: string;
+    focus_ruler_color: string;
+    focus_ruler_opacity: number;
 };
 
 export type PreferencesUpsert = Partial<Omit<PreferencesRow, "user_id">> & {

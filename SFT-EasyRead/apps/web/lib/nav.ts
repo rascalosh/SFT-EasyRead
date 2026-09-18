@@ -14,11 +14,11 @@ export const screenTitles: Record<ScreenId, string> = {
   home: "Materi Baru",
   material: "Detail Materi",
   reading: "Baca Teks",
-  simplify: "Simplify & Ringkasan",
+  simplify: "Simplify",
   tracking: "Multisensory Tracking",
-  syllable: "Latihan Kata",
+  syllable: "Syllable Breaker",
   comprehension: "Reading Comprehension",
-  assessment: "Penilaian Membaca",
+  assessment: "Reading Assessment",
   progress: "Progress & Achievement",
   settings: "Pengaturan",
 }
@@ -66,4 +66,22 @@ export function screenFromPath(pathname: string): ScreenId {
   )
 
   return match?.[0] ?? "home"
+}
+
+const MATERIAL_CHILD: ScreenId[] = [
+  "reading",
+  "simplify",
+  "tracking",
+  "syllable",
+  "assessment",
+  "comprehension",
+]
+
+/** Halaman sebelumnya yang masuk akal — tidak mengandalkan history browser. */
+export function parentHref(pathname: string, materialId?: string | null): string {
+  const screen = screenFromPath(pathname)
+  if (MATERIAL_CHILD.includes(screen) && materialId) {
+    return hrefFor("material", materialId)
+  }
+  return hrefFor("home")
 }

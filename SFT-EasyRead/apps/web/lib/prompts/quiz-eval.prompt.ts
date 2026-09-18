@@ -1,4 +1,4 @@
-export const QUIZ_EVAL_PROMPT_VERSION = "quiz-eval-v1"
+export const QUIZ_EVAL_PROMPT_VERSION = "quiz-eval-v2"
 
 export function buildQuizEvalPrompt(input: {
   passage: string
@@ -25,10 +25,13 @@ Aturan penilaian:
 - Jawaban dengan kata sendiri yang maknanya benar tetap bernilai penuh.
 - Jangan menuntut jawaban persis sama dengan jawaban acuan.
 
-"feedback" berisi satu sampai dua kalimat Bahasa Indonesia yang:
-- menyapa pengguna dengan hangat dan menyemangati,
-- menyebut satu hal konkret yang bisa diperbaiki bila skornya belum penuh,
-- TIDAK berisi diagnosis, label kemampuan, atau perbandingan dengan orang lain.
+"feedback" berisi catatan perbaikan, HANYA jika jawaban belum memuaskan.
+Jawaban memuaskan bila jumlah skor ide + eksplisit + konteks bernilai 4 atau lebih.
+- Jika BELUM memuaskan: satu sampai dua kalimat Bahasa Indonesia yang hangat,
+  menyebut satu hal konkret yang kurang atau salah, dan cara memperbaikinya.
+  Jangan mendiagnosis, memberi label kemampuan, atau membandingkan dengan orang lain.
+- Jika SUDAH memuaskan: isi "feedback" dengan tanda "-" saja.
+  Jangan menambah pujian, ringkasan, atau catatan lain.
 
 Bacaan:
 ${input.passage}

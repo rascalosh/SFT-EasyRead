@@ -83,6 +83,12 @@ export const READING_CONTRAST_OPTIONS = [
     text: "#1B3C53",
   },
   {
+    id: "web-gray",
+    label: "Halaman web · abu terang",
+    background: "#eeeeee",
+    text: "#1B3C53",
+  },
+  {
     id: "paper-black",
     label: "Kertas · kontras tinggi",
     background: "#f5f0e6",
@@ -163,9 +169,129 @@ export type ReadingSettings = {
   focusRuler: boolean
   /** Kalimat sampai titik, atau satu baris visual saja. */
   focusRulerMode: FocusRulerMode
+  /** Warna sorotan penggaris fokus. */
+  focusRulerColor: FocusRulerColorId
+  /** Kekentalan warna sorotan, 0.2–1. */
+  focusRulerOpacity: number
+  /** Versi hasil Simplify: paragraf sederhana, atau terstruktur ala asisten AI. */
+  simplifyStyle: SimplifyStyle
+  /** Bagian Reading Assessment yang ditampilkan. */
+  assessmentView: AssessmentView
 }
 
 export type FocusRulerMode = "sentence" | "line"
+
+export const FOCUS_RULER_COLOR_OPTIONS = [
+  {
+    id: "yellow",
+    label: "Kuning",
+    color: "#FFF2A8",
+    desc: "Kontras lembut, cukup populer.",
+  },
+  {
+    id: "green",
+    label: "Hijau",
+    color: "#B7E4C7",
+    desc: "Nuansa lembut dan tidak terlalu menyilaukan.",
+  },
+  {
+    id: "blue",
+    label: "Biru muda",
+    color: "#BDE0FE",
+    desc: "Efek visual yang relatif lembut.",
+  },
+  {
+    id: "lavender",
+    label: "Lavender",
+    color: "#D8B4E2",
+    desc: "Alternatif dengan kontras rendah.",
+  },
+  {
+    id: "rose",
+    label: "Pink",
+    color: "#F7C8D8",
+    desc: "Warna hangat yang terasa nyaman bagi sebagian pengguna.",
+  },
+  {
+    id: "peach",
+    label: "Peach",
+    color: "#FFD6A5",
+    desc: "Warna hangat dengan kontras yang cukup.",
+  },
+  {
+    id: "gray",
+    label: "Abu-abu",
+    color: "#D9D9D9",
+    desc: "Mengurangi distraksi tanpa tint warna yang kuat.",
+  },
+] as const
+
+export type FocusRulerColorId = (typeof FOCUS_RULER_COLOR_OPTIONS)[number]["id"]
+
+const FOCUS_RULER_COLOR_IDS = new Set<string>(FOCUS_RULER_COLOR_OPTIONS.map((item) => item.id))
+
+export function getFocusRulerColorOption(id: string) {
+  return FOCUS_RULER_COLOR_OPTIONS.find((item) => item.id === id) ?? FOCUS_RULER_COLOR_OPTIONS[0]
+}
+
+export function clampFocusRulerOpacity(value: number) {
+  if (!Number.isFinite(value)) return 0.7
+  return Math.min(1, Math.max(0.2, Math.round(value * 100) / 100))
+}
+
+export type SimplifyStyle = "plain" | "structured"
+
+export type AssessmentView = "voice" | "quiz" | "both"
+
+export const SIMPLIFY_STYLE_OPTIONS: {
+  id: SimplifyStyle
+  label: string
+  short: string
+  desc: string
+}[] = [
+  {
+    id: "plain",
+    label: "Versi 1 · Paragraf",
+    short: "Paragraf",
+    desc: "Seluruh teks ditulis ulang jadi paragraf pendek. Urutan isinya tetap seperti teks asli.",
+  },
+  {
+    id: "structured",
+    label: "Versi 2 · Terstruktur",
+    short: "Terstruktur",
+    desc: "Seluruh teks disusun ulang: inti dulu, lalu judul bagian, poin, kata kunci tebal, dan tabel — tetap bacaan lengkap, bukan inti singkat.",
+  },
+]
+
+export function isSimplifyStyle(value: unknown): value is SimplifyStyle {
+  return value === "plain" || value === "structured"
+}
+
+export const ASSESSMENT_VIEW_OPTIONS: {
+  id: AssessmentView
+  label: string
+  desc: string
+}[] = [
+  {
+    id: "both",
+    label: "Keduanya",
+    desc: "Penilaian Suara dan Kuis Pemahaman, dengan tab untuk berpindah.",
+  },
+  {
+    id: "voice",
+    label: "Penilaian Suara",
+    desc: "Hanya baca nyaring. Kuis tidak ditampilkan.",
+  },
+  {
+    id: "quiz",
+    label: "Kuis Pemahaman",
+    desc: "Hanya kuis. Penilaian suara tidak ditampilkan.",
+  },
+]
+
+export function isAssessmentView(value: unknown): value is AssessmentView {
+  return value === "voice" || value === "quiz" || value === "both"
+}
 
 const SETTINGS_KEY = "easyread-settings"
 export const SETTINGS_EVENT = "easyread-settings"
@@ -188,6 +314,31 @@ export const defaultSettings: ReadingSettings = {
   language: "id-ID",
   focusRuler: true,
   focusRulerMode: "sentence",
+  focusRulerColor: "yellow",
+  focusRulerOpacity: 0.7,
+  simplifyStyle: "plain",
+  assessmentView: "both",
+}
+
+export const TTS_SPEED_OPTIONS = [
+  { label: "Lambat (0.5x)", value: 0.5 },
+  { label: "Normal (1.0x)", value: 1.0 },
+  { label: "Cepat (1.5x)", value: 1.5 },
+] as const
+
+export function nearestTtsSpeed(rate: number): number {
+  if (!Number.isFinite(rate)) return defaultSettings.ttsSpeed
+  return TTS_SPEED_OPTIONS.reduce(
+    (best, option) =>
+      Math.abs(option.value - rate) < Math.abs(best - rate) ? option.value : best,
+    defaultSettings.ttsSpeed,
+  )
+}
+
+export function ttsSpeedIndex(rate: number): number {
+  const snapped = nearestTtsSpeed(rate)
+  const idx = TTS_SPEED_OPTIONS.findIndex((option) => option.value === snapped)
+  return idx >= 0 ? idx : 1
 }
 
 function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
@@ -220,6 +371,10 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
 
   const contrast = getContrastOption(contrastId)
 
+  const ttsSpeed = nearestTtsSpeed(
+    typeof raw.ttsSpeed === "number" ? raw.ttsSpeed : defaultSettings.ttsSpeed,
+  )
+
   return {
     ...defaultSettings,
     ...raw,
@@ -229,9 +384,19 @@ function normalizeSettings(raw: Partial<ReadingSettings>): ReadingSettings {
     letterSpacing,
     contrastId,
     overlay: contrast.background,
+    ttsSpeed,
+    language: raw.language?.trim() || defaultSettings.language,
     dyslexicFont: raw.dyslexicFont !== false,
     focusRuler: raw.focusRuler !== false,
     focusRulerMode: raw.focusRulerMode === "line" ? "line" : "sentence",
+    focusRulerColor: FOCUS_RULER_COLOR_IDS.has(raw.focusRulerColor ?? "")
+      ? (raw.focusRulerColor as FocusRulerColorId)
+      : "yellow",
+    focusRulerOpacity: clampFocusRulerOpacity(
+      typeof raw.focusRulerOpacity === "number" ? raw.focusRulerOpacity : 0.7,
+    ),
+    simplifyStyle: isSimplifyStyle(raw.simplifyStyle) ? raw.simplifyStyle : "plain",
+    assessmentView: isAssessmentView(raw.assessmentView) ? raw.assessmentView : "both",
   }
 }
 
@@ -274,6 +439,10 @@ export function applyFontPreferences(settings: ReadingSettings = loadSettings())
   root.style.setProperty("--reading-font-size", `${settings.fontSize}px`)
   root.style.setProperty("--reading-letter-spacing", `${letter}em`)
   root.style.setProperty("--reading-word-spacing", `${word}em`)
+  const ruler = getFocusRulerColorOption(settings.focusRulerColor)
+  root.dataset.focusRulerColor = ruler.id
+  root.style.setProperty("--focus-ruler-color", ruler.color)
+  root.style.setProperty("--focus-ruler-opacity", String(settings.focusRulerOpacity))
 }
 
 // ── Progress sesi (in-memory, reset per sesi) ────────────────────────────────
@@ -331,10 +500,15 @@ export async function syncSettingsFromServer(): Promise<ReadingSettings | null> 
 
   // Server mengirim id font/kontras sebagai string biasa; normalizeSettings
   // yang memvalidasinya dan jatuh ke default kalau idnya tidak dikenal.
+  const incoming = { ...result.data } as Partial<ReadingSettings>
+  if (incoming.focusRulerColor == null) delete incoming.focusRulerColor
+  if (incoming.focusRulerOpacity == null) delete incoming.focusRulerOpacity
+  if (incoming.simplifyStyle == null) delete incoming.simplifyStyle
+
   const merged = normalizeSettings({
     ...loadSettings(),
-    ...result.data,
-  } as Partial<ReadingSettings>)
+    ...incoming,
+  })
 
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged))
@@ -367,6 +541,10 @@ export function saveSettingsEverywhere(settings: ReadingSettings) {
         autoTts: settings.autoTts,
         focusRuler: settings.focusRuler,
         language: settings.language,
+        simplifyStyle: settings.simplifyStyle,
+        assessmentView: settings.assessmentView,
+        focusRulerColor: settings.focusRulerColor,
+        focusRulerOpacity: settings.focusRulerOpacity,
       })
     } catch {
       // Gagal menyimpan ke akun tidak boleh mengganggu; nilai lokal sudah aman.

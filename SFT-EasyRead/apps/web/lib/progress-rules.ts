@@ -230,8 +230,8 @@ function recommendationsOf(input: ProgressInput, averageComprehension: number): 
 
     if (sessionCount > 0 && syllableTaps / sessionCount >= 5) {
         recs.push({
-            title: "Coba Sederhanakan Teks",
-            body: "Kamu sering membuka kata sulit. Tekan Sederhanakan Teks sebelum mulai membaca.",
+            title: "Coba bacaan lebih mudah",
+            body: "Kamu sering membuka kata sulit. Buka Simplify dulu sebelum mulai membaca.",
         })
     }
 
@@ -258,8 +258,8 @@ function recommendationsOf(input: ProgressInput, averageComprehension: number): 
 
     if (mainIdeaMissRate >= 0.5) {
         recs.push({
-            title: "Baca Ringkasan Sebelum Kuis",
-            body: "Ide utama masih sering terlewat. Buka Ringkasan dulu sebelum menjawab kuis.",
+            title: "Baca inti singkat sebelum kuis",
+            body: "Ide utama masih sering terlewat. Buka Inti singkat dulu sebelum menjawab kuis.",
         })
     }
 
