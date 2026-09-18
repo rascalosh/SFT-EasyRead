@@ -133,16 +133,6 @@ export async function updateUserDocumentTitle(
   return { ok: true as const }
 }
 
-export async function deleteUserDocument(id: string): Promise<
-  | { ok: true }
-  | { unauthorized: true }
-  | { error: true }
-> {
-  const response = await fetch(`/api/documents/${id}`, { method: "DELETE" })
-  if (response.status === 401) return { unauthorized: true as const }
-  if (!response.ok) return { error: true as const }
-  return { ok: true as const }
-}
 export async function deleteUserDocument(id: string) {
   const response = await fetch(`/api/documents/${id}`, {
     method: "DELETE",
