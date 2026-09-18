@@ -10,5 +10,8 @@
     "./preferences": "./src/preferences.schema.ts",
     "./ocr": "./src/ocr.schema.ts",
     "./speech": "./src/speech.schema.ts"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
   }
 }
