@@ -232,7 +232,7 @@ async function simplifyStructuredDocument(input: {
         provider: "google" as const,
         model,
         pipeline_version: PIPELINE_VERSION.structured,
-        confidence: Number(similarity.toFixed(4)),
+        confidence: similarity != null ? Number(similarity.toFixed(4)) : null,
         original_readability_score: originalReadabilityScore,
         simplified_readability_score: simplifiedReadabilityScore,
         processing_time_ms: processingTime,

@@ -75,11 +75,24 @@ export function toGeminiSchema(schema: z.ZodType) {
     return sanitizeSchema(z.toJSONSchema(schema, { io: "output" }))
 }
 
-function isRateLimited(error: unknown) {
+export function isRateLimited(error: unknown) {
     const status = (error as { status?: number })?.status
     const message = String((error as { message?: string })?.message ?? error ?? "")
 
     return status === 429 || /429|rate.?limit|RESOURCE_EXHAUSTED|quota/i.test(message)
+}
+
+function retryDelayMs(error: unknown, attempt: number) {
+    const message = String((error as { message?: string })?.message ?? error ?? "")
+    const retryIn = message.match(/retry in ([\d.]+)\s*s/i)
+    if (retryIn) {
+        const seconds = Number(retryIn[1])
+        if (Number.isFinite(seconds) && seconds > 0) {
+            return Math.min(Math.ceil(seconds * 1000) + 250, 20_000)
+        }
+    }
+
+    return Math.min(2 ** (attempt - 1) * 1000, 8_000)
 }
 
 function wait(ms: number) {
@@ -125,8 +138,7 @@ export async function generateStructured<T>(
             lastError = error
 
             if (attempt < maxAttempts) {
-                // 1s, 2s, 4s … hanya untuk rate limit; galat skema tidak perlu ditunggu.
-                await wait(isRateLimited(error) ? 2 ** (attempt - 1) * 1000 : 250)
+                await wait(isRateLimited(error) ? retryDelayMs(error, attempt) : 250)
             }
         }
     }
@@ -171,7 +183,7 @@ export async function generateStructuredFromImage<T>(
         } catch (error) {
             lastError = error
             if (attempt < maxAttempts) {
-                await wait(isRateLimited(error) ? 2 ** (attempt - 1) * 1000 : 250)
+                await wait(isRateLimited(error) ? retryDelayMs(error, attempt) : 250)
             }
         }
     }

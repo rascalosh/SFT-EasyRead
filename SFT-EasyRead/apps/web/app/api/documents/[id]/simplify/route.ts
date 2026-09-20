@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { simplifyStyleSchema, type SimplifyStyle } from "@repo/schemas/simplify"
 import { getCachedSimplification, simplifyDocument } from "@repo/web/services/simplify.service"
 import { getCurrentUser } from "@repo/web/proxy"
+import { isRateLimited } from "@repo/web/lib/gemini"
 
 /** `?style=plain|structured` — versi hasil yang dipilih di Pengaturan. Default plain. */
 function styleFrom(req: Request): SimplifyStyle {
@@ -66,6 +67,13 @@ export async function POST(
 
 		if (message === "Document text is empty") {
 			return NextResponse.json({ message }, { status: 400 })
+		}
+
+		if (isRateLimited(error)) {
+			return NextResponse.json(
+				{ message: "Kuota AI sedang penuh. Tunggu sekitar 20 detik, lalu coba lagi." },
+				{ status: 429 },
+			)
 		}
 
 		console.error(error)

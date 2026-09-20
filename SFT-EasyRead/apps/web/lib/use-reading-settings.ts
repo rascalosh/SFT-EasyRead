@@ -6,6 +6,7 @@ import {
   applyFontPreferences,
   defaultSettings,
   loadSettings,
+  saveSettingsEverywhere,
   syncSettingsFromServer,
   type ReadingSettings,
 } from "@/lib/session"
@@ -36,5 +37,13 @@ export function useReadingSettings() {
     }
   }, [])
 
-  return { settings, settingsRef, ready }
+  function persist(partial: Partial<ReadingSettings>) {
+    const next = { ...settingsRef.current, ...partial }
+    settingsRef.current = next
+    setSettings(next)
+    saveSettingsEverywhere(next)
+    applyFontPreferences(next)
+  }
+
+  return { settings, settingsRef, ready, persist }
 }

@@ -54,7 +54,7 @@ export default function ScrollEdgeButton({ className }: { className?: string }) 
       rounded="full"
       icon={toBottom ? <IconChevronDown aria-hidden /> : <IconChevronUp aria-hidden />}
       onClick={handleClick}
-      className={cx("fixed bottom-6 right-6 z-40 shadow-[var(--shadow-lg)]", className)}
+      className={cx("fixed bottom-6 right-6 z-[60] shadow-[var(--shadow-lg)]", className)}
     />
   )
 }

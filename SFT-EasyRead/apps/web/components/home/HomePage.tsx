@@ -15,7 +15,14 @@ type LoadMethod = "upload" | "paste"
 
 const loadMeta: Record<LoadMethod, { label: string }> = {
   upload: { label: "Upload Dokumen" },
-  paste:  { label: "Tempel Teks" },
+  paste: { label: "Tempel Teks" },
+}
+
+function titleFromText(text: string) {
+  const line = text.split(/\n/).map((part) => part.trim()).find(Boolean) ?? ""
+  const compact = line.replace(/\s+/g, " ")
+  if (compact.length <= 80) return compact
+  return `${compact.slice(0, 77).trim()}…`
 }
 
 export default function HomeDashboard() {
@@ -93,9 +100,11 @@ export default function HomeDashboard() {
 
   function handlePasteConfirm() {
     if (!pasteText.trim()) return
-    setPendingText(pasteText.trim())
+    const text = pasteText.trim()
+    setPendingText(text)
     setPendingSource("text")
-    startLoading("paste")
+    setTitleValue((current) => current.trim() || titleFromText(text))
+    setStage("title")
   }
 
   async function handleTitleSubmit() {
@@ -353,10 +362,10 @@ export default function HomeDashboard() {
               <p className="text-base font-semibold text-ink">Memproses…</p>
               <p className="mt-1 text-sm text-ink-soft">{loadMeta[loadMethod].label}</p>
             </div>
-            <div className="w-full overflow-hidden rounded-full bg-[var(--color-line-soft)]" role="progressbar" aria-label="Memuat">
-              <div className="h-2 animate-[loading-bar_2s_ease-in-out_forwards] rounded-full bg-brand" />
+            <div className="relative h-2 w-full overflow-hidden rounded-full bg-[var(--color-line-soft)]" role="progressbar" aria-label="Memuat">
+              <div className="absolute inset-y-0 w-1/3 animate-[loading-indeterminate_1.1s_ease-in-out_infinite] rounded-full bg-brand" />
             </div>
-            <p className="text-xs text-ink-mute">Mohon tunggu sebentar…</p>
+            <p className="text-xs text-ink-mute">Mengekstrak teks dari dokumen…</p>
           </div>
         )}
 

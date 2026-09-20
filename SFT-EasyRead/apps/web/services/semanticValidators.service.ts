@@ -20,7 +20,7 @@ export class SemanticValidatorService {
       simplified
     );
 
-    if (similarityScore < 0.85) {
+    if (similarityScore != null && similarityScore < 0.85) {
       reasons.push(`Skor kemiripan makna terlalu rendah (${similarityScore.toFixed(2)} < 0.85).`);
     }
 
@@ -36,11 +36,12 @@ export class SemanticValidatorService {
       reasons.push(...negationVal.errors);
     }
 
-    const passed = similarityScore >= 0.85 && numberVal.passed && negationVal.passed;
+    const similarityOk = similarityScore == null || similarityScore >= 0.85;
+    const passed = similarityOk && numberVal.passed && negationVal.passed;
 
     return {
       passed,
-      similarityScore,
+      similarityScore: similarityScore ?? 0,
       reasons,
     };
   }

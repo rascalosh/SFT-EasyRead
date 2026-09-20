@@ -10,7 +10,7 @@ export class MLApiClient {
   static async checkSemanticSimilarity(
     original: string,
     simplified: string
-  ): Promise<number> {
+  ): Promise<number | null> {
     try {
       const response = await fetch(`${this.baseUrl}/semantic/similarity`, {
         method: "POST",
@@ -25,9 +25,8 @@ export class MLApiClient {
       const data: SemanticSimilarityResponse = await response.json();
       return data.similarity;
     } catch (error) {
-      console.error("[MLApiClient] Failed to fetch semantic similarity:", error);
-
-      return 0.80; 
+      console.warn("[MLApiClient] Semantic similarity unavailable; skipping that check.", error);
+      return null;
     }
   }
 }

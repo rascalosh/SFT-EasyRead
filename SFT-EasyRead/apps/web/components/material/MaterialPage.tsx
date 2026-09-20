@@ -7,6 +7,7 @@ import { getSessionMaterials } from "@/lib/mock"
 import { getActiveMaterial, setActiveMaterial } from "@/lib/session"
 import { startReadingSession, updateReadingSessionBeacon, isOk } from "@/lib/api"
 import ScrollEdgeButton from "@/components/shared/ScrollEdgeButton"
+import { ReadingToolbar } from "@/components/baca/ReadingToolbar"
 import { ActivityPicker } from "./ActivityPicker"
 import { MaterialHeader } from "./MaterialHeader"
 import { MaterialNotFound } from "./MaterialNotFound"
@@ -128,7 +129,7 @@ export default function MaterialDetail() {
 
   return (
     <>
-      <div className="space-y-8 animate-[fade-in_300ms_ease-out_both]">
+      <div className="space-y-8 pb-36 animate-[fade-in_300ms_ease-out_both]">
         <MaterialHeader
           title={material.title}
           paragraphs={
@@ -140,6 +141,7 @@ export default function MaterialDetail() {
         <ActivityPicker materialId={material.id} />
       </div>
       <ScrollEdgeButton />
+      <ReadingToolbar />
     </>
   )
 }

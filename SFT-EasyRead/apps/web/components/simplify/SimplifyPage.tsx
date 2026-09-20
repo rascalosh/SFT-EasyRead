@@ -284,9 +284,22 @@ export default function SimplifyPage() {
         router.push("/login")
         return
       }
-      if (!simplifyResponse.ok) throw new Error("simplify-failed")
 
-      const simplifyPayload = await simplifyResponse.json()
+      const simplifyPayload = await simplifyResponse.json().catch(() => null)
+      if (!simplifyResponse.ok) {
+        const fromApi =
+          simplifyPayload &&
+          typeof simplifyPayload === "object" &&
+          "message" in simplifyPayload &&
+          typeof simplifyPayload.message === "string"
+            ? simplifyPayload.message
+            : null
+        if (simplifyResponse.status === 429) {
+          throw new Error(fromApi || "Kuota AI sedang penuh. Tunggu sekitar 20 detik, lalu coba lagi.")
+        }
+        throw new Error(fromApi || "Teks gagal diproses oleh AI. Silakan coba lagi.")
+      }
+
       const summaryPayload = summaryResponse.ok ? await summaryResponse.json() : null
       const nextSimplify = parseSimplifyPayload(simplifyPayload)
       const nextSummary = summaryPayload ? parseSummaryPayload(summaryPayload) : emptySummaryView()
@@ -299,8 +312,17 @@ export default function SimplifyPage() {
       setPoints(nextSummary.points)
       setDone(true)
       setFromCache(Boolean((simplifyPayload as { cached?: boolean }).cached))
-    } catch {
-      setError("Teks gagal diproses oleh AI. Silakan coba lagi.")
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : ""
+      if (raw === "create-failed") {
+        setError("Materi gagal disimpan. Silakan coba lagi.")
+      } else if (raw === "invalid-simplification") {
+        setError("AI tidak mengembalikan bacaan yang bisa dipakai. Silakan coba lagi.")
+      } else if (raw) {
+        setError(raw)
+      } else {
+        setError("Teks gagal diproses oleh AI. Silakan coba lagi.")
+      }
     } finally {
       setLoading(false)
     }
