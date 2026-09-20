@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "tui",
+  "globalEnv": [
+    "GEMINI_API_KEY",
+    "GEMINI_MODEL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"],
+      "env": [
+        "ML_API_URL",
+        "APP_NAME",
+        "APP_VERSION",
+        "API_PREFIX",
+        "MODEL_CACHE_DIR",
+        "EMBEDDING_MODEL",
+        "ML_DEVICE",
+        "ML_API_TOKEN",
+        "CORS_ORIGINS"
+      ]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "check-types": {
+      "dependsOn": ["^check-types"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
