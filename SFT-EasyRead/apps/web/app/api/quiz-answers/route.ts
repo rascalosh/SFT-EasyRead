@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { evaluateAnswer } from "@repo/web/services/quiz.service"
 import { getCurrentUser } from "@repo/web/proxy"
+import { isRateLimited, RATE_LIMIT_MESSAGE } from "@repo/web/lib/gemini"
 
 /** Nilai satu jawaban bebas, lalu upsert ke quiz_answers. */
 export async function POST(request: Request) {
@@ -29,6 +30,10 @@ export async function POST(request: Request) {
 
 		if (message === "Question not found" || message === "Document not found") {
 			return NextResponse.json({ message }, { status: 404 })
+		}
+
+		if (isRateLimited(error)) {
+			return NextResponse.json({ message: RATE_LIMIT_MESSAGE }, { status: 429 })
 		}
 
 		console.error(error)

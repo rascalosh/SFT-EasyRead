@@ -17,12 +17,15 @@ export function MaterialHeader({
   const [layoutKey, setLayoutKey] = useState("")
 
   useEffect(() => {
+    let alive = true
+
     const sync = () => {
+      if (!alive) return
       const settings = loadSettings()
       setFocusRuler(settings.focusRuler)
       setFocusRulerMode(settings.focusRulerMode)
       setLayoutKey(
-        `${settings.fontSize}-${settings.letterSpacing}-${settings.readingFont}-${settings.contrastId}-${settings.dyslexicFont}`,
+        `${settings.fontSize}-${settings.letterSpacing}-${settings.readingFont}-${settings.contrastId}`,
       )
     }
 
@@ -32,6 +35,7 @@ export function MaterialHeader({
     window.addEventListener("storage", sync)
 
     return () => {
+      alive = false
       window.removeEventListener(SETTINGS_EVENT, sync)
       window.removeEventListener("storage", sync)
     }

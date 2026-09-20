@@ -1,4 +1,4 @@
-import { generateStructured, activeModel } from "@repo/web/lib/gemini"
+import { generateStructured, activeModel, isRateLimited } from "@repo/web/lib/gemini"
 import { buildSimplifyPrompt, buildStructuredSimplifyPrompt } from "@repo/web/lib/prompts/simplify.prompt"
 import {
     simplifySchema,
@@ -195,11 +195,17 @@ async function simplifyStructuredDocument(input: {
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         if (attempt > 0) {
-            result = await generateStructured(
-                structuredSimplifySchema,
-                buildStructuredSimplifyPrompt(originalText, feedback),
-            )
-            plain = markdownToPlainText(result.markdown)
+            try {
+                result = await generateStructured(
+                    structuredSimplifySchema,
+                    buildStructuredSimplifyPrompt(originalText, feedback),
+                )
+                plain = markdownToPlainText(result.markdown)
+            } catch (error) {
+                // Hasil pertama tetap dipakai daripada membakar kuota dan gagal total.
+                if (isRateLimited(error)) break
+                throw error
+            }
         }
 
         const numbers = DeterministicValidators.validateNumbers(originalText, plain)
@@ -303,11 +309,21 @@ export async function simplifyDocument(
     const similarityScores: number[] = []
     let hasFallback = false
 
-    // Lakukan validasi per paragraf
+    // Lakukan validasi per paragraf. Kalau kuota Gemini habis di tengah jalan,
+    // paragraf sisa memakai draf yang sudah ada — jangan panggil model lagi.
+    let quotaExhausted = false
+
     for (let i = 0; i < result.paragraphs.length; i++) {
         let paragraph = result.paragraphs[i];
         
         if (!paragraph) continue; 
+
+        if (quotaExhausted) {
+            hasFallback = true
+            similarityScores.push(0)
+            validatedParagraphs.push(paragraph)
+            continue
+        }
 
         let pAttempts = 0;
         let isValid = false;
@@ -331,12 +347,18 @@ export async function simplifyDocument(
                 pAttempts++;
 
                 if (pAttempts <= MAX_RETRIES) {
-                    // Regenerate khusus paragraf yang bermasalah dengan Feedback
-                    const retryResult = await simplifyText(paragraph.original, errors);
-                    
-                    const newParagraph = retryResult.paragraphs?.[0];
-                    if (newParagraph) {
-                        paragraph = newParagraph;
+                    try {
+                        const retryResult = await simplifyText(paragraph.original, errors);
+                        const newParagraph = retryResult.paragraphs?.[0];
+                        if (newParagraph) {
+                            paragraph = newParagraph;
+                        }
+                    } catch (error) {
+                        if (isRateLimited(error)) {
+                            quotaExhausted = true
+                            break
+                        }
+                        throw error
                     }
                 }
             }
@@ -344,12 +366,17 @@ export async function simplifyDocument(
 
         // 3. Fallback jika Max Retry Lampaui dan Masih Gagal Validasi
         if (!isValid) {
-            hasFallback = true;
-            similarityScores.push(1.0); // Teks asli identik 100%
-            validatedParagraphs.push({
-                ...paragraph,
-                simplified: paragraph.original, // Guardrail Fallback
-            });
+            hasFallback = true
+            if (quotaExhausted) {
+                similarityScores.push(lastScore)
+                validatedParagraphs.push(paragraph)
+            } else {
+                similarityScores.push(1.0)
+                validatedParagraphs.push({
+                    ...paragraph,
+                    simplified: paragraph.original,
+                })
+            }
         }
     }
 

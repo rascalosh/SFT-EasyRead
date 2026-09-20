@@ -43,6 +43,8 @@ export function FocusRulerSentences({
   useLayoutEffect(() => {
     if (!preview || !enabled) return
 
+    let alive = true
+
     if (mode === "sentence") {
       setRuler(0)
       setLine(null)
@@ -52,10 +54,16 @@ export function FocusRulerSentences({
     const box = boxRef.current
     if (!box) return
 
-    const apply = () => setLine(firstLineSpan(box))
+    const apply = () => {
+      if (!alive) return
+      setLine(firstLineSpan(box))
+    }
     apply()
     const frame = window.requestAnimationFrame(apply)
-    return () => window.cancelAnimationFrame(frame)
+    return () => {
+      alive = false
+      window.cancelAnimationFrame(frame)
+    }
   }, [preview, enabled, mode, layoutKey, blocks])
 
   useEffect(() => {

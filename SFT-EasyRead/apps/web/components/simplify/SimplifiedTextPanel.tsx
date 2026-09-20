@@ -7,6 +7,7 @@ import { MarkdownAnswer } from "@/components/shared/MarkdownAnswer"
 import { simplifyReaderNotes, type SimplifyView } from "@/lib/ai-result"
 import { SIMPLIFY_STYLE_OPTIONS, type SimplifyStyle } from "@/lib/session"
 import { hrefFor } from "@/lib/nav"
+import { KincaidScoreStrip, type KincaidReading } from "./KincaidScore"
 
 export function SimplifiedTextPanel({
   text,
@@ -14,6 +15,8 @@ export function SimplifiedTextPanel({
   done,
   view,
   style = "plain",
+  originalKincaid = null,
+  simplifiedKincaid = null,
 }: {
   text: string
   loading: boolean
@@ -21,6 +24,8 @@ export function SimplifiedTextPanel({
   view?: SimplifyView | null
   /** Versi yang dipilih di Pengaturan; menentukan teks tunggu dan label. */
   style?: SimplifyStyle
+  originalKincaid?: KincaidReading | null
+  simplifiedKincaid?: KincaidReading | null
 }) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
   const notes = done ? simplifyReaderNotes(view) : []
@@ -66,7 +71,14 @@ export function SimplifiedTextPanel({
               {paragraphs.length > 1 ? paragraphs.map((part, i) => <p key={i}>{part}</p>) : text}
             </div>
           )}
-          <div className="mt-4 text-xs opacity-60">{wordCount} kata</div>
+          <div className="mt-4 space-y-3">
+            <KincaidScoreStrip
+              before={originalKincaid}
+              after={simplifiedKincaid}
+              afterLabel={style === "structured" ? "Bacaan terstruktur" : "Bacaan mudah"}
+            />
+            <div className="text-xs opacity-60">{wordCount} kata</div>
+          </div>
         </>
       ) : (
         <div className="grid h-full min-h-40 place-items-center text-center text-sm opacity-60">

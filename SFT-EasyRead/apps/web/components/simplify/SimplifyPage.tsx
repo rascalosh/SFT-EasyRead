@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button, Badge } from "@/components/shared/ui"
 import { IconSparkle } from "@/components/shared/icons"
@@ -24,6 +24,8 @@ import {
 import { OriginalTextPanel } from "./OriginalTextPanel"
 import { SimplifiedTextPanel } from "./SimplifiedTextPanel"
 import { SummaryCard } from "./SummaryCard"
+import { type KincaidReading } from "./KincaidScore"
+import { measureDifficulty } from "@/lib/readability"
 
 function toParagraphs(text: string) {
   const trimmed = text.trim()
@@ -37,7 +39,39 @@ function simplifyEndpoint(documentId: string, style: SimplifyStyle) {
   return `/api/documents/${documentId}/simplify?style=${style}`
 }
 
-/** Shell stabil untuk SSR + Suspense — hindari early-return yang beda dengan client. */
+function jsonMessage(payload: unknown) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "message" in payload &&
+    typeof payload.message === "string"
+  ) {
+    return payload.message
+  }
+  return null
+}
+
+function kincaidOf(text: string): KincaidReading | null {
+  const trimmed = text.trim()
+  if (!trimmed) return null
+  const difficulty = measureDifficulty(trimmed)
+  return { fkId: difficulty.fkId, band: difficulty.band }
+}
+
+/** HTML yang sama di server, Suspense, dan hydrate pertama — baru kemudian shell penuh. */
+export function SimplifyLoadingState() {
+  return (
+    <div className="space-y-6" suppressHydrationWarning>
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-ink" suppressHydrationWarning>
+        <IconSparkle className="text-brand" /> Simplify
+      </h1>
+      <p className="text-sm text-ink-mute" suppressHydrationWarning>
+        Memuat teks materi…
+      </p>
+    </div>
+  )
+}
+
 export function SimplifyPageShell({
   subtitle = "AI menulis ulang seluruh teks agar lebih mudah dibaca, lalu merangkum intinya.",
   sourceText = "",
@@ -71,6 +105,20 @@ export function SimplifyPageShell({
   summaryView?: SummaryView | null
   style?: SimplifyStyle
 }) {
+  const originalKincaid = useMemo(() => kincaidOf(sourceText), [sourceText])
+  const simplifiedKincaid = useMemo(
+    () => (done ? kincaidOf(resultText) : null),
+    [done, resultText],
+  )
+  const summaryKincaid = useMemo(() => {
+    if (!done || !summaryView) return null
+    if (summaryView.fkId != null) {
+      return { fkId: summaryView.fkId, band: summaryView.band }
+    }
+    const surface = [summaryView.summary, ...points].join("\n")
+    return kincaidOf(surface)
+  }, [done, summaryView, points])
+
   return (
     <>
       <div className="space-y-6">
@@ -91,13 +139,29 @@ export function SimplifyPageShell({
         </div>
       </div>
 
-      <OriginalTextPanel text={sourceText} onChange={onSourceChange ?? (() => {})} />
+      <OriginalTextPanel text={sourceText} onChange={onSourceChange ?? (() => {})} kincaid={originalKincaid} />
       {emptyMaterialHint && (
         <p className="text-sm text-ink-mute">{emptyMaterialHint}</p>
       )}
       {error && <p className="text-sm text-error" role="alert">{error}</p>}
-      <SimplifiedTextPanel text={resultText} loading={loading} done={done} view={simplifyView} style={style} />
-      <SummaryCard title={title} points={points} done={done} onCopy={onCopy ?? (() => {})} view={summaryView} />
+      <SimplifiedTextPanel
+        text={resultText}
+        loading={loading}
+        done={done}
+        view={simplifyView}
+        style={style}
+        originalKincaid={originalKincaid}
+        simplifiedKincaid={simplifiedKincaid}
+      />
+      <SummaryCard
+        title={title}
+        points={points}
+        done={done}
+        onCopy={onCopy ?? (() => {})}
+        view={summaryView}
+        originalKincaid={originalKincaid}
+        summaryKincaid={summaryKincaid}
+      />
       </div>
       <ScrollEdgeButton />
     </>
@@ -124,6 +188,11 @@ export default function SimplifyPage() {
   const [booting, setBooting] = useState(true)
   const [fromCache, setFromCache] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!settingsReady) return
@@ -275,43 +344,54 @@ export default function SimplifyPage() {
         })
       }
 
-      const [simplifyResponse, summaryResponse] = await Promise.all([
-        fetch(simplifyEndpoint(documentId, style), { method: "POST" }),
-        fetch(`/api/documents/${documentId}/summary`, { method: "POST" }),
-      ])
+      const simplifyResponse = await fetch(simplifyEndpoint(documentId, style), { method: "POST" })
 
-      if (simplifyResponse.status === 401 || summaryResponse.status === 401) {
+      if (simplifyResponse.status === 401) {
         router.push("/login")
         return
       }
 
       const simplifyPayload = await simplifyResponse.json().catch(() => null)
       if (!simplifyResponse.ok) {
-        const fromApi =
-          simplifyPayload &&
-          typeof simplifyPayload === "object" &&
-          "message" in simplifyPayload &&
-          typeof simplifyPayload.message === "string"
-            ? simplifyPayload.message
-            : null
+        const fromApi = jsonMessage(simplifyPayload)
         if (simplifyResponse.status === 429) {
           throw new Error(fromApi || "Kuota AI sedang penuh. Tunggu sekitar 20 detik, lalu coba lagi.")
         }
         throw new Error(fromApi || "Teks gagal diproses oleh AI. Silakan coba lagi.")
       }
 
-      const summaryPayload = summaryResponse.ok ? await summaryResponse.json() : null
       const nextSimplify = parseSimplifyPayload(simplifyPayload)
-      const nextSummary = summaryPayload ? parseSummaryPayload(summaryPayload) : emptySummaryView()
-
       if (!nextSimplify.text) throw new Error("invalid-simplification")
       if (style === "structured" && !nextSimplify.markdown) throw new Error("invalid-simplification")
+
       setSimplifyView(nextSimplify)
-      setSummaryView(nextSummary)
       setResultText(nextSimplify.text)
+      setFromCache(Boolean((simplifyPayload as { cached?: boolean }).cached))
+
+      // Summary dipanggil setelah simplify supaya tidak berebut kuota Gemini.
+      const summaryResponse = await fetch(`/api/documents/${documentId}/summary`, { method: "POST" })
+      if (summaryResponse.status === 401) {
+        router.push("/login")
+        return
+      }
+
+      let nextSummary = emptySummaryView()
+      let summaryNote: string | null = null
+      if (summaryResponse.ok) {
+        const summaryPayload = await summaryResponse.json().catch(() => null)
+        if (summaryPayload) nextSummary = parseSummaryPayload(summaryPayload)
+      } else if (summaryResponse.status === 429) {
+        summaryNote =
+          jsonMessage(await summaryResponse.json().catch(() => null)) ||
+          "Bacaan mudah siap. Ringkasan belum bisa dibuat karena kuota AI penuh. Coba Proses ulang nanti."
+      } else {
+        summaryNote = "Bacaan mudah siap. Ringkasan belum berhasil dibuat. Coba Proses ulang nanti."
+      }
+
+      setSummaryView(nextSummary)
       setPoints(nextSummary.points)
       setDone(true)
-      setFromCache(Boolean((simplifyPayload as { cached?: boolean }).cached))
+      if (summaryNote) setError(summaryNote)
     } catch (error) {
       const raw = error instanceof Error ? error.message : ""
       if (raw === "create-failed") {
@@ -336,6 +416,10 @@ export default function SimplifyPage() {
     } catch {
       // ignore
     }
+  }
+
+  if (!mounted) {
+    return <SimplifyLoadingState />
   }
 
   const staleScores = fromCache && simplifyView.originalScore == null && simplifyView.simplifiedScore == null

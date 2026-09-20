@@ -3,6 +3,7 @@
 import { Card, SectionTitle } from "@/components/shared/ui"
 import { IconClipboard, IconArrow } from "@/components/shared/icons"
 import { summaryReaderNotes, type SummaryView } from "@/lib/ai-result"
+import { KincaidScoreStrip, type KincaidReading } from "./KincaidScore"
 
 export function SummaryCard({
   title,
@@ -10,12 +11,16 @@ export function SummaryCard({
   done,
   onCopy,
   view,
+  originalKincaid = null,
+  summaryKincaid = null,
 }: {
   title: string
   points: string[]
   done: boolean
   onCopy?: () => void
   view?: SummaryView | null
+  originalKincaid?: KincaidReading | null
+  summaryKincaid?: KincaidReading | null
 }) {
   const summary = view?.summary?.trim() ?? ""
   const hasContent = Boolean(summary) || points.length > 0
@@ -57,6 +62,15 @@ export function SummaryCard({
             <span key={note} className="block">{note}</span>
           ))}
         </p>
+      )}
+      {done && hasContent && (
+        <div className="mt-4">
+          <KincaidScoreStrip
+            before={originalKincaid}
+            after={summaryKincaid}
+            afterLabel="Inti singkat"
+          />
+        </div>
       )}
       {done && hasContent && (
         <button

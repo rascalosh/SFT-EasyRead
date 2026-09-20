@@ -18,7 +18,10 @@ export function useReadingSettings() {
   const settingsRef = useRef<ReadingSettings>(defaultSettings)
 
   useEffect(() => {
+    let alive = true
+
     const sync = () => {
+      if (!alive) return
       const next = loadSettings()
       settingsRef.current = next
       setSettings(next)
@@ -32,6 +35,7 @@ export function useReadingSettings() {
     window.addEventListener("storage", sync)
 
     return () => {
+      alive = false
       window.removeEventListener(SETTINGS_EVENT, sync)
       window.removeEventListener("storage", sync)
     }

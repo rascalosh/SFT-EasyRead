@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@repo/web/proxy"
 import { getCachedSummary, summarizeDocument } from "@repo/web/services/summary.service"
+import { isRateLimited, RATE_LIMIT_MESSAGE } from "@repo/web/lib/gemini"
 
 export async function GET(
 	_req: Request,
@@ -59,6 +60,10 @@ export async function POST(
 
 		if (message === "Document text is empty") {
 			return NextResponse.json({ message }, { status: 400 })
+		}
+
+		if (isRateLimited(error)) {
+			return NextResponse.json({ message: RATE_LIMIT_MESSAGE }, { status: 429 })
 		}
 
 		console.error(error)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getOrCreateQuiz } from "@repo/web/services/quiz.service"
 import { getCurrentUser } from "@repo/web/proxy"
+import { isRateLimited, RATE_LIMIT_MESSAGE } from "@repo/web/lib/gemini"
 
 /** Ambil kuis dokumen; dibuat lewat Gemini bila belum ada. */
 export async function POST(
@@ -27,6 +28,10 @@ export async function POST(
 
 		if (message === "Document text is empty") {
 			return NextResponse.json({ message }, { status: 400 })
+		}
+
+		if (isRateLimited(error)) {
+			return NextResponse.json({ message: RATE_LIMIT_MESSAGE }, { status: 429 })
 		}
 
 		console.error(error)

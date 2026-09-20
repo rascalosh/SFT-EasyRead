@@ -180,7 +180,11 @@ export default function ComprehensionCheck({
     setChecking(false)
 
     if (!isOk(response)) {
-      setSubmitError("Jawaban belum bisa dinilai. Periksa koneksi internet, lalu tekan Periksa Jawaban lagi.")
+      setSubmitError(
+        "message" in response && typeof response.message === "string"
+          ? response.message
+          : "Jawaban belum bisa dinilai. Periksa koneksi internet, lalu tekan Periksa Jawaban lagi.",
+      )
       return
     }
 

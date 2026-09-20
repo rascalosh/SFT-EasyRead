@@ -1,21 +1,28 @@
 "use client"
 
 import { Card } from "@/components/shared/ui"
+import { KincaidInline, type KincaidReading } from "./KincaidScore"
 
 export function OriginalTextPanel({
   text,
   onChange,
+  kincaid = null,
 }: {
   text: string
   onChange: (value: string) => void
+  kincaid?: KincaidReading | null
 }) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
 
   return (
     <Card variant="reading" className="flex min-h-64 flex-col">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold text-ink">Teks Asli</h2>
-        <span className="text-xs text-ink-mute">{wordCount} kata</span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-mute">
+          <KincaidInline reading={kincaid} />
+          {kincaid && <span aria-hidden>·</span>}
+          <span>{wordCount} kata</span>
+        </div>
       </div>
       <textarea
         value={text}

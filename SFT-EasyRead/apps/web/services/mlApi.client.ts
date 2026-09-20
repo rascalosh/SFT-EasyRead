@@ -4,6 +4,9 @@ export interface SemanticSimilarityResponse {
   processing_time_ms: number;
 }
 
+/** Jangan tahan pipeline Gemini kalau FastAPI hang saat load model. */
+const ML_TIMEOUT_MS = 4_000
+
 export class MLApiClient {
   private static baseUrl = process.env.ML_API_URL || "http://localhost:8000/api/v1";
 
@@ -16,6 +19,7 @@ export class MLApiClient {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ original, simplified }),
+        signal: AbortSignal.timeout(ML_TIMEOUT_MS),
       });
 
       if (!response.ok) {

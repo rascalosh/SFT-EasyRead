@@ -82,18 +82,9 @@ export function isRateLimited(error: unknown) {
     return status === 429 || /429|rate.?limit|RESOURCE_EXHAUSTED|quota/i.test(message)
 }
 
-function retryDelayMs(error: unknown, attempt: number) {
-    const message = String((error as { message?: string })?.message ?? error ?? "")
-    const retryIn = message.match(/retry in ([\d.]+)\s*s/i)
-    if (retryIn) {
-        const seconds = Number(retryIn[1])
-        if (Number.isFinite(seconds) && seconds > 0) {
-            return Math.min(Math.ceil(seconds * 1000) + 250, 20_000)
-        }
-    }
-
-    return Math.min(2 ** (attempt - 1) * 1000, 8_000)
-}
+/** Pesan yang sama di semua endpoint yang kehabisan kuota Gemini. */
+export const RATE_LIMIT_MESSAGE =
+    "Kuota AI sedang penuh. Tunggu sekitar 20 detik, lalu coba lagi."
 
 function wait(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms))
@@ -105,9 +96,33 @@ export type StructuredOptions = {
     systemInstruction?: string
 }
 
+async function parseWithRetry<T>(
+    schema: z.ZodType<T>,
+    generate: () => Promise<string>,
+    maxAttempts: number,
+): Promise<T> {
+    let lastError: unknown
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const rawText = await generate()
+            if (!rawText.trim()) throw new Error("Gemini response text is missing")
+            return schema.parse(JSON.parse(rawText))
+        } catch (error) {
+            lastError = error
+            // 429/quota tidak pulih dengan retry — malah menghabiskan sisa kuota
+            // dan menahan request 20–60 detik sebelum gagal.
+            if (isRateLimited(error) || attempt >= maxAttempts) break
+            await wait(250)
+        }
+    }
+
+    throw lastError
+}
+
 /**
  * Satu pintu untuk semua panggilan Gemini berformat JSON: structured output,
- * validasi Zod, dan retry dengan exponential backoff untuk 429 sesuai PLAN.md.
+ * validasi Zod, dan retry singkat untuk JSON rusak. Kuota 429 tidak di-retry.
  */
 export async function generateStructured<T>(
     schema: z.ZodType<T>,
@@ -116,34 +131,19 @@ export async function generateStructured<T>(
 ): Promise<T> {
     const { maxAttempts = 3, systemInstruction } = options
 
-    let lastError: unknown
+    return parseWithRetry(schema, async () => {
+        const response = await gemini.models.generateContent({
+            model: activeModel(),
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: toGeminiSchema(schema),
+                ...(systemInstruction ? { systemInstruction } : {}),
+            },
+        })
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-            const response = await gemini.models.generateContent({
-                model: activeModel(),
-                contents: prompt,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: toGeminiSchema(schema),
-                    ...(systemInstruction ? { systemInstruction } : {}),
-                },
-            })
-
-            const rawText = typeof response.text === "string" ? response.text : ""
-            if (!rawText.trim()) throw new Error("Gemini response text is missing")
-
-            return schema.parse(JSON.parse(rawText))
-        } catch (error) {
-            lastError = error
-
-            if (attempt < maxAttempts) {
-                await wait(isRateLimited(error) ? retryDelayMs(error, attempt) : 250)
-            }
-        }
-    }
-
-    throw lastError
+        return typeof response.text === "string" ? response.text : ""
+    }, maxAttempts)
 }
 
 /** Panggilan multimodal (gambar + teks) untuk OCR. */
@@ -155,38 +155,24 @@ export async function generateStructuredFromImage<T>(
 ): Promise<T> {
     const { maxAttempts = 3 } = options
 
-    let lastError: unknown
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-            const response = await gemini.models.generateContent({
-                model: activeModel(),
-                contents: [
-                    {
-                        role: "user",
-                        parts: [
-                            { inlineData: { mimeType: image.mimeType, data: image.data } },
-                            { text: prompt },
-                        ],
-                    },
-                ],
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: toGeminiSchema(schema),
+    return parseWithRetry(schema, async () => {
+        const response = await gemini.models.generateContent({
+            model: activeModel(),
+            contents: [
+                {
+                    role: "user",
+                    parts: [
+                        { inlineData: { mimeType: image.mimeType, data: image.data } },
+                        { text: prompt },
+                    ],
                 },
-            })
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: toGeminiSchema(schema),
+            },
+        })
 
-            const rawText = typeof response.text === "string" ? response.text : ""
-            if (!rawText.trim()) throw new Error("Gemini response text is missing")
-
-            return schema.parse(JSON.parse(rawText))
-        } catch (error) {
-            lastError = error
-            if (attempt < maxAttempts) {
-                await wait(isRateLimited(error) ? retryDelayMs(error, attempt) : 250)
-            }
-        }
-    }
-
-    throw lastError
+        return typeof response.text === "string" ? response.text : ""
+    }, maxAttempts)
 }

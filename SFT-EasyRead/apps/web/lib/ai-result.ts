@@ -210,7 +210,6 @@ export function simplifyReaderNotes(view: SimplifyView | null | undefined): Read
     const delta = view.simplifiedScore - view.originalScore
     if (delta >= SCORE_GAP) notes.push({ text: "Lebih mudah dari teks asli", tone: "good" })
     else if (delta <= -SCORE_GAP) notes.push({ text: "Belum lebih mudah", tone: "warn" })
-    else notes.push({ text: "Hampir sama dengan teks asli", tone: "amber" })
   } else if (view.difficulty === "easy") {
     notes.push({ text: "Lebih mudah dibaca", tone: "good" })
   } else if (view.difficulty === "medium") {
@@ -223,8 +222,6 @@ export function simplifyReaderNotes(view: SimplifyView | null | undefined): Read
 
   if (view.validationStatus === "valid") {
     notes.push({ text: "Isinya tetap sama", tone: "good" })
-  } else if (view.validationStatus === "fallback") {
-    notes.push({ text: "Sebagian tidak diubah, supaya artinya tetap sama", tone: "warn" })
   } else if (view.validationStatus === "rejected") {
     notes.push({ text: "Hasil AI tidak dipakai", tone: "error" })
   } else if (view.validationStatus === "pending" && view.markdown) {

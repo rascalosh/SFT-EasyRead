@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { extractTextFromImage, OcrInputError } from "@repo/web/services/ocr.service"
 import { getCurrentUser } from "@repo/web/proxy"
+import { isRateLimited, RATE_LIMIT_MESSAGE } from "@repo/web/lib/gemini"
 
 /** Pindai teks dari gambar. Menerima multipart/form-data dengan field image. */
 export async function POST(request: Request) {
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
 	} catch (error) {
 		if (error instanceof OcrInputError) {
 			return NextResponse.json({ message: error.message }, { status: 400 })
+		}
+
+		if (isRateLimited(error)) {
+			return NextResponse.json({ message: RATE_LIMIT_MESSAGE }, { status: 429 })
 		}
 
 		console.error(error)

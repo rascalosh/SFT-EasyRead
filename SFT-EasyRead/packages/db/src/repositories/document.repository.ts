@@ -25,7 +25,7 @@ export async function getDocuments(userId: string) {
 
     return supabase
         .from("documents")
-        .select("*")
+        .select("id, title, source_type, status, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 }

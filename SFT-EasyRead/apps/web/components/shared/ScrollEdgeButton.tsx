@@ -21,17 +21,25 @@ export default function ScrollEdgeButton({ className }: { className?: string }) 
   }, [])
 
   useEffect(() => {
-    update()
-    window.addEventListener("scroll", update, { passive: true })
-    window.addEventListener("resize", update)
+    let alive = true
 
-    const observer = new ResizeObserver(update)
+    function safeUpdate() {
+      if (!alive) return
+      update()
+    }
+
+    safeUpdate()
+    window.addEventListener("scroll", safeUpdate, { passive: true })
+    window.addEventListener("resize", safeUpdate)
+
+    const observer = new ResizeObserver(safeUpdate)
     observer.observe(document.documentElement)
     observer.observe(document.body)
 
     return () => {
-      window.removeEventListener("scroll", update)
-      window.removeEventListener("resize", update)
+      alive = false
+      window.removeEventListener("scroll", safeUpdate)
+      window.removeEventListener("resize", safeUpdate)
       observer.disconnect()
     }
   }, [update])
