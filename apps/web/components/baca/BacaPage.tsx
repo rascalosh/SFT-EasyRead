@@ -6,6 +6,7 @@ import { hrefFor } from "@/lib/nav"
 import { Card, Button, SegmentedControl, cx } from "@/components/shared/ui"
 import { IconSparkle, IconSpeaker, IconTextSize, IconBook } from "@/components/shared/icons"
 import { FocusRulerSentences } from "@/components/shared/FocusRulerSentences"
+import { QuickReadingToolbar } from "@/components/shared/QuickReadingToolbar"
 import { MaterialNotFound } from "@/components/material/MaterialNotFound"
 import { useActiveDocument } from "@/lib/use-active-document"
 import {
@@ -134,6 +135,7 @@ export default function ReadingInterface({ documentId, }: { documentId: string |
   }
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -303,5 +305,18 @@ export default function ReadingInterface({ documentId, }: { documentId: string |
         </div>
       </Card>
     </div>
+    <QuickReadingToolbar
+      fontSize={size}
+      onFontSizeChange={(fontSize) => {
+        setSize(fontSize)
+        persist({ fontSize })
+      }}
+      contrastId={contrastId}
+      onContrastChange={(id) => {
+        setContrastId(id)
+        persist({ contrastId: id })
+      }}
+    />
+    </>
   )
 }

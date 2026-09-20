@@ -316,7 +316,7 @@ export default function ComprehensionCheck({
                         <span className="mr-1.5 font-semibold">{i + 1}.</span>
                         {item.prompt}
                       </button>
-                      <span className="shrink-0">{r ? <StatusPill ok={r.ok} /> : null}</span>
+                      <span className="shrink-0">{r ? <StatusPill ok={r.ok} missLabel="Hampir Tepat!" /> : null}</span>
                     </li>
                   )
                 })}
@@ -437,7 +437,7 @@ export default function ComprehensionCheck({
                     )}
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <StatusPill ok={result.ok} />
+                      <StatusPill ok={result.ok} missLabel="Hampir Tepat!" />
                       <span className="text-sm font-medium text-ink">
                         {result.ok ? "Kamu menangkap inti bacaan." : "Hampir. Lihat catatan di bawah."}
                       </span>

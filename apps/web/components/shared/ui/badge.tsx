@@ -46,11 +46,11 @@ export function NumberBadge({ count, max = 99 }: { count: number; max?: number }
   )
 }
 
-export function StatusPill({ ok }: { ok: boolean }) {
+export function StatusPill({ ok, missLabel = "Belum Paham" }: { ok: boolean; missLabel?: string }) {
   return ok ? (
     <Badge tone="good" icon={<IconCheck width={12} height={12} />}>Paham</Badge>
   ) : (
-    <Badge tone="warn" icon={<IconWarning width={12} height={12} />}>Belum Paham</Badge>
+    <Badge tone="warn" icon={<IconWarning width={12} height={12} />}>{missLabel}</Badge>
   )
 }
 
