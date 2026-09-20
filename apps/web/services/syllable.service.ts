@@ -14,13 +14,58 @@ export type SyllableView = {
 
 const FALLBACK_MEANING = "Arti kata ini belum tersedia. Coba lagi sebentar."
 
+/** Timeout pendek — ini layanan pihak ketiga (hobby project, bukan SLA),
+ *  jangan sampai satu ketukan kata menggantung lama kalau sedang lambat/down. */
+const KBBI_TIMEOUT_MS = 2500
+
+type KbbiEntry = {
+    definitions?: Array<{ definition?: string }>
+}
+
+type KbbiResponse = {
+    entries?: KbbiEntry[]
+}
+
 /**
- * Kata yang tidak ada di glosarium Simplify diartikan lewat Gemini, bukan
- * ditinggal dengan placeholder "lihat kamus". Dipicu satu kata per ketukan
- * pengguna di Syllable Breaker (lihat handleWordClick di LatihanKataPage),
- * jadi tidak dipanggil massal untuk semua kata sekaligus.
+ * Kamus Besar Bahasa Indonesia lewat mirror API tidak resmi (kbbi.raf555.dev)
+ * — bukan layanan resmi Badan Bahasa, jadi diperlakukan sebagai best-effort:
+ * kalau lambat, down, atau kata tidak ditemukan, diamkan dan lanjut ke
+ * fallback AI. Data KBBI dilarang dipakai untuk keperluan komersial
+ * (UU Hak Cipta No. 28/2014) — hanya pantas dipakai selama EasyRead AI
+ * nonkomersial.
+ */
+async function lookupKbbi(word: string): Promise<string | null> {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), KBBI_TIMEOUT_MS)
+
+    try {
+        const response = await fetch(
+            `https://kbbi.raf555.dev/api/v1/entry/${encodeURIComponent(word)}`,
+            { signal: controller.signal },
+        )
+        if (!response.ok) return null
+
+        const data = (await response.json()) as KbbiResponse
+        const definition = data.entries?.[0]?.definitions?.[0]?.definition?.trim()
+        return definition || null
+    } catch {
+        return null
+    } finally {
+        clearTimeout(timeout)
+    }
+}
+
+/**
+ * Kata yang tidak ada di glosarium Simplify diartikan lewat KBBI dulu, lalu
+ * Gemini kalau KBBI tidak punya entrinya atau sedang tidak bisa diakses —
+ * bukan ditinggal dengan placeholder "lihat kamus". Dipicu satu kata per
+ * ketukan pengguna di Syllable Breaker (lihat handleWordClick di
+ * LatihanKataPage), jadi tidak dipanggil massal untuk semua kata sekaligus.
  */
 async function defineWordSimple(word: string): Promise<string> {
+    const kbbi = await lookupKbbi(word)
+    if (kbbi) return kbbi
+
     try {
         const result = await generateStructured(wordMeaningSchema, buildWordMeaningPrompt(word))
         return result.meaning.trim() || FALLBACK_MEANING
