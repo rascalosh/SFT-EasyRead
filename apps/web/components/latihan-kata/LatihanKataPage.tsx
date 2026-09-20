@@ -47,7 +47,7 @@ function localSyllable(word: string): Syllable {
   return {
     word,
     breakdown: breakdownOf(word),
-    meaning: "Lihat kamus untuk arti.",
+    meaning: "Mencari arti…",
     checkedAgo: "Baru saja",
   }
 }

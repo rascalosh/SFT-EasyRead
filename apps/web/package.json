@@ -20,6 +20,7 @@
     "./lib/prompts/quiz.prompt": "./lib/prompts/quiz.prompt.ts",
     "./lib/prompts/quiz-eval.prompt": "./lib/prompts/quiz-eval.prompt.ts",
     "./lib/prompts/ocr.prompt": "./lib/prompts/ocr.prompt.ts",
+    "./lib/prompts/word-meaning.prompt": "./lib/prompts/word-meaning.prompt.ts",
     "./services/quiz.service": "./services/quiz.service.ts",
     "./services/preferences.service": "./services/preferences.service.ts",
     "./services/session.service": "./services/session.service.ts",

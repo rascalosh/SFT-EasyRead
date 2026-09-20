@@ -30,13 +30,30 @@ export function selectReadingExcerpt(blocks: string[], maxWords = EXCERPT_MAX_WO
     const kept: string[] = []
 
     for (const sentence of sentences) {
-      const count = tokenizeWords(sentence).length
+      const tokens = tokenizeWords(sentence)
+      const count = tokens.length
       const hasSomething = words > 0
+
       if (hasSomething && words + count > maxWords) {
         truncated = true
         if (kept.length) out.push(kept.join(" "))
         break outer
       }
+
+      // Satu "kalimat" saja sudah melebihi batas — biasanya tanda baca
+      // hilang (mis. hasil OCR) sehingga seluruh paragraf terhitung satu
+      // kalimat. Potong di batas kata, JANGAN sertakan utuh: kalau tidak,
+      // rujukan penilaian bisa jauh lebih panjang daripada yang sanggup
+      // dibaca pengguna dalam waktu yang tersedia, membuat akurasi anjlok
+      // bukan karena bacaannya salah, tapi karena rujukannya kepanjangan.
+      if (!hasSomething && count > maxWords) {
+        const cut = sentence.trim().split(/\s+/).slice(0, maxWords).join(" ")
+        out.push(cut)
+        words = maxWords
+        truncated = true
+        break outer
+      }
+
       kept.push(sentence)
       words += count
     }

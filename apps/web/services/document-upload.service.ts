@@ -32,12 +32,18 @@ function extensionOf(name: string) {
     return name.toLowerCase().split(".").pop() ?? ""
 }
 
+/** pdf-parse menyisipkan baris pemisah halaman seperti "-- 1 of 11 --" di
+ *  antara tiap halaman; kalau tidak dibuang, TTS malah membacakannya
+ *  ("satu of sebelas"). */
+const PDF_PAGE_MARKER = /^--\s*\d+\s+of\s+\d+\s*--$/i
+
 function normalizeText(text: string) {
     return text
         .replaceAll(String.fromCharCode(0), "")
         .replace(/\r\n?/g, "\n")
         .split("\n")
         .map((line) => line.replace(/[ \t]+$/g, "").trim())
+        .filter((line) => !PDF_PAGE_MARKER.test(line))
         .join("\n")
         .replace(/\n{3,}/g, "\n\n")
         .trim()

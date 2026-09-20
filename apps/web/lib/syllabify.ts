@@ -123,10 +123,6 @@ function hasVowel(word: string) {
     return [...word].some((c) => VOWELS.has(c))
 }
 
-function startsWithVowel(word: string) {
-    return VOWELS.has(word[0] ?? "")
-}
-
 /** Pecah satu kata jadi daftar suku kata. */
 export function syllabify(rawWord: string): string[] {
     const word = rawWord.toLowerCase().replace(/[^a-z]/g, "")
@@ -137,17 +133,15 @@ export function syllabify(rawWord: string): string[] {
     const exception = EXCEPTIONS[word]
     if (exception) return [...exception]
 
-    // Awalan meng-/peng- sebelum vokal: nasalnya tetap menempel di awalan
-    // (meng-am-bil), berbeda dari meny- yang justru luruh ke suku berikutnya
-    // (me-nye-rah) sehingga sengaja tidak dikupas.
-    for (const prefix of ["meng", "peng"]) {
-        if (!word.startsWith(prefix)) continue
-
-        const stem = word.slice(prefix.length)
-        if (stem.length < 3 || !startsWithVowel(stem)) continue
-
-        return [prefix, ...syllabify(stem)]
-    }
+    // Catatan: awalan meng-/peng- SENGAJA tidak dikupas sebagai unit sendiri.
+    // Pemenggalan suku kata baku (beda dari analisis morfem) mengikuti pola
+    // fonotaktik permukaan: "ng" di antara dua vokal ikut suku berikutnya,
+    // sama seperti "ba-ngun" atau "pe-nge-ta-hu-an" (lihat EXCEPTIONS di
+    // atas) — bukan "bang-un" atau "peng-e-ta-hu-an". Dulu ada aturan yang
+    // sengaja menahan nasal di awalan (mis. "mengambil" -> "meng-am-bil"),
+    // tapi itu keliru: bentuk baku "me-ngam-bil" (dan "me-ngen-da-rai" untuk
+    // "mengendarai") sudah otomatis dihasilkan syllabifyCore lewat aturan
+    // digraf di bawah, jadi awalan ini dibiarkan lewat ke situ.
 
     // Akhiran: hanya dikupas kalau sisa katanya cukup panjang dan masih bervokal.
     for (const suffix of SUFFIXES) {

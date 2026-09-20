@@ -9,7 +9,8 @@
     "./quiz-evaluation": "./src/quiz-evaluation.schema.ts",
     "./preferences": "./src/preferences.schema.ts",
     "./ocr": "./src/ocr.schema.ts",
-    "./speech": "./src/speech.schema.ts"
+    "./speech": "./src/speech.schema.ts",
+    "./word-meaning": "./src/word-meaning.schema.ts"
   },
   "dependencies": {
     "zod": "^4.5.4"

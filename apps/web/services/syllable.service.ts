@@ -1,4 +1,7 @@
 import { breakdownOf } from "@repo/web/lib/syllabify"
+import { generateStructured } from "@repo/web/lib/gemini"
+import { buildWordMeaningPrompt } from "@repo/web/lib/prompts/word-meaning.prompt"
+import { wordMeaningSchema } from "@repo/schemas/word-meaning"
 import * as simplificationRepository from "@repo/db/repositories/simplification"
 
 /** Bentuk yang dirender LatihanKataPage — jangan diubah. */
@@ -9,7 +12,22 @@ export type SyllableView = {
     checkedAgo: string
 }
 
-const FALLBACK_MEANING = "Lihat kamus untuk arti."
+const FALLBACK_MEANING = "Arti kata ini belum tersedia. Coba lagi sebentar."
+
+/**
+ * Kata yang tidak ada di glosarium Simplify diartikan lewat Gemini, bukan
+ * ditinggal dengan placeholder "lihat kamus". Dipicu satu kata per ketukan
+ * pengguna di Syllable Breaker (lihat handleWordClick di LatihanKataPage),
+ * jadi tidak dipanggil massal untuk semua kata sekaligus.
+ */
+async function defineWordSimple(word: string): Promise<string> {
+    try {
+        const result = await generateStructured(wordMeaningSchema, buildWordMeaningPrompt(word))
+        return result.meaning.trim() || FALLBACK_MEANING
+    } catch {
+        return FALLBACK_MEANING
+    }
+}
 
 /**
  * Arti kata diambil dari glossary yang SUDAH dibuat Gemini saat menyederhanakan
@@ -61,20 +79,23 @@ export async function syllabifyWords(
     const glossary = await loadGlossary(documentId)
 
     const seen = new Set<string>()
-    const results: SyllableView[] = []
+    const unique: string[] = []
 
     for (const raw of words) {
         const word = raw.toLowerCase().replace(/[^a-z]/g, "")
         if (!word || seen.has(word)) continue
         seen.add(word)
+        unique.push(word)
+    }
 
-        results.push({
+    const results = await Promise.all(
+        unique.map(async (word) => ({
             word,
             breakdown: breakdownOf(word),
-            meaning: glossary.get(word) ?? FALLBACK_MEANING,
+            meaning: glossary.get(word) ?? (await defineWordSimple(word)),
             checkedAgo: "Baru saja",
-        })
-    }
+        })),
+    )
 
     return results
 }
